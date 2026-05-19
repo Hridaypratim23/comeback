@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useStore, TARGETS } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
-import { Plus, X, Search, Flame, Dumbbell, Zap, Droplet } from 'lucide-react'
+import { Plus, X, Search } from 'lucide-react'
+
+// TDEE estimate: 72kg, 5'6", 22% BF, moderate-heavy activity (Harris-Benedict + 1.55 multiplier)
+const TDEE = 2400
+// Deficit target: to reach 15% BF (~457 kcal/day deficit)
+const GOAL_DEFICIT = 457
 
 function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: number; color: string; label: string; unit?: string }) {
   const r = 28
@@ -69,6 +74,10 @@ export default function NutritionPage() {
   const calPct = Math.min((totalCal / TARGETS.calories) * 100, 100)
   const remaining = TARGETS.calories - totalCal
 
+  // Deficit/surplus vs TDEE
+  const difference = TDEE - totalCal  // positive = deficit, negative = surplus
+  const isDeficit = difference >= 0
+
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
       {/* Header */}
@@ -90,8 +99,33 @@ export default function NutritionPage() {
           </div>
         </div>
         <div className="h-3 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all duration-700 ${calPct >= 100 ? 'bg-[#FF2800]' : 'bg-gradient-to-r from-[#1DB954] to-[#D4A017]'}`}
-               style={{ width: `${calPct}%` }} />
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${calPct >= 100 ? 'bg-[#FF2800]' : 'bg-gradient-to-r from-[#1DB954] to-[#D4A017]'}`}
+            style={{ width: `${calPct}%` }}
+          />
+        </div>
+
+        {/* Deficit/Surplus Display */}
+        <div className="mt-3 pt-3 border-t border-[#1E1E26] space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#686870]">TDEE ESTIMATE</span>
+            <span className="text-[10px] font-black text-[#686870]">{TDEE} kcal</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#686870]">
+              {isDeficit ? 'DEFICIT' : 'SURPLUS'}
+            </span>
+            <span
+              className="text-[11px] font-black"
+              style={{ color: isDeficit ? '#1DB954' : '#FF5500' }}
+            >
+              {isDeficit ? '-' : '+'}{Math.abs(difference)} kcal
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#686870]">GOAL</span>
+            <span className="text-[10px] font-black text-[#2196F3]">-{GOAL_DEFICIT} kcal/day → 15% BF</span>
+          </div>
         </div>
       </div>
 
@@ -120,8 +154,10 @@ export default function NutritionPage() {
                     {m.calories}cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F · {m.time}
                   </div>
                 </div>
-                <button onClick={() => removeMeal(m.id)}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
+                <button
+                  onClick={() => removeMeal(m.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer"
+                >
                   <X size={13} />
                 </button>
               </div>
@@ -143,9 +179,11 @@ export default function NutritionPage() {
         </div>
         <div className="divide-y divide-[#1E1E26] max-h-72 overflow-y-auto">
           {filtered.map(m => (
-            <button key={m.name}
+            <button
+              key={m.name}
               onClick={() => addMeal(m)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left"
+            >
               <div>
                 <div className="font-bold text-sm text-[#EDEDF0]">{m.name}</div>
                 <div className="text-[10px] text-[#686870]">{m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
@@ -163,7 +201,8 @@ export default function NutritionPage() {
       {/* Custom Meal */}
       <button
         onClick={() => setShowCustom(s => !s)}
-        className="w-full py-3 rounded-xl border border-dashed border-[#2C2C38] text-sm font-black tracking-widest text-[#686870] hover:border-[#FF2800] hover:text-[#FF2800] transition-all cursor-pointer btn-press">
+        className="w-full py-3 rounded-xl border border-dashed border-[#2C2C38] text-sm font-black tracking-widest text-[#686870] hover:border-[#FF2800] hover:text-[#FF2800] transition-all cursor-pointer btn-press"
+      >
         + CUSTOM MEAL
       </button>
 
@@ -177,14 +216,19 @@ export default function NutritionPage() {
             { key: 'carbs', placeholder: 'Carbs (g)', type: 'number' },
             { key: 'fat', placeholder: 'Fat (g)', type: 'number' },
           ].map(({ key, placeholder, type }) => (
-            <input key={key} type={type} placeholder={placeholder}
+            <input
+              key={key}
+              type={type}
+              placeholder={placeholder}
               value={custom[key as keyof typeof custom]}
               onChange={e => setCustom(c => ({ ...c, [key]: e.target.value }))}
               className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
             />
           ))}
-          <button onClick={submitCustom}
-            className="w-full py-3 rounded-lg font-black text-sm tracking-widest text-white bg-[#FF2800] hover:bg-[#D42B1A] transition-colors cursor-pointer btn-press">
+          <button
+            onClick={submitCustom}
+            className="w-full py-3 rounded-lg font-black text-sm tracking-widest text-white bg-[#FF2800] hover:bg-[#D42B1A] transition-colors cursor-pointer btn-press"
+          >
             ADD MEAL
           </button>
         </div>

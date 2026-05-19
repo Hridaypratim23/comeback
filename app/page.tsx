@@ -3,8 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useStore, TARGETS, XP_LEVEL } from '@/lib/store'
 import { getTodayWorkout, MOTIVATION, WEEKLY_SCHEDULE } from '@/constants/workouts'
-import { Flame, Zap, Droplets, Target, ChevronRight, Trophy } from 'lucide-react'
+import { Flame, Droplets, Target, ChevronRight, Trophy, Bell } from 'lucide-react'
 import Link from 'next/link'
+import {
+  requestNotificationPermission,
+  buildDaySchedule,
+  sendScheduleToSW,
+} from '@/lib/notifications'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
@@ -26,15 +31,24 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 export default function HomePage() {
   const { stats, dayLogs, getOrCreateToday } = useStore()
   const [mounted, setMounted] = useState(false)
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
+  const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
+  const [now, setNow] = useState(new Date())
 
   useEffect(() => {
     setMounted(true)
     getOrCreateToday()
+    if (typeof Notification !== 'undefined') {
+      setNotifPermission(Notification.permission)
+    }
+    // Update time every minute for streak countdown
+    const tick = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(tick)
   }, [getOrCreateToday])
 
   if (!mounted) return null
 
-  const today = new Date()
+  const today = now
   const todayKey = today.toISOString().split('T')[0]
   const dayLog = dayLogs[todayKey]
   const workout = getTodayWorkout()
@@ -57,12 +71,99 @@ export default function HomePage() {
     return { date: dk, label: DAY_LABELS[d.getDay()], isToday: dk === todayKey, done: dayLogs[dk]?.workoutDone ?? false }
   })
 
+  // Streak death alert logic
+  const currentHour = now.getHours()
+  const isWorkoutDay = workout.exercises.length > 0
+  const workoutDone = dayLog?.workoutDone ?? false
+  const showStreakAlert = currentHour >= 18 && !workoutDone && stats.streak > 0 && isWorkoutDay
+
+  const midnight = new Date(now)
+  midnight.setHours(24, 0, 0, 0)
+  const msLeft = midnight.getTime() - now.getTime()
+  const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60))
+  const minsLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60))
+
+  // Notification permission
+  const showNotifBanner =
+    !notifBannerDismissed &&
+    notifPermission === 'default' &&
+    typeof Notification !== 'undefined'
+
+  const handleEnableNotifications = async () => {
+    const granted = await requestNotificationPermission()
+    setNotifPermission(granted ? 'granted' : 'denied')
+    if (granted) {
+      const schedule = buildDaySchedule({
+        streak: stats.streak,
+        waterMl: dayLog?.waterMl ?? 0,
+        waterTarget: TARGETS.waterMl,
+        workoutDone: workoutDone,
+        isWorkoutDay,
+        workoutLabel: workout.label,
+        mealCount: dayLog?.meals.length ?? 0,
+        totalCal,
+        calTarget: TARGETS.calories,
+      })
+      sendScheduleToSW(schedule)
+    }
+  }
+
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
+      {/* Streak Death Alert Banner */}
+      {showStreakAlert && (
+        <div className="animate-pulse rounded-xl border border-[#FF2800] bg-[#FF280015] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-black tracking-widest text-[#FF2800] mb-0.5">⚠️ STREAK AT RISK</div>
+              <div className="text-sm font-black text-[#EDEDF0]">
+                YOUR {stats.streak}-DAY STREAK DIES IN {hoursLeft}H {minsLeft}M
+              </div>
+            </div>
+            <Link href="/workout">
+              <button className="px-3 py-2 rounded-lg bg-[#FF2800] text-white text-[10px] font-black tracking-wider whitespace-nowrap cursor-pointer">
+                GO LOG →
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Permission Banner */}
+      {showNotifBanner && (
+        <div className="bg-[#111116] border border-[#2C2C38] rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Bell size={18} className="text-[#D4A017] mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="text-[11px] font-black tracking-widest text-[#EDEDF0] mb-1">🔔 ENABLE NOTIFICATIONS</div>
+              <div className="text-[10px] text-[#686870] leading-relaxed mb-3">
+                Get aggressive reminders at 6AM, hourly water checks, and streak warnings.
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleEnableNotifications}
+                  className="flex-1 py-2 rounded-lg bg-[#FF2800] text-white text-[10px] font-black tracking-widest cursor-pointer"
+                >
+                  ENABLE
+                </button>
+                <button
+                  onClick={() => setNotifBannerDismissed(true)}
+                  className="flex-1 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer"
+                >
+                  NOT NOW
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-bold tracking-[0.3em] text-[#686870] uppercase">{today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+          <p className="text-[11px] font-bold tracking-[0.3em] text-[#686870] uppercase">
+            {today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </p>
           <h1 className="text-4xl font-black tracking-[-0.03em] text-[#EDEDF0] leading-none mt-0.5">COMEBACK</h1>
           <p className="text-xs text-[#686870] mt-1 italic">"{quote}"</p>
         </div>
@@ -80,8 +181,10 @@ export default function HomePage() {
           <span className="text-[10px] font-bold text-[#FF2800]">{xpInLevel} / {XP_LEVEL}</span>
         </div>
         <div className="h-2 bg-[#111116] border border-[#1E1E26] rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#D42B1A] to-[#FF2800] rounded-full transition-all duration-700"
-               style={{ width: `${xpPct}%` }} />
+          <div
+            className="h-full bg-gradient-to-r from-[#D42B1A] to-[#FF2800] rounded-full transition-all duration-700"
+            style={{ width: `${xpPct}%` }}
+          />
         </div>
       </div>
 
@@ -91,11 +194,13 @@ export default function HomePage() {
           const w = WEEKLY_SCHEDULE.find(x => x.day === label)
           const isRest = !w || w.exercises.length === 0
           return (
-            <div key={date}
+            <div
+              key={date}
               className={`flex-1 flex flex-col items-center py-2 rounded-lg border transition-all
                 ${isToday
                   ? 'bg-[#111116] border-[#FF2800]'
-                  : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
+                  : 'bg-[#0D0D10] border-[#1E1E26]'}`}
+            >
               <span className={`text-[9px] font-black tracking-wider ${isToday ? 'text-[#EDEDF0]' : 'text-[#686870]'}`}>{label}</span>
               <div className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center text-[8px] font-black
                 ${done ? 'bg-[#FF2800]' : isRest ? 'bg-[#1E1E26]' : 'border border-[#2C2C38]'}`}>
@@ -119,8 +224,10 @@ export default function HomePage() {
               <div className="flex items-center gap-1">
                 {dayLog?.workoutDone
                   ? <span className="px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">DONE ✓</span>
-                  : <span className="flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-wider"
-                           style={{ background: `${workout.color}33`, color: workout.color }}>
+                  : <span
+                      className="flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-wider"
+                      style={{ background: `${workout.color}33`, color: workout.color }}
+                    >
                       GO <ChevronRight size={12} />
                     </span>
                 }

@@ -44,11 +44,28 @@ export interface UserStats {
   bodyFat: number
 }
 
+export interface ExercisePR {
+  weight: number
+  reps: number
+  date: string
+  oneRM: number  // Epley: Math.round(weight * (1 + reps / 30))
+}
+
+export interface BodyStatEntry {
+  date: string
+  weight: number
+  bodyFat: number
+}
+
 interface AppState {
   today: string
   dayLogs: Record<string, DayLog>
   stats: UserStats
   activeWorkoutId: string | null
+  prs: Record<string, ExercisePR>
+  bodyHistory: BodyStatEntry[]
+  exerciseHistory: Record<string, Array<{ date: string; maxWeight: number; maxReps: number }>>
+  newPR: string | null
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
@@ -58,7 +75,9 @@ interface AppState {
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
   updateStats: (partial: Partial<UserStats>) => void
+  updateBodyStats: (weight: number, bodyFat: number) => void
   setActiveWorkout: (id: string | null) => void
+  clearNewPR: () => void
   syncToSupabase: () => Promise<void>
 }
 
@@ -87,6 +106,11 @@ const defaultStats: UserStats = {
 const XP = { workout: 100, meal: 10, water250: 5, steps1k: 10 }
 const XP_PER_LEVEL = 500
 
+function epley(weight: number, reps: number): number {
+  if (reps === 1) return weight
+  return Math.round(weight * (1 + reps / 30))
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -94,6 +118,10 @@ export const useStore = create<AppState>()(
       dayLogs: {},
       stats: defaultStats,
       activeWorkoutId: null,
+      prs: {},
+      bodyHistory: [],
+      exerciseHistory: {},
+      newPR: null,
 
       getOrCreateToday: () => {
         const d = todayStr()
@@ -135,13 +163,51 @@ export const useStore = create<AppState>()(
           } else {
             logs.push({ exerciseId, sets: [newSet] })
           }
-          return { dayLogs: { ...s.dayLogs, [d]: { ...day, exerciseLogs: logs } } }
+
+          // Calculate Epley 1RM
+          const oneRM = epley(weight, reps)
+          const existingPR = s.prs[exerciseId]
+          const isPR = !existingPR || oneRM > existingPR.oneRM
+          const updatedPRs = isPR
+            ? { ...s.prs, [exerciseId]: { weight, reps, date: d, oneRM } }
+            : s.prs
+
+          // Update exercise history for today
+          const exHistory = { ...s.exerciseHistory }
+          const entries = exHistory[exerciseId] ? [...exHistory[exerciseId]] : []
+          const todayIdx = entries.findIndex(e => e.date === d)
+          const newEntry = {
+            date: d,
+            maxWeight: Math.max(weight, entries.find(e => e.date === d)?.maxWeight ?? 0),
+            maxReps: Math.max(reps, entries.find(e => e.date === d)?.maxReps ?? 0),
+          }
+          if (todayIdx >= 0) {
+            entries[todayIdx] = newEntry
+          } else {
+            entries.push(newEntry)
+          }
+          // keep last 30 sessions
+          const trimmed = entries.slice(-30)
+          exHistory[exerciseId] = trimmed
+
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, exerciseLogs: logs } },
+            prs: updatedPRs,
+            exerciseHistory: exHistory,
+            newPR: isPR ? exerciseId : s.newPR,
+          }
         })
       },
 
+      clearNewPR: () => set({ newPR: null }),
+
       addMeal: (meal) => {
         const d = todayStr()
-        const entry: MealEntry = { ...meal, id: crypto.randomUUID(), time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }
+        const entry: MealEntry = {
+          ...meal,
+          id: crypto.randomUUID(),
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        }
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
           const totalXP = s.stats.totalXP + XP.meal
@@ -192,6 +258,24 @@ export const useStore = create<AppState>()(
         set(s => ({ stats: { ...s.stats, ...partial } }))
       },
 
+      updateBodyStats: (weight: number, bodyFat: number) => {
+        const d = todayStr()
+        set(s => {
+          // Update stats
+          const updatedStats = { ...s.stats, weight, bodyFat }
+
+          // Push to bodyHistory, replacing today's entry if exists, keep last 90
+          const existing = s.bodyHistory.filter(e => e.date !== d)
+          const newEntry: BodyStatEntry = { date: d, weight, bodyFat }
+          const updated = [...existing, newEntry]
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(-90)
+
+          return { stats: updatedStats, bodyHistory: updated }
+        })
+        get().syncToSupabase()
+      },
+
       setActiveWorkout: (id) => set({ activeWorkoutId: id }),
 
       syncToSupabase: async () => {
@@ -226,7 +310,13 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'comeback-store',
-      partialize: (s) => ({ dayLogs: s.dayLogs, stats: s.stats }),
+      partialize: (s) => ({
+        dayLogs: s.dayLogs,
+        stats: s.stats,
+        prs: s.prs,
+        bodyHistory: s.bodyHistory,
+        exerciseHistory: s.exerciseHistory,
+      }),
     }
   )
 )

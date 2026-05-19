@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { getTodayWorkout, WEEKLY_SCHEDULE, type Exercise } from '@/constants/workouts'
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Zap, Clock } from 'lucide-react'
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import RestTimer from '@/components/RestTimer'
 
 function SetRow({
   setNum, exerciseId, done, savedReps, savedWeight, onLog,
@@ -43,13 +44,28 @@ function SetRow({
   )
 }
 
-function ExerciseCard({ exercise, color }: { exercise: Exercise; color: string }) {
+function ExerciseCard({
+  exercise,
+  color,
+  onSetLogged,
+}: {
+  exercise: Exercise
+  color: string
+  onSetLogged: () => void
+}) {
   const [open, setOpen] = useState(false)
-  const { dayLogs, logSet } = useStore()
+  const { dayLogs, logSet, prs, exerciseHistory } = useStore()
   const today = new Date().toISOString().split('T')[0]
   const dayLog = dayLogs[today]
   const exLog = dayLog?.exerciseLogs.find(l => l.exerciseId === exercise.id)
   const doneSets = exLog?.sets.filter(s => s.done).length ?? 0
+
+  // Last session (not today)
+  const history = exerciseHistory[exercise.id] ?? []
+  const lastSession = history.filter(e => e.date !== today).slice(-1)[0] ?? null
+
+  // PR
+  const pr = prs[exercise.id] ?? null
 
   return (
     <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
@@ -59,8 +75,22 @@ function ExerciseCard({ exercise, color }: { exercise: Exercise; color: string }
         <div className="flex items-center gap-3 text-left">
           <div className="w-1 h-10 rounded-full" style={{ backgroundColor: doneSets >= exercise.sets ? '#1DB954' : color }} />
           <div>
-            <div className="font-black text-sm text-[#EDEDF0]">{exercise.name}</div>
-            <div className="text-[11px] text-[#686870]">{exercise.sets} sets · {exercise.repsRange} reps{exercise.notes ? ` · ${exercise.notes}` : ''}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-black text-sm text-[#EDEDF0]">{exercise.name}</div>
+              {pr && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-[#D4A01722] text-[#D4A017] border border-[#D4A01733]">
+                  1RM ~{pr.oneRM}kg
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="text-[11px] text-[#686870]">{exercise.sets} sets · {exercise.repsRange} reps{exercise.notes ? ` · ${exercise.notes}` : ''}</div>
+              {lastSession && (
+                <div className="text-[10px] text-[#2C2C38] font-bold">
+                  LAST: {lastSession.maxWeight}kg × {lastSession.maxReps}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -86,7 +116,10 @@ function ExerciseCard({ exercise, color }: { exercise: Exercise; color: string }
                 done={s?.done ?? false}
                 savedReps={s?.reps}
                 savedWeight={s?.weight}
-                onLog={(reps, weight) => logSet(exercise.id, i + 1, reps, weight)}
+                onLog={(reps, weight) => {
+                  logSet(exercise.id, i + 1, reps, weight)
+                  onSetLogged()
+                }}
               />
             )
           })}
@@ -97,10 +130,14 @@ function ExerciseCard({ exercise, color }: { exercise: Exercise; color: string }
 }
 
 export default function WorkoutPage() {
-  const { dayLogs, markWorkoutDone, getOrCreateToday } = useStore()
+  const { dayLogs, markWorkoutDone, getOrCreateToday, newPR, clearNewPR, prs } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
+  const [showRest, setShowRest] = useState(false)
+  const [restDuration, setRestDuration] = useState(90)
+  const [prBannerVisible, setPrBannerVisible] = useState(false)
+  const [prBannerExId, setPrBannerExId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -112,6 +149,18 @@ export default function WorkoutPage() {
     const id = setInterval(() => setTimer(t => t + 1), 1000)
     return () => clearInterval(id)
   }, [timerRunning])
+
+  // Show PR banner when newPR fires
+  useEffect(() => {
+    if (!newPR) return
+    setPrBannerExId(newPR)
+    setPrBannerVisible(true)
+    const t = setTimeout(() => {
+      setPrBannerVisible(false)
+      clearNewPR()
+    }, 3000)
+    return () => clearTimeout(t)
+  }, [newPR, clearNewPR])
 
   if (!mounted) return null
 
@@ -130,8 +179,37 @@ export default function WorkoutPage() {
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
   const secs = (timer % 60).toString().padStart(2, '0')
 
+  // Get exercise name for PR banner
+  const allExercises = WEEKLY_SCHEDULE.flatMap(w => w.exercises)
+  const prExerciseName = prBannerExId
+    ? allExercises.find(e => e.id === prBannerExId)?.name ?? prBannerExId
+    : ''
+
+  const REST_DURATION_OPTIONS = [
+    { label: '60s', seconds: 60 },
+    { label: '90s', seconds: 90 },
+    { label: '120s', seconds: 120 },
+  ]
+
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
+      {/* PR Flash Banner */}
+      {prBannerVisible && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#FF2800] py-3 px-4 text-center animate-pulse">
+          <span className="text-white font-black text-sm tracking-widest">
+            🏆 NEW PR — {prExerciseName.toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {/* Rest Timer */}
+      {showRest && (
+        <RestTimer
+          defaultSeconds={restDuration}
+          onDismiss={() => setShowRest(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -139,7 +217,7 @@ export default function WorkoutPage() {
           <h1 className="text-3xl font-black text-[#EDEDF0] leading-none mt-0.5">{workout.label}</h1>
           <p className="text-xs text-[#686870] mt-0.5">{workout.muscles}</p>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-2">
           <div
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all"
             style={{ background: timerRunning ? '#FF280022' : '#1E1E26' }}
@@ -147,6 +225,24 @@ export default function WorkoutPage() {
             <Clock size={12} className={timerRunning ? 'text-[#FF2800]' : 'text-[#686870]'} />
             <span className={`text-xs font-black tabular-nums ${timerRunning ? 'text-[#FF2800]' : 'text-[#686870]'}`}>{mins}:{secs}</span>
           </div>
+          {/* Rest Duration Selector */}
+          {!isRest && (
+            <div className="flex gap-1">
+              {REST_DURATION_OPTIONS.map(opt => (
+                <button
+                  key={opt.seconds}
+                  onClick={() => setRestDuration(opt.seconds)}
+                  className={`px-2 py-1 rounded text-[9px] font-black transition-all cursor-pointer ${
+                    restDuration === opt.seconds
+                      ? 'bg-[#FF2800] text-white'
+                      : 'bg-[#1E1E26] text-[#686870] hover:text-[#EDEDF0]'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -177,7 +273,12 @@ export default function WorkoutPage() {
           {/* Exercises */}
           <div className="space-y-2">
             {workout.exercises.map(ex => (
-              <ExerciseCard key={ex.id} exercise={ex} color={workout.color} />
+              <ExerciseCard
+                key={ex.id}
+                exercise={ex}
+                color={workout.color}
+                onSetLogged={() => setShowRest(true)}
+              />
             ))}
           </div>
 
