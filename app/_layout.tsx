@@ -1,59 +1,52 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
+import 'react-native-url-polyfill/auto';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
+import { useStore } from '../store';
+import { requestNotificationPermissions, scheduleAllNotifications } from '../utils/notifications';
+// import { useHealthKit } from '../hooks/useHealthKit'; // manual steps mode
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
+export { ErrorBoundary } from 'expo-router';
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
+function AppInit() {
+  const { saveAndResetDay, notificationsScheduled, setNotificationsScheduled, loadFromCloud } = useStore();
+
+  // Steps are logged manually via the Home screen steps card
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    saveAndResetDay();
+    // Load cloud data in background — local state renders immediately
+    loadFromCloud();
+    SplashScreen.hideAsync();
+  }, []);
+
+  useEffect(() => {
+    if (!notificationsScheduled) {
+      requestNotificationPermissions().then((granted) => {
+        if (granted) {
+          scheduleAllNotifications().then(() => setNotificationsScheduled(true));
+        }
+      });
     }
-  }, [loaded]);
+  }, [notificationsScheduled]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
+  return null;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    <>
+      <StatusBar style="light" backgroundColor="#0D0D0D" />
+      <AppInit />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="+not-found" />
       </Stack>
-    </ThemeProvider>
+    </>
   );
 }

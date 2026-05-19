@@ -1,20 +1,23 @@
 {
   "expo": {
-    "name": "comeback",
+    "name": "COMEBACK",
     "slug": "comeback",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "comeback",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D0D0D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMotionUsageDescription": "COMEBACK uses your phone's motion sensor to automatically count your daily steps."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,10 +33,25 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FF3B30",
+          "defaultChannel": "comeback"
+        }
+      ],
+      "expo-sensors"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d8807602-2426-4dd3-9461-7600ce4709bb"
+      }
     }
   }
 }
