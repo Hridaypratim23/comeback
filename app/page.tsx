@@ -15,6 +15,73 @@ import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
+function CircularScore({
+  label,
+  score,
+  pillars,
+}: {
+  label: string
+  score: number
+  pillars: { key: string; text: string; done: boolean }[]
+}) {
+  const r = 36
+  const circ = 2 * Math.PI * r
+  const offset = circ * (1 - score / 100)
+  const color = score >= 75 ? '#1DB954' : score >= 50 ? '#D4A017' : '#FF2800'
+
+  return (
+    <div className="flex-1 flex flex-col items-center gap-2.5">
+      <div className="relative w-[88px] h-[88px]">
+        <svg width="88" height="88" viewBox="0 0 88 88" className="overflow-visible">
+          {/* Outer subtle glow ring */}
+          <circle cx="44" cy="44" r={r} fill="none" stroke={score > 0 ? color : 'transparent'}
+            strokeWidth="12" opacity="0.06" />
+          {/* Track */}
+          <circle cx="44" cy="44" r={r} fill="none" stroke="#1A1A22" strokeWidth="7" />
+          {/* Progress arc */}
+          <circle
+            cx="44" cy="44" r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={score === 0 ? circ : offset}
+            transform="rotate(-90 44 44)"
+            style={{
+              transition: 'stroke-dashoffset 0.85s cubic-bezier(0.4,0,0.2,1), stroke 0.5s ease',
+              filter: score > 0 ? `drop-shadow(0 0 6px ${color}99)` : 'none',
+            }}
+          />
+        </svg>
+        {/* Center */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+          <span className="text-[27px] font-black leading-none tabular-nums" style={{ color: score > 0 ? '#EDEDF0' : '#2C2C38' }}>
+            {score}
+          </span>
+          <span className="text-[9px] font-black tracking-[0.2em] text-[#686870] -mt-0.5">%</span>
+        </div>
+      </div>
+
+      {/* Label */}
+      <span className="text-[9px] font-black tracking-[0.3em] text-[#686870]">{label}</span>
+
+      {/* 2×2 pillar grid */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 w-full">
+        {pillars.map(({ key, text, done }) => (
+          <div key={key} className="flex items-center gap-1.5 min-w-0">
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-500"
+              style={{ backgroundColor: done ? color : '#2C2C38' }} />
+            <span className={`text-[8px] font-black tracking-wider truncate transition-colors duration-500 ${done ? 'text-[#EDEDF0]' : 'text-[#2C2C38]'}`}>
+              {text}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function MacroBar({ label, val, max, color }: { label: string; val: number; max: number; color: string }) {
   const pct = Math.min((val / max) * 100, 100)
   return (
@@ -257,60 +324,30 @@ export default function HomePage() {
           <p className="text-[9px] text-[#2C2C38] font-bold tracking-widest mt-1">TAP FOR NEXT</p>
         </div>
 
-        {/* ── Score Bars ── */}
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
-          {/* Daily */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">TODAY</span>
-              <span className="text-sm font-black" style={{ color: dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800' }}>
-                {dailyScore}%
-              </span>
-            </div>
-            <div className="h-2.5 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${dailyScore}%`, background: dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800' }} />
-            </div>
-            <div className="flex gap-3 mt-1.5">
-              {[
-                { label: 'WORKOUT', done: dailyWorkout > 0 },
-                { label: 'STEPS',   done: todaySteps >= 10000 },
-                { label: 'SLEEP',   done: dailySleep > 0 },
-                { label: 'DIET',    done: dailyCal > 0 },
-              ].map(({ label, done }) => (
-                <span key={label} className={`text-[9px] font-black tracking-widest ${done ? 'text-[#1DB954]' : 'text-[#2C2C38]'}`}>
-                  {done ? '✓' : '·'} {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-[#1E1E26]" />
-
-          {/* Weekly */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">THIS WEEK</span>
-              <span className="text-sm font-black" style={{ color: weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800' }}>
-                {weeklyScore}%
-              </span>
-            </div>
-            <div className="h-2.5 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${weeklyScore}%`, background: weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800' }} />
-            </div>
-            <div className="flex gap-3 mt-1.5">
-              {[
-                { label: `${weekWorkouts}/5 WO`,      done: weekWorkouts >= 5 },
-                { label: `${weekStepDays}/5 STEPS`,   done: weekStepDays >= 5 },
-                { label: `${weekSleepDays}/7 SLEEP`,  done: weekSleepDays >= 7 },
-                { label: `${weekGoodDays}/6 DIET`,    done: weekGoodDays >= 6 },
-              ].map(({ label, done }) => (
-                <span key={label} className={`text-[9px] font-black tracking-widest ${done ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
-                  {label}
-                </span>
-              ))}
-            </div>
+        {/* ── Score Rings ── */}
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl px-5 py-5">
+          <div className="flex items-start gap-4">
+            <CircularScore
+              label="TODAY"
+              score={dailyScore}
+              pillars={[
+                { key: 'workout', text: 'WORKOUT', done: dailyWorkout > 0 },
+                { key: 'steps',   text: 'STEPS',   done: todaySteps >= 10000 },
+                { key: 'sleep',   text: 'SLEEP',   done: dailySleep > 0 },
+                { key: 'diet',    text: 'DIET',    done: dailyCal > 0 },
+              ]}
+            />
+            <div className="w-px self-stretch bg-[#1E1E26]" />
+            <CircularScore
+              label="THIS WEEK"
+              score={weeklyScore}
+              pillars={[
+                { key: 'wo',    text: `${weekWorkouts}/5 WO`,    done: weekWorkouts >= 5 },
+                { key: 'steps', text: `${weekStepDays}/5 STEPS`, done: weekStepDays >= 5 },
+                { key: 'sleep', text: `${weekSleepDays}/7 SLEEP`,done: weekSleepDays >= 7 },
+                { key: 'diet',  text: `${weekGoodDays}/6 DIET`,  done: weekGoodDays >= 6 },
+              ]}
+            />
           </div>
         </div>
 
