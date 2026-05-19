@@ -22,8 +22,10 @@ html, body {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
 }
 
+/* ── Original animations ──────────────────────────────── */
+
 @keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.6; }
+  0%   { transform: scale(1);   opacity: 0.6; }
   100% { transform: scale(1.6); opacity: 0; }
 }
 
@@ -33,10 +35,93 @@ html, body {
 
 @keyframes count-up {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-bar { animation: bar-fill 0.6s ease-out forwards; }
-.animate-in { animation: count-up 0.4s ease-out forwards; }
+.animate-in  { animation: count-up 0.4s ease-out forwards; }
 
-.btn-press:active { transform: scale(0.96); }
+.btn-press:active { transform: scale(0.95); }
+
+/* ── Quote fade transitions ───────────────────────────── */
+
+.quote-enter { animation: quoteIn  0.5s ease forwards; }
+.quote-exit  { animation: quoteOut 0.4s ease forwards; }
+
+@keyframes quoteIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes quoteOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ── Glow effects ─────────────────────────────────────── */
+
+.red-glow {
+  text-shadow:
+    0 0 24px rgba(255, 40, 0, 0.5),
+    0 0 48px rgba(255, 40, 0, 0.2);
+}
+
+.red-border-glow {
+  box-shadow:
+    0 0 0 1px #FF280044,
+    0 4px 32px rgba(255, 40, 0, 0.12);
+}
+
+/* ── Ticker ───────────────────────────────────────────── */
+
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker             { animation: ticker 50s linear infinite; }
+.animate-ticker:hover       { animation-play-state: paused; }
+
+/* ── Pulse red ────────────────────────────────────────── */
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
+
+/* ── Streak fire shake ────────────────────────────────── */
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-2px) rotate(-1deg); }
+  75%       { transform: translateX(2px)  rotate(1deg); }
+}
+
+.animate-shake { animation: shake 0.5s ease; }
+
+/* ── Combat scan-line overlay ─────────────────────────── */
+
+.scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+}
+
+/* ── Mission complete confetti dots ─────────────────── */
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20px) scale(0); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(80px) scale(1); opacity: 0; }
+}
+
+.confetti-dot {
+  animation: confetti-fall 1.2s ease-in forwards;
+}

@@ -1,3 +1,5 @@
+import { getQuoteByIndex } from '../constants/quotes'
+
 export interface ScheduledNotification {
   id: string
   showAt: number  // timestamp ms
@@ -11,6 +13,16 @@ function todayAt(hour: number, minute = 0): number {
   const d = new Date()
   d.setHours(hour, minute, 0, 0)
   return d.getTime()
+}
+
+/** Returns a quote that rotates by day+hour so it varies but is consistent per slot. */
+function quoteForSlot(hour: number): string {
+  const d = new Date()
+  return getQuoteByIndex(d.getDate() * 24 + hour)
+}
+
+function withQuote(body: string, hour: number): string {
+  return `${body}\n\n"${quoteForSlot(hour)}"`
 }
 
 export function buildDaySchedule(params: {
@@ -36,7 +48,7 @@ export function buildDaySchedule(params: {
     calTarget,
   } = params
 
-  const now = Date.now()
+  const now      = Date.now()
   const schedule: ScheduledNotification[] = []
 
   const add = (
@@ -51,105 +63,156 @@ export function buildDaySchedule(params: {
     }
   }
 
-  // 5:55 AM — pre-workout (workout day, not done)
+  // ── 5:55 AM — pre-workout ──────────────────────────────────────────────
   if (isWorkoutDay && !workoutDone) {
     add(
       'preworkout',
       todayAt(5, 55),
-      `${workoutLabel.toUpperCase()} WORKOUT IN 5 MINUTES`,
-      'Get your gear on. Bar is waiting. No excuses.',
+      `RISE. ${workoutLabel.toUpperCase()}. NOW.`,
+      withQuote(
+        'Bar is loaded. Clock is running. Get your gear on.',
+        5
+      ),
       '/workout'
     )
   }
 
-  // 6:00 AM — wake up call (workout day, not done)
+  // ── 6:00 AM — wake-up call ─────────────────────────────────────────────
   if (isWorkoutDay && !workoutDone) {
     add(
       'wakeup',
       todayAt(6, 0),
-      `GET UP. IT'S ${workoutLabel.toUpperCase()} DAY.`,
-      'The bar is loaded. The clock is running. MOVE.',
+      `RISE. ${workoutLabel.toUpperCase()}. NOW.`,
+      withQuote(
+        '6AM. Every rep you do now, your competition is sleeping through.',
+        6
+      ),
       '/workout'
     )
   }
 
-  // 9 AM — rest day reminder
+  // ── 9:00 AM — rest day ────────────────────────────────────────────────
   if (!isWorkoutDay) {
     add(
       'restday',
       todayAt(9, 0),
-      'REST DAY.',
-      'Hit protein and water. Muscle grows when you rest.',
+      'REST DAY. RECOVER HARD.',
+      withQuote(
+        'Hit protein. Hit water. Muscle grows when you rest.',
+        9
+      ),
       '/'
     )
   }
 
-  // Hourly water reminders at 8, 10, 12, 14, 16, 18 — if water not met
+  // ── 11:00 AM — mindset check (every day) ──────────────────────────────
+  add(
+    'mindset_11',
+    todayAt(11, 0),
+    'STAY LOCKED IN.',
+    withQuote(
+      'No distractions. No excuses. Stay in the fight.',
+      11
+    ),
+    '/'
+  )
+
+  // ── Hourly water reminders ─────────────────────────────────────────────
   if (waterMl < waterTarget) {
     const waterHours = [8, 10, 12, 14, 16, 18]
     waterHours.forEach(hr => {
       const soFar = (waterMl / 1000).toFixed(1)
-      const left = ((waterTarget - waterMl) / 1000).toFixed(1)
+      const left  = ((waterTarget - waterMl) / 1000).toFixed(1)
       add(
         `water_${hr}`,
         todayAt(hr, 0),
-        'DRINK WATER. NOW.',
-        `${soFar}L so far. ${left}L left. Dehydration kills gains.`,
+        "YOU'RE DEHYDRATING. DRINK.",
+        withQuote(
+          `${soFar}L so far. ${left}L still owed. Dehydration kills gains.`,
+          hr
+        ),
         '/hydration'
       )
     })
   }
 
-  // 12 PM — zero meals logged
+  // ── 12:00 PM — zero meals ─────────────────────────────────────────────
   if (mealCount === 0) {
     add(
       'zeromeal',
       todayAt(12, 0),
       'ZERO MEALS LOGGED.',
-      'Feed the muscle. You\'re running on empty.',
+      withQuote(
+        "Feed the machine. You're running on empty. A soldier doesn't fight hungry.",
+        12
+      ),
       '/nutrition'
     )
   }
 
-  // 3 PM — calorie check if <40% of target
+  // ── 3:00 PM — calorie deficit check ───────────────────────────────────
   if (totalCal < calTarget * 0.4) {
     add(
       'cal_check',
       todayAt(15, 0),
       'CALORIE DEFICIT ALERT.',
-      `Only ${totalCal} kcal logged. You need fuel to grow.`,
+      withQuote(
+        `Only ${totalCal} kcal logged. You need fuel to grow. Eat.`,
+        15
+      ),
       '/nutrition'
     )
   }
 
-  // 8 PM — streak warning if streak > 0 and workout not done
+  // ── 3:00 PM — afternoon grind reminder (every day) ────────────────────
+  add(
+    'grind_15',
+    todayAt(15, 5),
+    'AFTERNOON GRIND.',
+    withQuote(
+      'Most people quit in the afternoon. Not you.',
+      15
+    ),
+    '/'
+  )
+
+  // ── 8:00 PM — streak warning ──────────────────────────────────────────
   if (streak > 0 && !workoutDone && isWorkoutDay) {
     add(
       'streak_warn',
       todayAt(20, 0),
       `${streak}-DAY STREAK AT RISK.`,
-      '4 hours left. Don\'t let it die tonight.',
+      withQuote(
+        '4 hours left. The streak dies at midnight. Move.',
+        20
+      ),
       '/workout'
     )
   }
 
-  // 10:30 PM — critical streak alert if streak > 2 and workout not done
+  // ── 10:30 PM — critical streak ────────────────────────────────────────
   if (streak > 2 && !workoutDone && isWorkoutDay) {
     add(
       'streak_critical',
       todayAt(22, 30),
-      `${streak} DAYS. 90 MINUTES. CHOOSE.`,
-      'Your streak ends at midnight. Log it or lose it.',
+      `⚠️ ${streak} DAYS. 90 MIN. OR IT'S GONE.`,
+      withQuote(
+        'Your streak ends at midnight. Every minute you wait makes it harder.',
+        22
+      ),
       '/workout'
     )
   }
 
-  // 10 PM — bedtime recovery reminder
+  // ── 10:00 PM — bedtime ────────────────────────────────────────────────
   add(
     'bedtime',
     todayAt(22, 0),
-    'SLEEP IS GAINS.',
-    'GH peaks at midnight. 8 hours = free gains. Go.',
+    'SLEEP IS GAINS. PUT IT DOWN.',
+    withQuote(
+      'GH peaks at midnight. 8 hours = free gains. Screen off. Eyes shut.',
+      22
+    ),
     '/'
   )
 
