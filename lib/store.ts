@@ -32,7 +32,16 @@ export interface DayLog {
   waterMl: number
   steps: number
   xpEarned: number
+  habits: Record<string, boolean>
 }
+
+export const DAILY_HABITS = [
+  { id: 'sleep', label: '7H+ SLEEP', icon: '😴', xp: 20 },
+  { id: 'mobility', label: '10 MIN MOBILITY', icon: '🧘', xp: 15 },
+  { id: 'creatine', label: 'CREATINE TAKEN', icon: '💊', xp: 10 },
+  { id: 'veggies', label: 'ATE VEGETABLES', icon: '🥦', xp: 10 },
+  { id: 'nojunk', label: 'ZERO JUNK FOOD', icon: '🚫', xp: 20 },
+]
 
 export interface UserStats {
   level: number
@@ -74,6 +83,8 @@ interface AppState {
   removeMeal: (id: string) => void
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
+  addSteps: (steps: number) => void
+  toggleHabit: (habitId: string) => void
   updateStats: (partial: Partial<UserStats>) => void
   updateBodyStats: (weight: number, bodyFat: number) => void
   setActiveWorkout: (id: string | null) => void
@@ -91,6 +102,7 @@ const defaultDay = (date: string): DayLog => ({
   waterMl: 0,
   steps: 0,
   xpEarned: 0,
+  habits: {},
 })
 
 const defaultStats: UserStats = {
@@ -251,6 +263,42 @@ export const useStore = create<AppState>()(
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps } } }
+        })
+      },
+
+      addSteps: (steps) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          const prevSteps = day.steps
+          const newSteps = prevSteps + steps
+          const prevMilestones = Math.floor(prevSteps / 1000)
+          const newMilestones = Math.floor(newSteps / 1000)
+          const xpGain = (newMilestones - prevMilestones) * XP.steps1k
+          const totalXP = s.stats.totalXP + xpGain
+          const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, steps: newSteps, xpEarned: day.xpEarned + xpGain } },
+            stats: xpGain > 0 ? { ...s.stats, totalXP, level } : s.stats,
+          }
+        })
+      },
+
+      toggleHabit: (habitId) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          const habits = { ...day.habits }
+          const habit = DAILY_HABITS.find(h => h.id === habitId)
+          const wasOn = habits[habitId]
+          habits[habitId] = !wasOn
+          const xpDelta = habit ? (wasOn ? -habit.xp : habit.xp) : 0
+          const totalXP = Math.max(0, s.stats.totalXP + xpDelta)
+          const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, habits, xpEarned: Math.max(0, day.xpEarned + xpDelta) } },
+            stats: { ...s.stats, totalXP, level },
+          }
         })
       },
 

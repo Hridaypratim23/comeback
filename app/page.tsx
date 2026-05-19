@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useStore, TARGETS, XP_LEVEL } from '@/lib/store'
+import { useStore, TARGETS, XP_LEVEL, DAILY_HABITS } from '@/lib/store'
 import { getTodayWorkout, WEEKLY_SCHEDULE } from '@/constants/workouts'
 import { Flame, Droplets, Trophy, Bell, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -40,7 +40,9 @@ function MacroBar({
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, getOrCreateToday } = useStore()
+  const { stats, dayLogs, getOrCreateToday, addSteps, setSteps, toggleHabit } = useStore()
+  const [stepsInput, setStepsInput] = useState('')
+  const [stepsMode, setStepsMode] = useState<'add' | 'set'>('add')
   const [mounted, setMounted]                       = useState(false)
   const [notifPermission, setNotifPermission]       = useState<NotificationPermission>('default')
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
@@ -415,6 +417,112 @@ export default function HomePage() {
             </div>
           </Link>
         </div>
+
+        {/* ── Steps ── */}
+        {(() => {
+          const steps = dayLog?.steps ?? 0
+          const stepsPct = Math.min((steps / TARGETS.steps) * 100, 100)
+          const stepsLeft = Math.max(TARGETS.steps - steps, 0)
+          const commitSteps = () => {
+            const n = parseInt(stepsInput)
+            if (!n || n <= 0) return
+            stepsMode === 'add' ? addSteps(n) : setSteps(n)
+            setStepsInput('')
+          }
+          return (
+            <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">👟</span>
+                  <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">STEPS</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xl font-black text-[#EDEDF0]">{steps.toLocaleString()}</span>
+                  <span className="text-[10px] text-[#686870] ml-1">/ 10,000</span>
+                </div>
+              </div>
+              <div className="h-2 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden mb-3">
+                <div className="h-full bg-gradient-to-r from-[#1A6BB5] to-[#2196F3] rounded-full transition-all duration-700"
+                     style={{ width: `${stepsPct}%` }} />
+              </div>
+              {stepsPct < 100 && (
+                <p className="text-[10px] text-[#686870] mb-3">{stepsLeft.toLocaleString()} steps to goal</p>
+              )}
+              {stepsPct >= 100 && (
+                <p className="text-[10px] font-black text-[#1DB954] mb-3">10K GOAL HIT ✓</p>
+              )}
+              {/* Quick add */}
+              <div className="flex gap-1.5 mb-2">
+                {[1000, 2500, 5000, 7500].map(n => (
+                  <button key={n} onClick={() => addSteps(n)}
+                    className="flex-1 py-1.5 rounded-lg border border-[#2196F333] text-[10px] font-black text-[#2196F3] bg-[#0D0D10] hover:bg-[#2196F311] active:scale-95 transition-all cursor-pointer">
+                    +{(n/1000).toFixed(n%1000===0?0:1)}K
+                  </button>
+                ))}
+              </div>
+              {/* Manual input */}
+              <div className="flex gap-2 items-center">
+                <div className="flex rounded-lg border border-[#1E1E26] overflow-hidden text-[10px] font-black">
+                  <button onClick={() => setStepsMode('add')}
+                    className={`px-2 py-1.5 transition-colors cursor-pointer ${stepsMode === 'add' ? 'bg-[#2196F3] text-white' : 'text-[#686870] bg-[#0D0D10]'}`}>
+                    +ADD
+                  </button>
+                  <button onClick={() => setStepsMode('set')}
+                    className={`px-2 py-1.5 transition-colors cursor-pointer ${stepsMode === 'set' ? 'bg-[#2196F3] text-white' : 'text-[#686870] bg-[#0D0D10]'}`}>
+                    SET
+                  </button>
+                </div>
+                <input type="number" inputMode="numeric" placeholder={stepsMode === 'add' ? 'Add steps...' : 'Set total...'}
+                  value={stepsInput} onChange={e => setStepsInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && commitSteps()}
+                  className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-1.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
+                <button onClick={commitSteps}
+                  className="px-4 py-1.5 rounded-lg bg-[#2196F3] text-white text-[10px] font-black cursor-pointer active:scale-95 transition-all">
+                  LOG
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ── Daily Habits ── */}
+        {(() => {
+          const habits = dayLog?.habits ?? {}
+          const doneCount = DAILY_HABITS.filter(h => habits[h.id]).length
+          const consistencyPct = Math.round((doneCount / DAILY_HABITS.length) * 100)
+          return (
+            <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">DAILY HABITS</span>
+                <span className={`text-[10px] font-black ${consistencyPct === 100 ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
+                  {doneCount}/{DAILY_HABITS.length} · {consistencyPct}%
+                </span>
+              </div>
+              <div className="space-y-2">
+                {DAILY_HABITS.map(habit => {
+                  const done = !!habits[habit.id]
+                  return (
+                    <button key={habit.id} onClick={() => toggleHabit(habit.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer btn-press text-left
+                        ${done ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
+                      <span className="text-xl leading-none">{habit.icon}</span>
+                      <div className="flex-1">
+                        <div className={`text-xs font-black tracking-wider ${done ? 'text-[#1DB954]' : 'text-[#EDEDF0]'}`}>
+                          {habit.label}
+                        </div>
+                        <div className="text-[9px] text-[#686870]">+{habit.xp} XP</div>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all
+                        ${done ? 'bg-[#1DB954] border-[#1DB954] text-[#070709]' : 'border-[#2C2C38]'}`}>
+                        {done && <span className="text-[10px] font-black">✓</span>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Macros ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
