@@ -153,6 +153,41 @@ export default function HomePage() {
   const selectedDateObj = new Date(selectedDate + 'T12:00:00')
   const selectedDateLabel = selectedDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' }).toUpperCase()
 
+  // ── Score calculations ─────────────────────────────────────────────────
+  const maintenance = Math.round((370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))) * 1.55)
+  const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
+  const todaySteps = todayLog?.steps ?? 0
+
+  const dailyWorkout = todayLog?.workoutDone ? 25 : 0
+  const dailySteps   = Math.min(todaySteps / 10000, 1) * 25
+  const dailySleep   = todayLog?.habits?.sleep ? 25 : 0
+  const dailyCal     = (todayCal > 0 && todayCal <= maintenance) ? 25 : 0
+  const dailyScore   = Math.round(dailyWorkout + dailySteps + dailySleep + dailyCal)
+
+  const curWeekStart = new Date(now)
+  const curDow = now.getDay()
+  curWeekStart.setDate(now.getDate() + (curDow === 0 ? -6 : 1 - curDow))
+  curWeekStart.setHours(0, 0, 0, 0)
+  const curWeekKeys = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(curWeekStart); d.setDate(curWeekStart.getDate() + i)
+    return d.toISOString().split('T')[0]
+  }).filter(dk => dk <= todayKey)
+  const curWeekLogs = curWeekKeys.map(dk => dayLogs[dk]).filter(Boolean)
+
+  const weekWorkouts = curWeekLogs.filter(d => d.workoutDone).length
+  const weekStepDays = curWeekLogs.filter(d => d.steps >= 10000).length
+  const weekSleepDays = curWeekLogs.filter(d => d.habits?.sleep).length
+  const weekGoodDays  = curWeekLogs.filter(d => {
+    const cal = d.meals.reduce((s, m) => s + m.calories, 0)
+    return d.habits?.nojunk && (cal === 0 || cal <= maintenance)
+  }).length
+  const weeklyScore = Math.round(
+    Math.min(weekWorkouts / 5, 1) * 25 +
+    Math.min(weekStepDays / 5, 1) * 25 +
+    Math.min(weekSleepDays / 7, 1) * 25 +
+    Math.min(weekGoodDays / 6, 1) * 25
+  )
+
   return (
     <div className="pb-4 space-y-4">
       <QuoteTicker />
@@ -221,6 +256,63 @@ export default function HomePage() {
           </div>
           <p className="text-[10px] font-black tracking-widest text-[#FF2800] mt-3">— MIND OF A WARRIOR</p>
           <p className="text-[9px] text-[#2C2C38] font-bold tracking-widest mt-1">TAP FOR NEXT</p>
+        </div>
+
+        {/* ── Score Bars ── */}
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
+          {/* Daily */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">TODAY</span>
+              <span className="text-sm font-black" style={{ color: dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800' }}>
+                {dailyScore}%
+              </span>
+            </div>
+            <div className="h-2.5 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${dailyScore}%`, background: dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800' }} />
+            </div>
+            <div className="flex gap-3 mt-1.5">
+              {[
+                { label: 'WORKOUT', done: dailyWorkout > 0 },
+                { label: 'STEPS',   done: todaySteps >= 10000 },
+                { label: 'SLEEP',   done: dailySleep > 0 },
+                { label: 'DIET',    done: dailyCal > 0 },
+              ].map(({ label, done }) => (
+                <span key={label} className={`text-[9px] font-black tracking-widest ${done ? 'text-[#1DB954]' : 'text-[#2C2C38]'}`}>
+                  {done ? '✓' : '·'} {label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-[#1E1E26]" />
+
+          {/* Weekly */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">THIS WEEK</span>
+              <span className="text-sm font-black" style={{ color: weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800' }}>
+                {weeklyScore}%
+              </span>
+            </div>
+            <div className="h-2.5 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${weeklyScore}%`, background: weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800' }} />
+            </div>
+            <div className="flex gap-3 mt-1.5">
+              {[
+                { label: `${weekWorkouts}/5 WO`,      done: weekWorkouts >= 5 },
+                { label: `${weekStepDays}/5 STEPS`,   done: weekStepDays >= 5 },
+                { label: `${weekSleepDays}/7 SLEEP`,  done: weekSleepDays >= 7 },
+                { label: `${weekGoodDays}/6 DIET`,    done: weekGoodDays >= 6 },
+              ].map(({ label, done }) => (
+                <span key={label} className={`text-[9px] font-black tracking-widest ${done ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* ── Wellness Journal / Week Navigator ── */}
