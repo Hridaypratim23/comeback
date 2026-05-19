@@ -24,8 +24,8 @@ function checkDue() {
       n.fired = true
       self.registration.showNotification(n.title, {
         body: n.body,
-        icon: '/icon.svg',
-        badge: '/icon.svg',
+        icon: '/icon.png',
+        badge: '/icon.png',
         tag: n.id,
         requireInteraction: true,
         vibrate: [300, 100, 300, 100, 300],

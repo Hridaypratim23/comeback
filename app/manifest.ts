@@ -11,12 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#FF2800',
     orientation: 'portrait',
     icons: [
-      { src: '/icon.svg', sizes: '48x48', type: 'image/svg+xml' },
-      { src: '/icon.svg', sizes: '72x72', type: 'image/svg+xml' },
-      { src: '/icon.svg', sizes: '96x96', type: 'image/svg+xml' },
-      { src: '/icon.svg', sizes: '128x128', type: 'image/svg+xml' },
-      { src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'maskable' },
-      { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
+      { src: '/icon.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       {
@@ -24,21 +20,21 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: 'WORKOUT',
         description: 'Log today\'s workout',
         url: '/workout',
-        icons: [{ src: '/icon.svg', sizes: '96x96' }],
+        icons: [{ src: '/icon.png', sizes: '96x96' }],
       },
       {
         name: 'Nutrition',
         short_name: 'NUTRITION',
         description: 'Log meals and macros',
         url: '/nutrition',
-        icons: [{ src: '/icon.svg', sizes: '96x96' }],
+        icons: [{ src: '/icon.png', sizes: '96x96' }],
       },
       {
         name: 'Hydration',
         short_name: 'HYDRATION',
         description: 'Track water intake',
         url: '/hydration',
-        icons: [{ src: '/icon.svg', sizes: '96x96' }],
+        icons: [{ src: '/icon.png', sizes: '96x96' }],
       },
     ],
   }
