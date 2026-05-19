@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { supabase } from './supabase'
+import { getSupabase } from './supabase'
 
 export interface SetLog {
   setNum: number
@@ -196,11 +196,13 @@ export const useStore = create<AppState>()(
 
       syncToSupabase: async () => {
         try {
+          const sb = getSupabase()
+          if (!sb) return
           const d = todayStr()
           const day = get().dayLogs[d]
           const stats = get().stats
           if (!day) return
-          await supabase.from('day_logs').upsert({
+          await sb.from('day_logs').upsert({
             date: d,
             workout_done: day.workoutDone,
             water_ml: day.waterMl,
@@ -209,7 +211,7 @@ export const useStore = create<AppState>()(
             meals: day.meals,
             exercise_logs: day.exerciseLogs,
           }, { onConflict: 'date' })
-          await supabase.from('user_stats').upsert({
+          await sb.from('user_stats').upsert({
             id: 'singleton',
             level: stats.level,
             total_xp: stats.totalXP,
