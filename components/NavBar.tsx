@@ -44,7 +44,7 @@ export default function NavBar() {
               <Ionicons
                 name={active ? tab.iconActive : tab.icon}
                 size={22}
-                color={active ? COLORS.redHot : COLORS.dimmed}
+                color={active ? COLORS.redHot : COLORS.grey}
               />
               <Text style={[styles.label, active && styles.labelActive]}>
                 {tab.label}
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 9,
     fontWeight: '800',
-    color: COLORS.dimmed,
+    color: COLORS.grey,
     letterSpacing: 1.5,
   },
   labelActive: {
