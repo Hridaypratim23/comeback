@@ -28,6 +28,8 @@ export interface DayLog {
   date: string
   workoutDone: boolean
   exerciseLogs: ExerciseLog[]
+  checkedExercises: string[]
+  workoutNotes: string
   meals: MealEntry[]
   waterMl: number
   steps: number
@@ -36,12 +38,29 @@ export interface DayLog {
 }
 
 export const DAILY_HABITS = [
-  { id: 'sleep', label: '7H+ SLEEP', icon: '😴', xp: 20 },
-  { id: 'mobility', label: '10 MIN MOBILITY', icon: '🧘', xp: 15 },
-  { id: 'creatine', label: 'CREATINE TAKEN', icon: '💊', xp: 10 },
+  { id: 'sleep', label: '7+ HOURS SLEEP', icon: '😴', xp: 20 },
+  { id: 'workout', label: 'WORKOUT TODAY', icon: '💪', xp: 100 },
+  { id: 'supplements', label: 'SUPPLEMENTS TAKEN', icon: '💊', xp: 10 },
   { id: 'veggies', label: 'ATE VEGETABLES', icon: '🥦', xp: 10 },
   { id: 'nojunk', label: 'ZERO JUNK FOOD', icon: '🚫', xp: 20 },
 ]
+
+export interface Measurement {
+  date: string
+  chest?: number
+  waist?: number
+  hips?: number
+  leftArm?: number
+  rightArm?: number
+  leftThigh?: number
+}
+
+export interface WeeklyCheckin {
+  date: string
+  rating: number
+  weight: number
+  intention: string
+}
 
 export interface UserStats {
   level: number
@@ -75,10 +94,14 @@ interface AppState {
   bodyHistory: BodyStatEntry[]
   exerciseHistory: Record<string, Array<{ date: string; maxWeight: number; maxReps: number }>>
   newPR: string | null
+  measurements: Measurement[]
+  weeklyCheckins: WeeklyCheckin[]
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
   logSet: (exerciseId: string, setNum: number, reps: number, weight: number) => void
+  toggleExerciseCheck: (exerciseId: string) => void
+  setWorkoutNotes: (notes: string) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
   removeMeal: (id: string) => void
   addWater: (ml: number) => void
@@ -89,6 +112,8 @@ interface AppState {
   updateBodyStats: (weight: number, bodyFat: number) => void
   setActiveWorkout: (id: string | null) => void
   clearNewPR: () => void
+  addMeasurement: (m: Omit<Measurement, 'date'>) => void
+  saveWeeklyCheckin: (c: Omit<WeeklyCheckin, 'date'>) => void
   syncToSupabase: () => Promise<void>
 }
 
@@ -98,6 +123,8 @@ const defaultDay = (date: string): DayLog => ({
   date,
   workoutDone: false,
   exerciseLogs: [],
+  checkedExercises: [],
+  workoutNotes: '',
   meals: [],
   waterMl: 0,
   steps: 0,
@@ -134,6 +161,8 @@ export const useStore = create<AppState>()(
       bodyHistory: [],
       exerciseHistory: {},
       newPR: null,
+      measurements: [],
+      weeklyCheckins: [],
 
       getOrCreateToday: () => {
         const d = todayStr()
@@ -284,6 +313,26 @@ export const useStore = create<AppState>()(
         })
       },
 
+      toggleExerciseCheck: (exerciseId) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          const checked = day.checkedExercises ?? []
+          const already = checked.includes(exerciseId)
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, checkedExercises: already ? checked.filter(id => id !== exerciseId) : [...checked, exerciseId] } }
+          }
+        })
+      },
+
+      setWorkoutNotes: (notes) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, workoutNotes: notes } } }
+        })
+      },
+
       toggleHabit: (habitId) => {
         const d = todayStr()
         set(s => {
@@ -355,6 +404,26 @@ export const useStore = create<AppState>()(
           }, { onConflict: 'id' })
         } catch { /* fire-and-forget */ }
       },
+
+      addMeasurement: (m) => {
+        const d = todayStr()
+        set(s => ({
+          measurements: [...s.measurements.filter(x => x.date !== d), { ...m, date: d }].slice(-90),
+        }))
+      },
+
+      saveWeeklyCheckin: (c) => {
+        const d = todayStr()
+        set(s => {
+          const checkins = s.weeklyCheckins.filter(x => x.date !== d)
+          const totalXP = s.stats.totalXP + 50
+          const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
+          return {
+            weeklyCheckins: [...checkins, { ...c, date: d }].slice(-52),
+            stats: { ...s.stats, totalXP, level },
+          }
+        })
+      },
     }),
     {
       name: 'comeback-store',
@@ -364,6 +433,8 @@ export const useStore = create<AppState>()(
         prs: s.prs,
         bodyHistory: s.bodyHistory,
         exerciseHistory: s.exerciseHistory,
+        measurements: s.measurements,
+        weeklyCheckins: s.weeklyCheckins,
       }),
     }
   )

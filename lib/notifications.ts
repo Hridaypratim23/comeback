@@ -204,6 +204,17 @@ export function buildDaySchedule(params: {
     )
   }
 
+  // ── 9:00 AM — Sunday progress photo reminder ──────────────────────────
+  if (new Date().getDay() === 0) {
+    add(
+      'photo_reminder',
+      todayAt(9, 0),
+      'PROGRESS PHOTO TIME',
+      'Same pose. Same light. Same angle. 13 weeks builds a body — document it.\n\n"THE BODY ACHIEVES WHAT THE MIND BELIEVES."',
+      '/'
+    )
+  }
+
   // ── 10:00 PM — bedtime ────────────────────────────────────────────────
   add(
     'bedtime',
