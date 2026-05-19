@@ -35,7 +35,6 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 export default function HomePage() {
   const { stats, dayLogs, getOrCreateToday, addSteps, setSteps, toggleHabit } = useStore()
   const [stepsInput, setStepsInput] = useState('')
-  const [stepsMode, setStepsMode] = useState<'add' | 'set'>('add')
   const [mounted, setMounted] = useState(false)
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
@@ -552,7 +551,7 @@ export default function HomePage() {
               const commitSteps = () => {
                 const n = parseInt(stepsInput)
                 if (!n || n <= 0) return
-                stepsMode === 'add' ? addSteps(n) : setSteps(n)
+                setSteps(n)           // always overwrite — manual entry is source of truth
                 setStepsInput('')
               }
               return (
@@ -574,7 +573,8 @@ export default function HomePage() {
                     ? <p className="text-[10px] text-[#686870] mb-3">{stepsLeft.toLocaleString()} steps to goal</p>
                     : <p className="text-[10px] font-black text-[#1DB954] mb-3">10K GOAL HIT ✓</p>
                   }
-                  <div className="flex gap-1.5 mb-2">
+                  {/* Quick add — accumulates on top of current */}
+                  <div className="flex gap-1.5 mb-3">
                     {[1000, 2500, 5000, 7500].map(n => (
                       <button key={n} onClick={() => addSteps(n)}
                         className="flex-1 py-1.5 rounded-lg border border-[#2196F333] text-[10px] font-black text-[#2196F3] bg-[#0D0D10] hover:bg-[#2196F311] active:scale-95 transition-all cursor-pointer">
@@ -582,25 +582,27 @@ export default function HomePage() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex gap-2 items-center">
-                    <div className="flex rounded-lg border border-[#1E1E26] overflow-hidden text-[10px] font-black">
-                      <button onClick={() => setStepsMode('add')}
-                        className={`px-2 py-1.5 transition-colors cursor-pointer ${stepsMode === 'add' ? 'bg-[#2196F3] text-white' : 'text-[#686870] bg-[#0D0D10]'}`}>
-                        +ADD
-                      </button>
-                      <button onClick={() => setStepsMode('set')}
-                        className={`px-2 py-1.5 transition-colors cursor-pointer ${stepsMode === 'set' ? 'bg-[#2196F3] text-white' : 'text-[#686870] bg-[#0D0D10]'}`}>
-                        SET
+                  {/* Manual entry — always overwrites (source of truth) */}
+                  <div className="space-y-1.5">
+                    <div className="text-[9px] font-black tracking-widest text-[#686870]">
+                      SET TOTAL — overwrites current count
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder={`Current: ${steps.toLocaleString()}`}
+                        value={stepsInput}
+                        onChange={e => setStepsInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && commitSteps()}
+                        className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-1.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                      />
+                      <button
+                        onClick={commitSteps}
+                        className="px-4 py-1.5 rounded-lg bg-[#2196F3] text-white text-[10px] font-black cursor-pointer active:scale-95 transition-all">
+                        SAVE
                       </button>
                     </div>
-                    <input type="number" inputMode="numeric" placeholder={stepsMode === 'add' ? 'Add steps...' : 'Set total...'}
-                      value={stepsInput} onChange={e => setStepsInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && commitSteps()}
-                      className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-1.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
-                    <button onClick={commitSteps}
-                      className="px-4 py-1.5 rounded-lg bg-[#2196F3] text-white text-[10px] font-black cursor-pointer active:scale-95 transition-all">
-                      LOG
-                    </button>
                   </div>
                 </div>
               )
