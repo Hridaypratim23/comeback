@@ -33,7 +33,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, getOrCreateToday, addSteps, setSteps, toggleHabit } = useStore()
+  const { stats, dayLogs, getOrCreateToday, setSteps, toggleHabit } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
@@ -573,19 +573,10 @@ export default function HomePage() {
                     ? <p className="text-[10px] text-[#686870] mb-3">{stepsLeft.toLocaleString()} steps to goal</p>
                     : <p className="text-[10px] font-black text-[#1DB954] mb-3">10K GOAL HIT ✓</p>
                   }
-                  {/* Quick add — accumulates on top of current */}
-                  <div className="flex gap-1.5 mb-3">
-                    {[1000, 2500, 5000, 7500].map(n => (
-                      <button key={n} onClick={() => addSteps(n)}
-                        className="flex-1 py-1.5 rounded-lg border border-[#2196F333] text-[10px] font-black text-[#2196F3] bg-[#0D0D10] hover:bg-[#2196F311] active:scale-95 transition-all cursor-pointer">
-                        +{(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K
-                      </button>
-                    ))}
-                  </div>
                   {/* Manual entry — always overwrites (source of truth) */}
                   <div className="space-y-1.5">
                     <div className="text-[9px] font-black tracking-widest text-[#686870]">
-                      SET TOTAL — overwrites current count
+                      ENTER TODAY&apos;S TOTAL — overwrites current
                     </div>
                     <div className="flex gap-2 items-center">
                       <input
