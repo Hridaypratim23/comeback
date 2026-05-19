@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
-import { getTodayWorkout, WEEKLY_SCHEDULE } from '@/constants/workouts'
 import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -12,6 +11,7 @@ import {
 } from '@/lib/notifications'
 import { QUOTES, getQuoteByIndex } from '@/constants/quotes'
 import QuoteTicker from '@/components/QuoteTicker'
+import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
@@ -75,7 +75,8 @@ export default function HomePage() {
   const isViewingToday = selectedDate === todayKey
   const dayLog = dayLogs[selectedDate]
   const todayLog = dayLogs[todayKey]
-  const workout = getTodayWorkout()
+  const selectedWorkoutId = todayLog?.selectedWorkoutId
+  const workout = selectedWorkoutId ? getWorkoutById(selectedWorkoutId) : REST_WORKOUT
 
   const totalCal  = dayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
   const totalPro  = dayLog?.meals.reduce((s, m) => s + m.protein, 0) ?? 0
@@ -359,42 +360,53 @@ export default function HomePage() {
           <>
             {/* Workout Card */}
             <Link href="/workout" className="block cursor-pointer">
-              <div className="rounded-xl overflow-hidden border-l-4 border border-[#1E1E26] hover:red-border-glow transition-all btn-press"
-                style={{ borderLeftColor: workout.color }}>
-                <div className="p-4" style={{ background: `linear-gradient(135deg, ${workout.color}33 0%, #111116 55%)` }}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: workout.color }}>TODAY&apos;S MISSION</div>
-                      <div className="text-2xl font-black text-[#EDEDF0] leading-none">{workout.label}</div>
-                      <div className="text-xs text-[#686870] mt-1 tracking-wider font-bold">{workout.muscles}</div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {todayLog?.workoutDone ? (
-                        <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">DONE ✓</span>
-                      ) : (
-                        <span className="flex items-center gap-1 px-3 py-1 rounded text-[10px] font-black tracking-wider cursor-pointer"
-                          style={{ background: `${workout.color}44`, color: workout.color }}>
-                          ATTACK <ChevronRight size={12} />
-                        </span>
-                      )}
-                    </div>
+              {!selectedWorkoutId ? (
+                <div className="rounded-xl border border-dashed border-[#FF280044] bg-[#FF280008] p-5 flex items-center justify-between btn-press hover:border-[#FF2800] transition-all">
+                  <div>
+                    <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-1">TODAY&apos;S MISSION</div>
+                    <div className="text-xl font-black text-[#686870]">SELECT YOUR WORKOUT</div>
+                    <div className="text-xs text-[#2C2C38] mt-1 font-bold">Push A · Pull A · Legs A · Push B · Pull B</div>
                   </div>
-                  {workout.exercises.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {workout.exercises.slice(0, 4).map(ex => (
-                        <span key={ex.id} className="px-2 py-0.5 rounded text-[10px] font-bold text-[#686870] bg-[#0D0D10] border border-[#1E1E26]">
-                          {ex.name}
-                        </span>
-                      ))}
-                      {workout.exercises.length > 4 && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold text-[#686870] bg-[#0D0D10] border border-[#1E1E26]">
-                          +{workout.exercises.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <ChevronRight size={20} className="text-[#FF2800]" />
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-xl overflow-hidden border-l-4 border border-[#1E1E26] hover:red-border-glow transition-all btn-press"
+                  style={{ borderLeftColor: workout.color }}>
+                  <div className="p-4" style={{ background: `linear-gradient(135deg, ${workout.color}33 0%, #111116 55%)` }}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: workout.color }}>TODAY&apos;S MISSION</div>
+                        <div className="text-2xl font-black text-[#EDEDF0] leading-none">{workout.label}</div>
+                        <div className="text-xs text-[#686870] mt-1 tracking-wider font-bold">{workout.muscles}</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {todayLog?.workoutDone ? (
+                          <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">DONE ✓</span>
+                        ) : (
+                          <span className="flex items-center gap-1 px-3 py-1 rounded text-[10px] font-black tracking-wider cursor-pointer"
+                            style={{ background: `${workout.color}44`, color: workout.color }}>
+                            ATTACK <ChevronRight size={12} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {workout.exercises.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {workout.exercises.slice(0, 4).map(ex => (
+                          <span key={ex.id} className="px-2 py-0.5 rounded text-[10px] font-bold text-[#686870] bg-[#0D0D10] border border-[#1E1E26]">
+                            {ex.name}
+                          </span>
+                        ))}
+                        {workout.exercises.length > 4 && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold text-[#686870] bg-[#0D0D10] border border-[#1E1E26]">
+                            +{workout.exercises.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </Link>
 
             {/* Stats Row */}

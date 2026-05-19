@@ -27,6 +27,7 @@ export interface MealEntry {
 export interface DayLog {
   date: string
   workoutDone: boolean
+  selectedWorkoutId?: string
   exerciseLogs: ExerciseLog[]
   checkedExercises: string[]
   workoutNotes: string
@@ -110,6 +111,7 @@ interface AppState {
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
   logSet: (exerciseId: string, setNum: number, reps: number, weight: number) => void
+  selectWorkout: (workoutId: string) => void
   toggleExerciseCheck: (exerciseId: string) => void
   setWorkoutNotes: (notes: string) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
@@ -323,6 +325,14 @@ export const useStore = create<AppState>()(
             dayLogs: { ...s.dayLogs, [d]: { ...day, steps: newSteps, xpEarned: day.xpEarned + xpGain } },
             stats: xpGain > 0 ? { ...s.stats, totalXP, level } : s.stats,
           }
+        })
+      },
+
+      selectWorkout: (workoutId) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, selectedWorkoutId: workoutId, checkedExercises: [] } } }
         })
       },
 

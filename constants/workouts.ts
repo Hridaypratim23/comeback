@@ -1,5 +1,3 @@
-export type DayKey = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN'
-
 export interface Exercise {
   id: string
   name: string
@@ -9,7 +7,7 @@ export interface Exercise {
 }
 
 export interface Workout {
-  day: DayKey | 'REST'
+  id: string
   label: string
   muscles: string
   color: string
@@ -17,9 +15,9 @@ export interface Workout {
   finisher?: string
 }
 
-export const WEEKLY_SCHEDULE: Workout[] = [
+export const WORKOUT_PLANS: Workout[] = [
   {
-    day: 'MON', label: 'Push A', muscles: 'Chest · Shoulders · Triceps', color: '#FF2800',
+    id: 'push-a', label: 'Push A', muscles: 'Chest · Shoulders · Triceps', color: '#FF2800',
     exercises: [
       { id: 'bench', name: 'Barbell Bench Press', sets: 4, repsRange: '6–8', notes: 'Controlled descent, full ROM' },
       { id: 'ohp', name: 'Overhead Press', sets: 3, repsRange: '8–10' },
@@ -31,7 +29,7 @@ export const WEEKLY_SCHEDULE: Workout[] = [
     finisher: '100 push-ups in as few sets as possible',
   },
   {
-    day: 'TUE', label: 'Pull A', muscles: 'Back · Biceps · Rear Delts', color: '#2196F3',
+    id: 'pull-a', label: 'Pull A', muscles: 'Back · Biceps · Rear Delts', color: '#2196F3',
     exercises: [
       { id: 'dl', name: 'Deadlift', sets: 4, repsRange: '5', notes: 'Lock hips at the top' },
       { id: 'pullup', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
@@ -43,7 +41,7 @@ export const WEEKLY_SCHEDULE: Workout[] = [
     finisher: '50 band pull-aparts',
   },
   {
-    day: 'WED', label: 'Legs A', muscles: 'Quads · Hamstrings · Glutes · Calves', color: '#1DB954',
+    id: 'legs-a', label: 'Legs A', muscles: 'Quads · Hamstrings · Glutes · Calves', color: '#1DB954',
     exercises: [
       { id: 'squat', name: 'Back Squat', sets: 4, repsRange: '6–8', notes: 'Below parallel' },
       { id: 'rdl', name: 'Romanian Deadlift', sets: 3, repsRange: '8–10', notes: 'Feel the stretch' },
@@ -54,7 +52,7 @@ export const WEEKLY_SCHEDULE: Workout[] = [
     finisher: '200 bodyweight calf raises',
   },
   {
-    day: 'THU', label: 'Push B', muscles: 'Shoulders · Chest · Triceps', color: '#FF5500',
+    id: 'push-b', label: 'Push B', muscles: 'Shoulders · Chest · Triceps', color: '#FF5500',
     exercises: [
       { id: 'ohp2', name: 'Overhead Press', sets: 4, repsRange: '6–8', notes: 'Push the bar back on the way up' },
       { id: 'incline2', name: 'Incline Bench Press', sets: 3, repsRange: '8–10' },
@@ -65,7 +63,7 @@ export const WEEKLY_SCHEDULE: Workout[] = [
     ],
   },
   {
-    day: 'FRI', label: 'Pull B', muscles: 'Back · Biceps · Rear Delts', color: '#D4A017',
+    id: 'pull-b', label: 'Pull B', muscles: 'Back · Biceps · Rear Delts', color: '#D4A017',
     exercises: [
       { id: 'pullup2', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
       { id: 'pendlay', name: 'Pendlay Row', sets: 3, repsRange: '8–10', notes: 'Bar to floor each rep' },
@@ -76,24 +74,18 @@ export const WEEKLY_SCHEDULE: Workout[] = [
     ],
     finisher: '5 min dead hang accumulation',
   },
-  {
-    day: 'SAT', label: 'Rest', muscles: 'Recovery & Mobility', color: '#686870',
-    exercises: [],
-  },
-  {
-    day: 'SUN', label: 'Rest', muscles: 'Recovery & Meal Prep', color: '#686870',
-    exercises: [],
-  },
 ]
 
-const DAY_INDEX: Record<number, DayKey | 'REST'> = {
-  0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT',
+export const REST_WORKOUT: Workout = {
+  id: 'rest', label: 'Rest', muscles: 'Recovery & Mobility', color: '#686870', exercises: [],
 }
 
-export function getTodayWorkout(): Workout {
-  const key = DAY_INDEX[new Date().getDay()]
-  return WEEKLY_SCHEDULE.find(w => w.day === key) ?? WEEKLY_SCHEDULE[5]
+export function getWorkoutById(id: string): Workout {
+  return WORKOUT_PLANS.find(w => w.id === id) ?? REST_WORKOUT
 }
+
+// kept for backwards compat with notification builder
+export function getTodayWorkout(): Workout { return REST_WORKOUT }
 
 export const QUICK_MEALS = [
   { name: 'Chicken Breast + Rice', calories: 480, protein: 52, carbs: 48, fat: 8 },
