@@ -10,17 +10,48 @@ import {
 } from '@/lib/notifications'
 import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
+
+function urlBase64ToUint8Array(base64: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = window.atob(b64)
+  const buf = new ArrayBuffer(raw.length)
+  const view = new Uint8Array(buf)
+  for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i)
+  return buf
+}
+
+async function subscribeToPush(schedule: ReturnType<typeof buildDaySchedule>) {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    }
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), schedule }),
+    })
+  } catch {
+    // Push subscription may not be supported (e.g. non-PWA Safari)
+  }
+}
+
 export default function AppInit() {
   const { stats, dayLogs } = useStore()
 
-  function scheduleForToday() {
+  function buildSchedule() {
     const today    = new Date().toISOString().split('T')[0]
     const dayLog   = dayLogs[today]
-    const selectedId = dayLog?.selectedWorkoutId
-    const workout  = selectedId ? getWorkoutById(selectedId) : REST_WORKOUT
+    const workout  = dayLog?.selectedWorkoutId ? getWorkoutById(dayLog.selectedWorkoutId) : REST_WORKOUT
     const totalCal = dayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
 
-    const schedule = buildDaySchedule({
+    return buildDaySchedule({
       streak:       stats.streak,
       waterMl:      dayLog?.waterMl ?? 0,
       waterTarget:  TARGETS.waterMl,
@@ -31,26 +62,13 @@ export default function AppInit() {
       totalCal,
       calTarget:    TARGETS.calories,
     })
-
-    sendScheduleToSW(schedule)
   }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
-    navigator.serviceWorker.register('/sw.js').then(reg => {
-      // Force new SW to activate immediately when waiting
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-      reg.addEventListener('updatefound', () => {
-        const sw = reg.installing
-        sw?.addEventListener('statechange', () => {
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            sw.postMessage({ type: 'SKIP_WAITING' })
-          }
-        })
-      })
-    }).catch(() => {})
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
 
     const ping = () => pingServiceWorker()
     window.addEventListener('focus', ping)
@@ -60,7 +78,12 @@ export default function AppInit() {
 
     const timer = setTimeout(async () => {
       const granted = await requestNotificationPermission()
-      if (granted) scheduleForToday()
+      if (!granted) return
+      const schedule = buildSchedule()
+      // Send to SW for local fallback (when app is open)
+      sendScheduleToSW(schedule)
+      // Subscribe to Web Push + save schedule to server (for background delivery)
+      await subscribeToPush(schedule)
     }, 2000)
 
     return () => {
@@ -70,11 +93,15 @@ export default function AppInit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Re-subscribe/reschedule whenever state changes
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (typeof Notification === 'undefined') return
     if (Notification.permission !== 'granted') return
-    scheduleForToday()
+
+    const schedule = buildSchedule()
+    sendScheduleToSW(schedule)
+    subscribeToPush(schedule)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.streak, dayLogs])
 
