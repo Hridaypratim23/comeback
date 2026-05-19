@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useStore, TARGETS } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
-import { Plus, X, Search } from 'lucide-react'
+import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 
-// TDEE estimate: 72kg, 5'6", 22% BF, moderate-heavy activity (Harris-Benedict + 1.55 multiplier)
 const TDEE = 2400
-// Deficit target: to reach 15% BF (~457 kcal/day deficit)
 const GOAL_DEFICIT = 457
+
+type Tab = 'my-meals' | 'quick-add' | 'create'
 
 function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: number; color: string; label: string; unit?: string }) {
   const r = 28
@@ -35,48 +35,65 @@ function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: n
   )
 }
 
+const emptyForm = { name: '', calories: '', protein: '', carbs: '', fat: '' }
+
 export default function NutritionPage() {
-  const { dayLogs, addMeal, removeMeal, getOrCreateToday } = useStore()
+  const { dayLogs, addMeal, removeMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
   const [mounted, setMounted] = useState(false)
+  const [tab, setTab] = useState<Tab>('my-meals')
   const [search, setSearch] = useState('')
-  const [showCustom, setShowCustom] = useState(false)
-  const [custom, setCustom] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '' })
+  const [form, setForm] = useState(emptyForm)
+  const [saved, setSaved] = useState(false)
+  const [mealsOpen, setMealsOpen] = useState(true)
 
   useEffect(() => {
     setMounted(true)
     getOrCreateToday()
+    // default to quick-add if no custom meals yet
   }, [getOrCreateToday])
+
+  useEffect(() => {
+    if (mounted && customMeals.length === 0) setTab('quick-add')
+  }, [mounted, customMeals.length])
 
   if (!mounted) return null
 
   const today = new Date().toISOString().split('T')[0]
   const dayLog = dayLogs[today]
   const meals = dayLog?.meals ?? []
-
-  const totalCal = meals.reduce((s, m) => s + m.calories, 0)
-  const totalPro = meals.reduce((s, m) => s + m.protein, 0)
+  const totalCal  = meals.reduce((s, m) => s + m.calories, 0)
+  const totalPro  = meals.reduce((s, m) => s + m.protein, 0)
   const totalCarb = meals.reduce((s, m) => s + m.carbs, 0)
-  const totalFat = meals.reduce((s, m) => s + m.fat, 0)
+  const totalFat  = meals.reduce((s, m) => s + m.fat, 0)
+  const calPct    = Math.min((totalCal / TARGETS.calories) * 100, 100)
+  const remaining = TARGETS.calories - totalCal
+  const difference = TDEE - totalCal
+  const isDeficit = difference >= 0
 
-  const filtered = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredQuick = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredCustom = customMeals.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
 
-  const submitCustom = () => {
-    const c = parseInt(custom.calories) || 0
-    const p = parseInt(custom.protein) || 0
-    const cb = parseInt(custom.carbs) || 0
-    const f = parseInt(custom.fat) || 0
-    if (!custom.name || c === 0) return
-    addMeal({ name: custom.name, calories: c, protein: p, carbs: cb, fat: f })
-    setCustom({ name: '', calories: '', protein: '', carbs: '', fat: '' })
-    setShowCustom(false)
+  const submitCreate = () => {
+    const name = form.name.trim()
+    const cal  = parseInt(form.calories) || 0
+    if (!name || cal === 0) return
+    saveCustomMeal({
+      name,
+      calories: cal,
+      protein: parseInt(form.protein) || 0,
+      carbs:   parseInt(form.carbs)   || 0,
+      fat:     parseInt(form.fat)     || 0,
+    })
+    setForm(emptyForm)
+    setSaved(true)
+    setTimeout(() => { setSaved(false); setTab('my-meals') }, 1500)
   }
 
-  const calPct = Math.min((totalCal / TARGETS.calories) * 100, 100)
-  const remaining = TARGETS.calories - totalCal
-
-  // Deficit/surplus vs TDEE
-  const difference = TDEE - totalCal  // positive = deficit, negative = surplus
-  const isDeficit = difference >= 0
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'my-meals',  label: 'MY MEALS' },
+    { key: 'quick-add', label: 'QUICK ADD' },
+    { key: 'create',    label: '+ CREATE' },
+  ]
 
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
@@ -99,26 +116,17 @@ export default function NutritionPage() {
           </div>
         </div>
         <div className="h-3 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${calPct >= 100 ? 'bg-[#FF2800]' : 'bg-gradient-to-r from-[#1DB954] to-[#D4A017]'}`}
-            style={{ width: `${calPct}%` }}
-          />
+          <div className={`h-full rounded-full transition-all duration-700 ${calPct >= 100 ? 'bg-[#FF2800]' : 'bg-gradient-to-r from-[#1DB954] to-[#D4A017]'}`}
+               style={{ width: `${calPct}%` }} />
         </div>
-
-        {/* Deficit/Surplus Display */}
         <div className="mt-3 pt-3 border-t border-[#1E1E26] space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-[#686870]">TDEE ESTIMATE</span>
             <span className="text-[10px] font-black text-[#686870]">{TDEE} kcal</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[#686870]">
-              {isDeficit ? 'DEFICIT' : 'SURPLUS'}
-            </span>
-            <span
-              className="text-[11px] font-black"
-              style={{ color: isDeficit ? '#1DB954' : '#FF5500' }}
-            >
+            <span className="text-[10px] font-bold text-[#686870]">{isDeficit ? 'DEFICIT' : 'SURPLUS'}</span>
+            <span className="text-[11px] font-black" style={{ color: isDeficit ? '#1DB954' : '#FF5500' }}>
               {isDeficit ? '-' : '+'}{Math.abs(difference)} kcal
             </span>
           </div>
@@ -133,104 +141,178 @@ export default function NutritionPage() {
       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
         <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-4">MACROS</div>
         <div className="flex justify-around">
-          <MacroRing val={totalPro} max={TARGETS.protein} color="#FF2800" label="PROTEIN" />
-          <MacroRing val={totalCarb} max={TARGETS.carbs} color="#FF5500" label="CARBS" />
-          <MacroRing val={totalFat} max={TARGETS.fat} color="#D4A017" label="FAT" />
+          <MacroRing val={totalPro}  max={TARGETS.protein} color="#FF2800" label="PROTEIN" />
+          <MacroRing val={totalCarb} max={TARGETS.carbs}   color="#FF5500" label="CARBS" />
+          <MacroRing val={totalFat}  max={TARGETS.fat}     color="#D4A017" label="FAT" />
         </div>
       </div>
 
       {/* Today's Meals */}
       {meals.length > 0 && (
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">TODAY'S MEALS</span>
-          </div>
-          <div className="divide-y divide-[#1E1E26]">
-            {meals.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
-                  <div className="text-[10px] text-[#686870] mt-0.5">
-                    {m.calories}cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F · {m.time}
+          <button onClick={() => setMealsOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1E1E26] cursor-pointer">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
+              TODAY'S MEALS <span className="text-[#FF2800]">({meals.length})</span>
+            </span>
+            {mealsOpen ? <ChevronUp size={14} className="text-[#686870]" /> : <ChevronDown size={14} className="text-[#686870]" />}
+          </button>
+          {mealsOpen && (
+            <div className="divide-y divide-[#1E1E26]">
+              {meals.map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                    <div className="text-[10px] text-[#686870] mt-0.5">
+                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F · {m.time}
+                    </div>
                   </div>
+                  <button onClick={() => removeMeal(m.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
+                    <X size={13} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeMeal(m.id)}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer"
-                >
-                  <X size={13} />
-                </button>
-              </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab Bar */}
+      <div className="flex bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-1 gap-1">
+        {TABS.map(({ key, label }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all cursor-pointer
+              ${tab === key
+                ? key === 'create' ? 'bg-[#FF2800] text-white' : 'bg-[#111116] text-[#EDEDF0] border border-[#2C2C38]'
+                : 'text-[#686870] hover:text-[#EDEDF0]'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search (for my-meals + quick-add tabs) */}
+      {(tab === 'my-meals' || tab === 'quick-add') && (
+        <div className="flex items-center gap-2 bg-[#111116] border border-[#1E1E26] rounded-xl px-3 py-2.5">
+          <Search size={14} className="text-[#686870] flex-shrink-0" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={tab === 'my-meals' ? 'Search your meals...' : 'Search quick meals...'}
+            className="flex-1 bg-transparent text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none" />
+          {search && (
+            <button onClick={() => setSearch('')} className="cursor-pointer">
+              <X size={13} className="text-[#686870]" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* MY MEALS tab */}
+      {tab === 'my-meals' && (
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+          {filteredCustom.length === 0 ? (
+            <div className="py-10 text-center space-y-2">
+              <Bookmark size={28} className="mx-auto text-[#2C2C38]" />
+              <div className="text-xs font-black text-[#686870]">NO SAVED MEALS YET</div>
+              <div className="text-[10px] text-[#2C2C38]">Create your first meal in the CREATE tab</div>
+              <button onClick={() => setTab('create')}
+                className="mt-2 px-4 py-2 rounded-lg bg-[#FF2800] text-white text-[10px] font-black tracking-widest cursor-pointer btn-press">
+                + CREATE MEAL
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#1E1E26]">
+              {filteredCustom.map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                    <div className="text-[10px] text-[#686870] mt-0.5">
+                      {m.calories} cal
+                      {m.protein > 0 && ` · ${m.protein}g P`}
+                      {m.carbs   > 0 && ` · ${m.carbs}g C`}
+                      {m.fat     > 0 && ` · ${m.fat}g F`}
+                    </div>
+                  </div>
+                  <button onClick={() => deleteCustomMeal(m.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
+                    <Trash2 size={13} />
+                  </button>
+                  <button onClick={() => addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat })}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#FF280022] text-[#FF2800] hover:bg-[#FF2800] hover:text-white transition-all cursor-pointer">
+                    <Plus size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* QUICK ADD tab */}
+      {tab === 'quick-add' && (
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+          <div className="divide-y divide-[#1E1E26] max-h-80 overflow-y-auto">
+            {filteredQuick.map(m => (
+              <button key={m.name} onClick={() => addMeal(m)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
+                <div>
+                  <div className="font-bold text-sm text-[#EDEDF0]">{m.name}</div>
+                  <div className="text-[10px] text-[#686870]">{m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm font-black text-[#FF5500]">{m.calories}</span>
+                  <span className="text-[10px] text-[#686870]">cal</span>
+                  <Plus size={16} className="text-[#686870]" />
+                </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Search & Quick Add */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#1E1E26] flex items-center gap-2">
-          <Search size={14} className="text-[#686870]" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search quick meals..."
-            className="flex-1 bg-transparent text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none"
-          />
-        </div>
-        <div className="divide-y divide-[#1E1E26] max-h-72 overflow-y-auto">
-          {filtered.map(m => (
-            <button
-              key={m.name}
-              onClick={() => addMeal(m)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left"
-            >
-              <div>
-                <div className="font-bold text-sm text-[#EDEDF0]">{m.name}</div>
-                <div className="text-[10px] text-[#686870]">{m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-[#FF5500]">{m.calories}</span>
-                <span className="text-[10px] text-[#686870]">cal</span>
-                <Plus size={16} className="text-[#686870]" />
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Custom Meal */}
-      <button
-        onClick={() => setShowCustom(s => !s)}
-        className="w-full py-3 rounded-xl border border-dashed border-[#2C2C38] text-sm font-black tracking-widest text-[#686870] hover:border-[#FF2800] hover:text-[#FF2800] transition-all cursor-pointer btn-press"
-      >
-        + CUSTOM MEAL
-      </button>
-
-      {showCustom && (
+      {/* CREATE tab */}
+      {tab === 'create' && (
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">CUSTOM ENTRY</div>
-          {[
-            { key: 'name', placeholder: 'Meal name', type: 'text' },
-            { key: 'calories', placeholder: 'Calories (kcal)', type: 'number' },
-            { key: 'protein', placeholder: 'Protein (g)', type: 'number' },
-            { key: 'carbs', placeholder: 'Carbs (g)', type: 'number' },
-            { key: 'fat', placeholder: 'Fat (g)', type: 'number' },
-          ].map(({ key, placeholder, type }) => (
-            <input
-              key={key}
-              type={type}
-              placeholder={placeholder}
-              value={custom[key as keyof typeof custom]}
-              onChange={e => setCustom(c => ({ ...c, [key]: e.target.value }))}
-              className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
-            />
-          ))}
-          <button
-            onClick={submitCustom}
-            className="w-full py-3 rounded-lg font-black text-sm tracking-widest text-white bg-[#FF2800] hover:bg-[#D42B1A] transition-colors cursor-pointer btn-press"
-          >
-            ADD MEAL
-          </button>
+          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">CREATE CUSTOM MEAL</div>
+
+          <input type="text" placeholder="Meal name (required)"
+            value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
+
+          <input type="number" inputMode="numeric" placeholder="Calories (required)"
+            value={form.calories} onChange={e => setForm(f => ({ ...f, calories: e.target.value }))}
+            className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF5500] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
+
+          <div className="text-[9px] font-black tracking-widest text-[#2C2C38]">OPTIONAL MACROS</div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: 'protein', label: 'PROTEIN (g)', color: '#FF2800' },
+              { key: 'carbs',   label: 'CARBS (g)',   color: '#FF5500' },
+              { key: 'fat',     label: 'FAT (g)',      color: '#D4A017' },
+            ].map(({ key, label, color }) => (
+              <div key={key}>
+                <div className="text-[9px] font-black tracking-wider mb-1" style={{ color }}>{label}</div>
+                <input type="number" inputMode="numeric" placeholder="0"
+                  value={form[key as keyof typeof form]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
+                  style={{ '--tw-border-opacity': '1' } as React.CSSProperties}
+                />
+              </div>
+            ))}
+          </div>
+
+          {saved ? (
+            <div className="w-full py-3 rounded-lg text-center text-sm font-black tracking-widest text-[#1DB954] bg-[#0D7A3A22] border border-[#1DB95433]">
+              MEAL SAVED ✓
+            </div>
+          ) : (
+            <button onClick={submitCreate}
+              disabled={!form.name.trim() || !form.calories}
+              className="w-full py-3 rounded-lg font-black text-sm tracking-widest text-white bg-[#FF2800] hover:bg-[#D42B1A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer btn-press">
+              SAVE TO MY MEALS
+            </button>
+          )}
         </div>
       )}
     </div>

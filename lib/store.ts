@@ -85,6 +85,15 @@ export interface BodyStatEntry {
   bodyFat: number
 }
 
+export interface CustomMealTemplate {
+  id: string
+  name: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+}
+
 interface AppState {
   today: string
   dayLogs: Record<string, DayLog>
@@ -96,6 +105,7 @@ interface AppState {
   newPR: string | null
   measurements: Measurement[]
   weeklyCheckins: WeeklyCheckin[]
+  customMeals: CustomMealTemplate[]
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
@@ -114,6 +124,8 @@ interface AppState {
   clearNewPR: () => void
   addMeasurement: (m: Omit<Measurement, 'date'>) => void
   saveWeeklyCheckin: (c: Omit<WeeklyCheckin, 'date'>) => void
+  saveCustomMeal: (m: Omit<CustomMealTemplate, 'id'>) => void
+  deleteCustomMeal: (id: string) => void
   syncToSupabase: () => Promise<void>
 }
 
@@ -163,6 +175,7 @@ export const useStore = create<AppState>()(
       newPR: null,
       measurements: [],
       weeklyCheckins: [],
+      customMeals: [],
 
       getOrCreateToday: () => {
         const d = todayStr()
@@ -412,6 +425,16 @@ export const useStore = create<AppState>()(
         }))
       },
 
+      saveCustomMeal: (m) => {
+        set(s => ({
+          customMeals: [...s.customMeals, { ...m, id: crypto.randomUUID() }],
+        }))
+      },
+
+      deleteCustomMeal: (id) => {
+        set(s => ({ customMeals: s.customMeals.filter(m => m.id !== id) }))
+      },
+
       saveWeeklyCheckin: (c) => {
         const d = todayStr()
         set(s => {
@@ -435,6 +458,7 @@ export const useStore = create<AppState>()(
         exerciseHistory: s.exerciseHistory,
         measurements: s.measurements,
         weeklyCheckins: s.weeklyCheckins,
+        customMeals: s.customMeals,
       }),
     }
   )
