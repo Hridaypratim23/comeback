@@ -204,6 +204,35 @@ export function buildDaySchedule(params: {
     )
   }
 
+  // ── Sedentary alerts — every 45 min, 10 AM to 6 PM ───────────────────
+  const sedentaryMessages = [
+    { title: 'GET UP.', body: "45 minutes in the chair. Stand up. Walk to the water cooler. NOW." },
+    { title: 'MOVE YOUR BODY.', body: "Sitting is the new smoking. 2 minutes on your feet. Go." },
+    { title: 'SEDENTARY ALERT.', body: "Your back is stiffening. Your hips are tightening. Get up." },
+    { title: 'STAND UP.', body: "Walk to the window. Stretch your neck. Reset. 2 minutes." },
+    { title: 'CIRCULATION CHECK.', body: "Blood pools when you sit. Get up and walk the floor. Do it." },
+    { title: 'OFF THE CHAIR. NOW.', body: "10 squats at your desk. Stretch your hip flexors. Move." },
+    { title: 'YOUR BODY IS RUSTING.', body: "45 minutes of stillness. Undo it. Walk. Breathe. Reset." },
+    { title: 'MOVE. NO EXCUSES.', body: "Stand. Walk to the bathroom and back. That's all. Just move." },
+    { title: 'BREAK THE SITTING.', body: "Office hours are for the mind. Your body still needs blood flow. Up." },
+    { title: 'LAST SEDENTARY ALERT.', body: "End of office hours. You made it. Get home and move properly." },
+  ]
+  const sedentarySlots: Array<[number, number]> = [
+    [10, 45], [11, 30], [12, 15], [13, 0],
+    [13, 45], [14, 30], [15, 15], [16, 0],
+    [16, 45], [17, 30],
+  ]
+  sedentarySlots.forEach(([hr, min], i) => {
+    const msg = sedentaryMessages[i % sedentaryMessages.length]
+    add(
+      `sedentary_${hr}_${min}`,
+      todayAt(hr, min),
+      msg.title,
+      withQuote(msg.body, hr),
+      '/'
+    )
+  })
+
   // ── 9:00 AM — Sunday progress photo reminder ──────────────────────────
   if (new Date().getDay() === 0) {
     add(
