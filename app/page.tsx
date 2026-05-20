@@ -99,10 +99,10 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleep
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-[8px] font-black tracking-widest" style={{ color }}>{label}</span>
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1 flex-wrap">
               {pillars.map(p => (
                 <span key={p.label}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold border"
                   style={{
                     background: p.done ? `${color}18` : '#0D0D10',
                     borderColor: p.done ? `${color}44` : '#1E1E26',
