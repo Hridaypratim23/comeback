@@ -13,7 +13,7 @@ type Rule = { keywords: string[]; config: Omit<UnitConfig, 'isGrams'> & { isGram
 
 const RULES: Rule[] = [
   {
-    keywords: ['egg', 'eggs', 'egg white', 'egg yolk'],
+    keywords: ['egg', 'eggs', 'egg white', 'egg yolk', 'omelette', 'omelet', 'omlette'],
     config: { unit: 'egg', singular: 'egg', plural: 'eggs', min: 1, max: 10, step: 1, defaultQty: 2 },
   },
   {
