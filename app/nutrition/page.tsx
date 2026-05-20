@@ -103,7 +103,7 @@ export default function NutritionPage() {
     setPendingMeal(null)
     setForm(emptyForm)
     setSaved(true)
-    setTimeout(() => { setSaved(false); setTab('my-meals') }, 1500)
+    setTimeout(() => setSaved(false), 1500)
   }
 
   const openServingSlider = (m: CustomMealTemplate) => {
@@ -183,38 +183,6 @@ export default function NutritionPage() {
           <MacroRing val={totalFibre} max={TARGETS.fibre}   color="#1DB954" label="FIBRE" />
         </div>
       </div>
-
-      {/* Today's Meals */}
-      {meals.length > 0 && (
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
-          <button onClick={() => setMealsOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1E1E26] cursor-pointer">
-            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
-              TODAY'S MEALS <span className="text-[#FF2800]">({meals.length})</span>
-            </span>
-            {mealsOpen ? <ChevronUp size={14} className="text-[#686870]" /> : <ChevronDown size={14} className="text-[#686870]" />}
-          </button>
-          {mealsOpen && (
-            <div className="divide-y divide-[#1E1E26]">
-              {meals.map(m => (
-                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
-                    <div className="text-[10px] text-[#686870] mt-0.5">
-                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F
-                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
-                    </div>
-                  </div>
-                  <button onClick={() => removeMeal(m.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
-                    <X size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Tab Bar */}
       <div className="flex bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-1 gap-1">
@@ -444,6 +412,38 @@ export default function NutritionPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Today's Meals — placed here so adding meals never shifts the tab bar above */}
+      {meals.length > 0 && (
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+          <button onClick={() => setMealsOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1E1E26] cursor-pointer">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
+              TODAY'S MEALS <span className="text-[#FF2800]">({meals.length})</span>
+            </span>
+            {mealsOpen ? <ChevronUp size={14} className="text-[#686870]" /> : <ChevronDown size={14} className="text-[#686870]" />}
+          </button>
+          {mealsOpen && (
+            <div className="divide-y divide-[#1E1E26]">
+              {meals.map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                    <div className="text-[10px] text-[#686870] mt-0.5">
+                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F
+                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
+                    </div>
+                  </div>
+                  <button onClick={() => removeMeal(m.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
