@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
       </head>
-      <body className="bg-[#070709] text-[#EDEDF0] h-full overflow-hidden">
+      <body className="bg-[#070709] text-[#EDEDF0]">
         <AppInit />
         <main id="main-scroll" className="max-w-lg mx-auto pb-20 h-full overflow-y-auto">
           {children}
