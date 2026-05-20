@@ -2,12 +2,7 @@
 
 import { useEffect } from 'react'
 import { useStore, TARGETS } from '@/lib/store'
-import {
-  buildDaySchedule,
-  requestNotificationPermission,
-  sendScheduleToSW,
-  pingServiceWorker,
-} from '@/lib/notifications'
+import { buildDaySchedule, requestNotificationPermission } from '@/lib/notifications'
 import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
@@ -46,9 +41,9 @@ export default function AppInit() {
   const { stats, dayLogs } = useStore()
 
   function buildSchedule() {
-    const today    = new Date().toISOString().split('T')[0]
-    const dayLog   = dayLogs[today]
-    const workout  = dayLog?.selectedWorkoutId ? getWorkoutById(dayLog.selectedWorkoutId) : REST_WORKOUT
+    const today   = new Date().toISOString().split('T')[0]
+    const dayLog  = dayLogs[today]
+    const workout = dayLog?.selectedWorkoutId ? getWorkoutById(dayLog.selectedWorkoutId) : REST_WORKOUT
     const totalCal = dayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
 
     return buildDaySchedule({
@@ -70,45 +65,27 @@ export default function AppInit() {
 
     navigator.serviceWorker.register('/sw.js').catch(() => {})
 
-    // When a new SW takes control (after skipWaiting + claim), reload so the
-    // user immediately gets the latest version — no manual refresh needed.
     let reloading = false
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!reloading) { reloading = true; window.location.reload() }
     })
 
-    const ping = () => pingServiceWorker()
-    window.addEventListener('focus', ping)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') ping()
-    })
-
     const timer = setTimeout(async () => {
       const granted = await requestNotificationPermission()
       if (!granted) return
-      const schedule = buildSchedule()
-      // Send to SW for local fallback (when app is open)
-      sendScheduleToSW(schedule)
-      // Subscribe to Web Push + save schedule to server (for background delivery)
-      await subscribeToPush(schedule)
+      await subscribeToPush(buildSchedule())
     }, 2000)
 
-    return () => {
-      window.removeEventListener('focus', ping)
-      clearTimeout(timer)
-    }
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Re-subscribe/reschedule whenever state changes
+  // Re-save schedule to server whenever state changes (workout done, meals logged, etc.)
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (typeof Notification === 'undefined') return
     if (Notification.permission !== 'granted') return
-
-    const schedule = buildSchedule()
-    sendScheduleToSW(schedule)
-    subscribeToPush(schedule)
+    subscribeToPush(buildSchedule())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.streak, dayLogs])
 
