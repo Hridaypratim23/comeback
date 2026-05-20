@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useStore, TARGETS } from '@/lib/store'
+import { useStore, TARGETS, CustomMealTemplate } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
 import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -35,7 +35,7 @@ function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: n
   )
 }
 
-const emptyForm = { name: '', calories: '', protein: '', carbs: '', fat: '' }
+const emptyForm = { name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' }
 
 export default function NutritionPage() {
   const { dayLogs, addMeal, removeMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
@@ -46,10 +46,17 @@ export default function NutritionPage() {
   const [saved, setSaved] = useState(false)
   const [mealsOpen, setMealsOpen] = useState(true)
 
+  // serving size dialog after CREATE
+  const [showServingDialog, setShowServingDialog] = useState(false)
+  const [pendingMeal, setPendingMeal] = useState<Omit<CustomMealTemplate, 'id'> | null>(null)
+
+  // serving size slider when logging
+  const [servingMeal, setServingMeal] = useState<CustomMealTemplate | null>(null)
+  const [servingGrams, setServingGrams] = useState(100)
+
   useEffect(() => {
     setMounted(true)
     getOrCreateToday()
-    // default to quick-add if no custom meals yet
   }, [getOrCreateToday])
 
   useEffect(() => {
@@ -61,32 +68,61 @@ export default function NutritionPage() {
   const today = new Date().toISOString().split('T')[0]
   const dayLog = dayLogs[today]
   const meals = dayLog?.meals ?? []
-  const totalCal  = meals.reduce((s, m) => s + m.calories, 0)
-  const totalPro  = meals.reduce((s, m) => s + m.protein, 0)
-  const totalCarb = meals.reduce((s, m) => s + m.carbs, 0)
-  const totalFat  = meals.reduce((s, m) => s + m.fat, 0)
-  const calPct    = Math.min((totalCal / TARGETS.calories) * 100, 100)
-  const remaining = TARGETS.calories - totalCal
+  const totalCal   = meals.reduce((s, m) => s + m.calories, 0)
+  const totalPro   = meals.reduce((s, m) => s + m.protein, 0)
+  const totalCarb  = meals.reduce((s, m) => s + m.carbs, 0)
+  const totalFat   = meals.reduce((s, m) => s + m.fat, 0)
+  const totalFibre = meals.reduce((s, m) => s + (m.fibre ?? 0), 0)
+  const calPct     = Math.min((totalCal / TARGETS.calories) * 100, 100)
+  const remaining  = TARGETS.calories - totalCal
   const difference = TDEE - totalCal
-  const isDeficit = difference >= 0
+  const isDeficit  = difference >= 0
 
-  const filteredQuick = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredQuick  = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
   const filteredCustom = customMeals.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
 
   const submitCreate = () => {
     const name = form.name.trim()
-    const cal  = parseInt(form.calories) || 0
+    const cal  = parseFloat(form.calories) || 0
     if (!name || cal === 0) return
-    saveCustomMeal({
+    setPendingMeal({
       name,
       calories: cal,
-      protein: parseInt(form.protein) || 0,
-      carbs:   parseInt(form.carbs)   || 0,
-      fat:     parseInt(form.fat)     || 0,
+      protein: parseFloat(form.protein) || 0,
+      carbs:   parseFloat(form.carbs)   || 0,
+      fat:     parseFloat(form.fat)     || 0,
+      fibre:   parseFloat(form.fibre)   || 0,
     })
+    setShowServingDialog(true)
+  }
+
+  const confirmServingDialog = (withServing: boolean) => {
+    if (!pendingMeal) return
+    saveCustomMeal({ ...pendingMeal, servingSize: withServing })
+    setShowServingDialog(false)
+    setPendingMeal(null)
     setForm(emptyForm)
     setSaved(true)
     setTimeout(() => { setSaved(false); setTab('my-meals') }, 1500)
+  }
+
+  const openServingSlider = (m: CustomMealTemplate) => {
+    setServingMeal(m)
+    setServingGrams(100)
+  }
+
+  const logServingMeal = () => {
+    if (!servingMeal) return
+    const ratio = servingGrams / 50
+    addMeal({
+      name:     `${servingMeal.name} (${servingGrams}g)`,
+      calories: Math.round(servingMeal.calories * ratio),
+      protein:  Math.round(servingMeal.protein  * ratio),
+      carbs:    Math.round(servingMeal.carbs    * ratio),
+      fat:      Math.round(servingMeal.fat      * ratio),
+      fibre:    Math.round((servingMeal.fibre ?? 0) * ratio),
+    })
+    setServingMeal(null)
   }
 
   const TABS: { key: Tab; label: string }[] = [
@@ -141,9 +177,10 @@ export default function NutritionPage() {
       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
         <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-4">MACROS</div>
         <div className="flex justify-around">
-          <MacroRing val={totalPro}  max={TARGETS.protein} color="#FF2800" label="PROTEIN" />
-          <MacroRing val={totalCarb} max={TARGETS.carbs}   color="#FF5500" label="CARBS" />
-          <MacroRing val={totalFat}  max={TARGETS.fat}     color="#D4A017" label="FAT" />
+          <MacroRing val={totalPro}   max={TARGETS.protein} color="#FF2800" label="PROTEIN" />
+          <MacroRing val={totalCarb}  max={TARGETS.carbs}   color="#FF5500" label="CARBS" />
+          <MacroRing val={totalFat}   max={TARGETS.fat}     color="#D4A017" label="FAT" />
+          <MacroRing val={totalFibre} max={TARGETS.fibre}   color="#1DB954" label="FIBRE" />
         </div>
       </div>
 
@@ -164,7 +201,8 @@ export default function NutritionPage() {
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
                     <div className="text-[10px] text-[#686870] mt-0.5">
-                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F · {m.time}
+                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F
+                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
                     </div>
                   </div>
                   <button onClick={() => removeMeal(m.id)}
@@ -224,19 +262,34 @@ export default function NutritionPage() {
               {filteredCustom.map(m => (
                 <div key={m.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
-                    <div className="font-black text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="font-black text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                      {m.servingSize && (
+                        <span className="text-[8px] font-black tracking-wider text-[#FF5500] bg-[#FF550022] px-1.5 py-0.5 rounded">
+                          /50g
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[10px] text-[#686870] mt-0.5">
                       {m.calories} cal
-                      {m.protein > 0 && ` · ${m.protein}g P`}
-                      {m.carbs   > 0 && ` · ${m.carbs}g C`}
-                      {m.fat     > 0 && ` · ${m.fat}g F`}
+                      {m.protein > 0  && ` · ${m.protein}g P`}
+                      {m.carbs   > 0  && ` · ${m.carbs}g C`}
+                      {m.fat     > 0  && ` · ${m.fat}g F`}
+                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`}
                     </div>
                   </div>
                   <button onClick={() => deleteCustomMeal(m.id)}
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
                     <Trash2 size={13} />
                   </button>
-                  <button onClick={() => addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat })}
+                  <button
+                    onClick={() => {
+                      if (m.servingSize) {
+                        openServingSlider(m)
+                      } else {
+                        addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, fibre: m.fibre ?? 0 })
+                      }
+                    }}
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-[#FF280022] text-[#FF2800] hover:bg-[#FF2800] hover:text-white transition-all cursor-pointer">
                     <Plus size={14} />
                   </button>
@@ -252,7 +305,7 @@ export default function NutritionPage() {
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
           <div className="divide-y divide-[#1E1E26] max-h-80 overflow-y-auto">
             {filteredQuick.map(m => (
-              <button key={m.name} onClick={() => addMeal(m)}
+              <button key={m.name} onClick={() => addMeal({ ...m, fibre: 0 })}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
                 <div>
                   <div className="font-bold text-sm text-[#EDEDF0]">{m.name}</div>
@@ -278,25 +331,25 @@ export default function NutritionPage() {
             value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
 
-          <input type="number" inputMode="numeric" placeholder="Calories (required)"
+          <input type="number" inputMode="decimal" placeholder="Calories (required)" step="0.1"
             value={form.calories} onChange={e => setForm(f => ({ ...f, calories: e.target.value }))}
             className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF5500] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
 
           <div className="text-[9px] font-black tracking-widest text-[#2C2C38]">OPTIONAL MACROS</div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { key: 'protein', label: 'PROTEIN (g)', color: '#FF2800' },
               { key: 'carbs',   label: 'CARBS (g)',   color: '#FF5500' },
               { key: 'fat',     label: 'FAT (g)',      color: '#D4A017' },
+              { key: 'fibre',   label: 'FIBRE (g)',    color: '#1DB954' },
             ].map(({ key, label, color }) => (
               <div key={key}>
                 <div className="text-[9px] font-black tracking-wider mb-1" style={{ color }}>{label}</div>
-                <input type="number" inputMode="numeric" placeholder="0"
+                <input type="number" inputMode="decimal" placeholder="0" step="0.1"
                   value={form[key as keyof typeof form]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                   className="w-full bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
-                  style={{ '--tw-border-opacity': '1' } as React.CSSProperties}
                 />
               </div>
             ))}
@@ -313,6 +366,84 @@ export default function NutritionPage() {
               SAVE TO MY MEALS
             </button>
           )}
+        </div>
+      )}
+
+      {/* Serving Size Dialog — shown after CREATE */}
+      {showServingDialog && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={() => setShowServingDialog(false)}>
+          <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
+               onClick={e => e.stopPropagation()}>
+            <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
+            <p className="text-base font-black text-[#EDEDF0]">Add serving size support?</p>
+            <p className="text-[11px] text-[#686870] leading-relaxed">
+              If yes, the macros you entered will be treated as <span className="text-[#FF5500] font-black">per 50g</span>.
+              When logging, you&apos;ll pick a serving from 50g to 1000g via a slider.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button onClick={() => confirmServingDialog(false)}
+                className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                NO
+              </button>
+              <button onClick={() => confirmServingDialog(true)}
+                className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                YES
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Serving Size Slider — shown when logging a servingSize meal */}
+      {servingMeal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={() => setServingMeal(null)}>
+          <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
+               onClick={e => e.stopPropagation()}>
+            <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
+            <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
+
+            {/* Slider */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[#686870]">50g</span>
+                <span className="text-xl font-black text-[#FF2800]">{servingGrams}g</span>
+                <span className="text-[10px] text-[#686870]">1000g</span>
+              </div>
+              <input
+                type="range" min={50} max={1000} step={50}
+                value={servingGrams}
+                onChange={e => setServingGrams(Number(e.target.value))}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+              />
+            </div>
+
+            {/* Scaled macro preview */}
+            <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
+              <div className="text-2xl font-black text-[#FF5500]">
+                {Math.round(servingMeal.calories * servingGrams / 50)}
+                <span className="text-sm text-[#686870] font-normal ml-1">cal</span>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[11px] font-black mt-1">
+                <span style={{ color: '#FF2800' }}>{Math.round(servingMeal.protein * servingGrams / 50)}g P</span>
+                <span style={{ color: '#FF5500' }}>{Math.round(servingMeal.carbs   * servingGrams / 50)}g C</span>
+                <span style={{ color: '#D4A017' }}>{Math.round(servingMeal.fat     * servingGrams / 50)}g F</span>
+                {(servingMeal.fibre ?? 0) > 0 && (
+                  <span style={{ color: '#1DB954' }}>{Math.round((servingMeal.fibre ?? 0) * servingGrams / 50)}g Fi</span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setServingMeal(null)}
+                className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                CANCEL
+              </button>
+              <button onClick={logServingMeal}
+                className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                LOG
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

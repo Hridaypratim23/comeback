@@ -21,6 +21,7 @@ export interface MealEntry {
   protein: number
   carbs: number
   fat: number
+  fibre?: number
   time: string
 }
 
@@ -93,6 +94,8 @@ export interface CustomMealTemplate {
   protein: number
   carbs: number
   fat: number
+  fibre?: number
+  servingSize?: boolean  // if true, macros are per 50g
 }
 
 interface AppState {
@@ -478,5 +481,5 @@ export function getTodayLog() {
   return useStore.getState().getOrCreateToday()
 }
 
-export const TARGETS = { calories: 2100, protein: 160, carbs: 220, fat: 65, waterMl: 3000, steps: 10000 }
+export const TARGETS = { calories: 2100, protein: 160, carbs: 220, fat: 65, fibre: 30, waterMl: 3000, steps: 10000 }
 export const XP_LEVEL = XP_PER_LEVEL
