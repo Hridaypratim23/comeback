@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useStore, TARGETS } from '@/lib/store'
-import { Droplets, Plus } from 'lucide-react'
+import { Droplets, Plus, Minus } from 'lucide-react'
 
 const AMOUNTS = [
   { label: '150ml', value: 150 },
@@ -107,6 +107,25 @@ export default function HydrationPage() {
             <div className="text-[10px] text-[#686870]">remaining</div>
           </div>
         </div>
+      </div>
+
+      {/* ±100ml control */}
+      <div className="flex items-center justify-between bg-[#111116] border border-[#1E1E26] rounded-2xl px-4 py-3">
+        <button
+          onClick={() => log(-100)}
+          disabled={waterMl < 100}
+          className="w-12 h-12 flex items-center justify-center rounded-xl border border-[#1E1E26] bg-[#0D0D10] text-[#686870] active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed btn-press">
+          <Minus size={18} />
+        </button>
+        <div className="text-center">
+          <div className="text-[10px] font-black tracking-widest text-[#686870] mb-0.5">ADJUST</div>
+          <div className="text-2xl font-black text-[#2196F3]">{waterMl} ml</div>
+        </div>
+        <button
+          onClick={() => log(100)}
+          className="w-12 h-12 flex items-center justify-center rounded-xl border border-[#2196F344] bg-[#2196F318] text-[#2196F3] active:scale-95 transition-all cursor-pointer btn-press">
+          <Plus size={18} />
+        </button>
       </div>
 
       {/* Quick Add Buttons */}
