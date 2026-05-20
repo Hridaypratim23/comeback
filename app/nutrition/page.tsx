@@ -74,6 +74,22 @@ export default function NutritionPage() {
     if (mounted && customMeals.length === 0) setTab('quick-add')
   }, [mounted, customMeals.length])
 
+  const anyModalOpen = !!(loggedMealDelete || loggedMealEdit || deletePending || servingMeal || showServingDialog)
+  useEffect(() => {
+    if (!mounted) return
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [anyModalOpen, mounted])
+
   // Hooks must be called before any early return
   const recentMealNames = useMemo(() => {
     const names = new Set<string>()
@@ -599,9 +615,9 @@ export default function NutritionPage() {
 
       {/* ── Delete confirmation (centered) ── */}
       {loggedMealDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm overscroll-none"
           onClick={() => setLoggedMealDelete(null)}>
-          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden max-h-[90dvh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
               <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-2">DELETE MEAL</div>
@@ -652,9 +668,9 @@ export default function NutritionPage() {
         }
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm overscroll-none"
             onClick={() => setLoggedMealEdit(null)}>
-            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden max-h-[90dvh] overflow-y-auto"
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}
