@@ -15,77 +15,29 @@ import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
-interface RingData {
-  key: string
-  icon: string   // emoji
-  label: string  // e.g. "Steps Covered"
-  value: string  // bold left side, e.g. "1,234"
-  target: string // lighter right side, e.g. "/ 10K steps"
-  pct: number    // 0–1
-  color: string
-}
-
-function ActivityRings({ title, rings }: { title: string; rings: RingData[] }) {
-  const cx = 62, cy = 62
-  const RING_W = 10
-  // ~2px gap between neighbouring rings
-  const radii = [54, 42, 30, 18]
-
+function ScoreRing({ title, score, color }: { title: string; score: number; color: string }) {
+  const cx = 50, cy = 50, r = 40, RING_W = 9
+  const circ = 2 * Math.PI * r
+  const filled = score > 0 ? Math.max(circ * (score / 100), 8) : 0
   return (
-    <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-      <div className="text-[9px] font-black tracking-[0.3em] text-[#686870] mb-4">{title}</div>
-      <div className="flex items-center gap-4">
-
-        {/* Concentric rings */}
-        <svg width="124" height="124" viewBox="0 0 124 124" className="flex-shrink-0">
-          {rings.map((ring, i) => {
-            const r = radii[i]
-            const circ = 2 * Math.PI * r
-            const filled = ring.pct > 0 ? Math.max(circ * Math.min(ring.pct, 1), 10) : 0
-            return (
-              <g key={ring.key}>
-                <circle cx={cx} cy={cy} r={r} fill="none"
-                  stroke={ring.color} strokeWidth={RING_W} opacity={0.14} />
-                <circle cx={cx} cy={cy} r={r} fill="none"
-                  stroke={ring.color} strokeWidth={RING_W}
-                  strokeLinecap="round"
-                  strokeDasharray={`${filled} ${circ}`}
-                  transform={`rotate(-90 ${cx} ${cy})`}
-                  style={{
-                    transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)',
-                    filter: ring.pct > 0 ? `drop-shadow(0 0 6px ${ring.color}99)` : 'none',
-                  }}
-                />
-              </g>
-            )
-          })}
-        </svg>
-
-        {/* Metric rows — one per ring */}
-        <div className="flex-1 space-y-3.5 min-w-0">
-          {rings.map(ring => (
-            <div key={ring.key} className="flex items-center gap-3">
-              {/* Icon badge */}
-              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${ring.color}20` }}>
-                <span className="text-base leading-none">{ring.icon}</span>
-              </div>
-              {/* Label + value */}
-              <div className="min-w-0">
-                <div className="text-[9px] font-bold tracking-wider mb-0.5"
-                  style={{ color: ring.pct >= 1 ? ring.color : '#686870' }}>
-                  {ring.label}
-                </div>
-                <div className="text-[13px] leading-tight">
-                  <span className="font-black text-[#EDEDF0]">{ring.value}</span>
-                  <span className="font-bold text-[#686870]"> {ring.target}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-      </div>
+    <div className="flex-1 flex flex-col items-center gap-2">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={RING_W} opacity={0.14} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={RING_W}
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circ}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{
+            transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)',
+            filter: score > 0 ? `drop-shadow(0 0 6px ${color}99)` : 'none',
+          }}
+        />
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="20" fontWeight="900"
+          fill={score > 0 ? '#EDEDF0' : '#2C2C38'} fontFamily="inherit">{score}</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize="9" fontWeight="700"
+          fill="#686870" fontFamily="inherit" letterSpacing="1">%</text>
+      </svg>
+      <span className="text-[9px] font-black tracking-[0.25em] text-[#686870]">{title}</span>
     </div>
   )
 }
@@ -416,72 +368,13 @@ export default function HomePage() {
         </div>
 
         {/* ── Score Rings ── */}
-        <ActivityRings
-          title="TODAY"
-          rings={[
-            {
-              key: 'workout', icon: '🏋️', label: 'Workout',
-              pct: todayLog?.workoutDone ? 1 : 0,
-              color: '#FF2800',
-              value: todayLog?.workoutDone ? 'Done ✓' : 'Not done',
-              target: '',
-            },
-            {
-              key: 'steps', icon: '👟', label: 'Steps Covered',
-              pct: Math.min(todaySteps / 10000, 1),
-              color: '#2196F3',
-              value: todaySteps.toLocaleString(),
-              target: '/ 10,000',
-            },
-            {
-              key: 'sleep', icon: '😴', label: 'Sleep',
-              pct: todayLog?.habits?.sleep ? 1 : 0,
-              color: '#9B59B6',
-              value: todayLog?.habits?.sleep ? 'Logged ✓' : 'Not logged',
-              target: '',
-            },
-            {
-              key: 'diet', icon: '🔥', label: 'Calories',
-              pct: todayCal > 0 ? Math.min(todayCal / TARGETS.calories, 1) : 0,
-              color: '#1DB954',
-              value: `${todayCal}`,
-              target: `/ ${TARGETS.calories} kcal`,
-            },
-          ]}
-        />
-        <ActivityRings
-          title="THIS WEEK"
-          rings={[
-            {
-              key: 'wo', icon: '🏋️', label: 'Workouts',
-              pct: Math.min(weekWorkouts / 5, 1),
-              color: '#FF2800',
-              value: `${weekWorkouts}`,
-              target: '/ 5 sessions',
-            },
-            {
-              key: 'steps', icon: '👟', label: 'Steps Days',
-              pct: Math.min(weekStepDays / 5, 1),
-              color: '#2196F3',
-              value: `${weekStepDays}`,
-              target: '/ 5 days hit',
-            },
-            {
-              key: 'sleep', icon: '😴', label: 'Sleep Nights',
-              pct: Math.min(weekSleepDays / 7, 1),
-              color: '#9B59B6',
-              value: `${weekSleepDays}`,
-              target: '/ 7 nights',
-            },
-            {
-              key: 'diet', icon: '🔥', label: 'Clean Days',
-              pct: Math.min(weekGoodDays / 6, 1),
-              color: '#1DB954',
-              value: `${weekGoodDays}`,
-              target: '/ 6 days',
-            },
-          ]}
-        />
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl px-4 py-5">
+          <div className="flex items-center gap-2">
+            <ScoreRing title="TODAY" score={dailyScore} color="#FF2800" />
+            <div className="w-px self-stretch bg-[#1E1E26]" />
+            <ScoreRing title="THIS WEEK" score={weeklyScore} color="#1DB954" />
+          </div>
+        </div>
 
         {/* ── Wellness Journal / Week Navigator ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
