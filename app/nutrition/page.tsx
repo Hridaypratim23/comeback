@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useStore, TARGETS, CustomMealTemplate } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
 import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { getUnitConfig, formatQty, scaleRatio } from '@/lib/unitConfig'
 
 const TDEE = 2400
 const GOAL_DEFICIT = 457
@@ -52,7 +53,7 @@ export default function NutritionPage() {
 
   // serving size slider when logging
   const [servingMeal, setServingMeal] = useState<CustomMealTemplate | null>(null)
-  const [servingGrams, setServingGrams] = useState(100)
+  const [servingQty, setServingQty] = useState(1)
 
   useEffect(() => {
     setMounted(true)
@@ -98,7 +99,8 @@ export default function NutritionPage() {
 
   const confirmServingDialog = (withServing: boolean) => {
     if (!pendingMeal) return
-    saveCustomMeal({ ...pendingMeal, servingSize: withServing })
+    const unit = withServing ? getUnitConfig(pendingMeal.name).unit : undefined
+    saveCustomMeal({ ...pendingMeal, unit, servingSize: withServing })
     setShowServingDialog(false)
     setPendingMeal(null)
     setForm(emptyForm)
@@ -107,21 +109,36 @@ export default function NutritionPage() {
   }
 
   const openServingSlider = (m: CustomMealTemplate) => {
+    const cfg = m.unit ? getUnitConfig(m.name) : null
     setServingMeal(m)
-    setServingGrams(100)
+    setServingQty(cfg ? cfg.defaultQty : 100)
   }
 
   const logServingMeal = () => {
     if (!servingMeal) return
-    const ratio = servingGrams / 50
-    addMeal({
-      name:     `${servingMeal.name} (${servingGrams}g)`,
-      calories: Math.round(servingMeal.calories * ratio),
-      protein:  Math.round(servingMeal.protein  * ratio),
-      carbs:    Math.round(servingMeal.carbs    * ratio),
-      fat:      Math.round(servingMeal.fat      * ratio),
-      fibre:    Math.round((servingMeal.fibre ?? 0) * ratio),
-    })
+    // Legacy meals (servingSize=true, no unit) use per-50g ratio
+    if (!servingMeal.unit && servingMeal.servingSize) {
+      const ratio = servingQty / 50
+      addMeal({
+        name:     `${servingMeal.name} (${servingQty}g)`,
+        calories: Math.round(servingMeal.calories * ratio),
+        protein:  Math.round(servingMeal.protein  * ratio),
+        carbs:    Math.round(servingMeal.carbs    * ratio),
+        fat:      Math.round(servingMeal.fat      * ratio),
+        fibre:    Math.round((servingMeal.fibre ?? 0) * ratio),
+      })
+    } else {
+      const cfg = getUnitConfig(servingMeal.name)
+      const ratio = scaleRatio(servingQty, cfg)
+      addMeal({
+        name:     `${servingMeal.name} (${formatQty(servingQty, cfg)})`,
+        calories: Math.round(servingMeal.calories * ratio),
+        protein:  Math.round(servingMeal.protein  * ratio),
+        carbs:    Math.round(servingMeal.carbs    * ratio),
+        fat:      Math.round(servingMeal.fat      * ratio),
+        fibre:    Math.round((servingMeal.fibre ?? 0) * ratio),
+      })
+    }
     setServingMeal(null)
   }
 
@@ -184,14 +201,46 @@ export default function NutritionPage() {
         </div>
       </div>
 
+      {/* Today's Meals */}
+      {meals.length > 0 && (
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+          <button onClick={() => setMealsOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1E1E26] cursor-pointer">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
+              TODAY&apos;S MEALS <span className="text-[#FF2800]">({meals.length})</span>
+            </span>
+            {mealsOpen ? <ChevronUp size={14} className="text-[#686870]" /> : <ChevronDown size={14} className="text-[#686870]" />}
+          </button>
+          {mealsOpen && (
+            <div className="divide-y divide-[#1E1E26]">
+              {meals.map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                    <div className="text-[10px] text-[#686870] mt-0.5">
+                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F
+                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
+                    </div>
+                  </div>
+                  <button onClick={() => removeMeal(m.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tab Bar */}
       <div className="flex bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-1 gap-1">
         {TABS.map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all cursor-pointer
               ${tab === key
-                ? key === 'create' ? 'bg-[#FF2800] text-white' : 'bg-[#111116] text-[#EDEDF0] border border-[#2C2C38]'
-                : 'text-[#686870] hover:text-[#EDEDF0]'}`}>
+                ? key === 'create' ? 'bg-[#FF2800] text-white' : 'bg-[#1E1E26] text-[#EDEDF0]'
+                : 'text-[#686870]'}`}>
             {label}
           </button>
         ))}
@@ -232,11 +281,15 @@ export default function NutritionPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <div className="font-black text-sm text-[#EDEDF0] truncate">{m.name}</div>
-                      {m.servingSize && (
-                        <span className="text-[8px] font-black tracking-wider text-[#FF5500] bg-[#FF550022] px-1.5 py-0.5 rounded">
-                          /50g
-                        </span>
-                      )}
+                      {(m.unit || m.servingSize) && (() => {
+                        const cfg = m.unit ? getUnitConfig(m.name) : null
+                        const badge = cfg?.isGrams ? '/100g' : cfg ? `/${cfg.singular}` : '/50g'
+                        return (
+                          <span className="text-[8px] font-black tracking-wider text-[#FF5500] bg-[#FF550022] px-1.5 py-0.5 rounded">
+                            {badge}
+                          </span>
+                        )
+                      })()}
                     </div>
                     <div className="text-[10px] text-[#686870] mt-0.5">
                       {m.calories} cal
@@ -252,7 +305,7 @@ export default function NutritionPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (m.servingSize) {
+                      if (m.unit || m.servingSize) {
                         openServingSlider(m)
                       } else {
                         addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, fibre: m.fibre ?? 0 })
@@ -338,114 +391,108 @@ export default function NutritionPage() {
       )}
 
       {/* Serving Size Dialog — shown after CREATE */}
-      {showServingDialog && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setShowServingDialog(false)}>
-          <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
-               onClick={e => e.stopPropagation()}>
-            <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
-            <p className="text-base font-black text-[#EDEDF0]">Add serving size support?</p>
-            <p className="text-[11px] text-[#686870] leading-relaxed">
-              If yes, the macros you entered will be treated as <span className="text-[#FF5500] font-black">per 50g</span>.
-              When logging, you&apos;ll pick a serving from 50g to 1000g via a slider.
-            </p>
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <button onClick={() => confirmServingDialog(false)}
-                className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
-                NO
-              </button>
-              <button onClick={() => confirmServingDialog(true)}
-                className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
-                YES
-              </button>
+      {showServingDialog && pendingMeal && (() => {
+        const cfg = getUnitConfig(pendingMeal.name)
+        const perLabel = cfg.isGrams ? '100g' : `1 ${cfg.singular}`
+        const rangeLabel = cfg.isGrams
+          ? `${cfg.min}g – ${cfg.max}g`
+          : `${cfg.min}–${cfg.max} ${cfg.plural}`
+        return (
+          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setShowServingDialog(false)}>
+            <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
+                 onClick={e => e.stopPropagation()}>
+              <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
+              <p className="text-base font-black text-[#EDEDF0]">Add serving size support?</p>
+              <p className="text-[11px] text-[#686870] leading-relaxed">
+                If yes, macros you entered will be treated as{' '}
+                <span className="text-[#FF5500] font-black">per {perLabel}</span>.
+                When logging, pick quantity ({rangeLabel}).
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button onClick={() => confirmServingDialog(false)}
+                  className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                  NO
+                </button>
+                <button onClick={() => confirmServingDialog(true)}
+                  className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                  YES
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Serving Size Slider — shown when logging a servingSize meal */}
-      {servingMeal && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setServingMeal(null)}>
-          <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
-               onClick={e => e.stopPropagation()}>
-            <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
-            <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
+      {servingMeal && (() => {
+        // Support legacy per-50g meals and new unit-based meals
+        const isLegacy = !servingMeal.unit && servingMeal.servingSize
+        const cfg = isLegacy ? null : getUnitConfig(servingMeal.name)
+        const min  = isLegacy ? 50  : cfg!.min
+        const max  = isLegacy ? 1000 : cfg!.max
+        const step = isLegacy ? 50  : cfg!.step
+        const ratio = isLegacy
+          ? servingQty / 50
+          : scaleRatio(servingQty, cfg!)
+        const qtyLabel = isLegacy
+          ? `${servingQty}g`
+          : formatQty(servingQty, cfg!)
+        const minLabel = isLegacy ? '50g' : formatQty(min, cfg!)
+        const maxLabel = isLegacy ? '1000g' : formatQty(max, cfg!)
 
-            {/* Slider */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#686870]">50g</span>
-                <span className="text-xl font-black text-[#FF2800]">{servingGrams}g</span>
-                <span className="text-[10px] text-[#686870]">1000g</span>
-              </div>
-              <input
-                type="range" min={50} max={1000} step={50}
-                value={servingGrams}
-                onChange={e => setServingGrams(Number(e.target.value))}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
-              />
-            </div>
+        return (
+          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setServingMeal(null)}>
+            <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
+                 onClick={e => e.stopPropagation()}>
+              <div className="text-[10px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
+              <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
 
-            {/* Scaled macro preview */}
-            <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
-              <div className="text-2xl font-black text-[#FF5500]">
-                {Math.round(servingMeal.calories * servingGrams / 50)}
-                <span className="text-sm text-[#686870] font-normal ml-1">cal</span>
+              {/* Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[#686870]">{minLabel}</span>
+                  <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
+                  <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                </div>
+                <input
+                  type="range" min={min} max={max} step={step}
+                  value={servingQty}
+                  onChange={e => setServingQty(Number(e.target.value))}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+                />
               </div>
-              <div className="flex flex-wrap gap-3 text-[11px] font-black mt-1">
-                <span style={{ color: '#FF2800' }}>{Math.round(servingMeal.protein * servingGrams / 50)}g P</span>
-                <span style={{ color: '#FF5500' }}>{Math.round(servingMeal.carbs   * servingGrams / 50)}g C</span>
-                <span style={{ color: '#D4A017' }}>{Math.round(servingMeal.fat     * servingGrams / 50)}g F</span>
-                {(servingMeal.fibre ?? 0) > 0 && (
-                  <span style={{ color: '#1DB954' }}>{Math.round((servingMeal.fibre ?? 0) * servingGrams / 50)}g Fi</span>
-                )}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setServingMeal(null)}
-                className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
-                CANCEL
-              </button>
-              <button onClick={logServingMeal}
-                className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
-                LOG
-              </button>
+              {/* Scaled macro preview */}
+              <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
+                <div className="text-2xl font-black text-[#FF5500]">
+                  {Math.round(servingMeal.calories * ratio)}
+                  <span className="text-sm text-[#686870] font-normal ml-1">cal</span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-[11px] font-black mt-1">
+                  <span style={{ color: '#FF2800' }}>{Math.round(servingMeal.protein * ratio)}g P</span>
+                  <span style={{ color: '#FF5500' }}>{Math.round(servingMeal.carbs   * ratio)}g C</span>
+                  <span style={{ color: '#D4A017' }}>{Math.round(servingMeal.fat     * ratio)}g F</span>
+                  {(servingMeal.fibre ?? 0) > 0 && (
+                    <span style={{ color: '#1DB954' }}>{Math.round((servingMeal.fibre ?? 0) * ratio)}g Fi</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setServingMeal(null)}
+                  className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                  CANCEL
+                </button>
+                <button onClick={logServingMeal}
+                  className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                  LOG
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
-      {/* Today's Meals — placed here so adding meals never shifts the tab bar above */}
-      {meals.length > 0 && (
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
-          <button onClick={() => setMealsOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1E1E26] cursor-pointer">
-            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
-              TODAY'S MEALS <span className="text-[#FF2800]">({meals.length})</span>
-            </span>
-            {mealsOpen ? <ChevronUp size={14} className="text-[#686870]" /> : <ChevronDown size={14} className="text-[#686870]" />}
-          </button>
-          {mealsOpen && (
-            <div className="divide-y divide-[#1E1E26]">
-              {meals.map(m => (
-                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
-                    <div className="text-[10px] text-[#686870] mt-0.5">
-                      {m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F
-                      {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
-                    </div>
-                  </div>
-                  <button onClick={() => removeMeal(m.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
-                    <X size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

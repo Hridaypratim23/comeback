@@ -43,10 +43,18 @@ export default function HydrationPage() {
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
       {/* Header */}
-      <div>
-        <p className="text-[10px] font-black tracking-[0.35em] text-[#686870]">HYDRATION</p>
-        <h1 className="text-3xl font-black text-[#EDEDF0] leading-none mt-0.5">H₂O</h1>
-        <p className="text-xs text-[#686870] mt-0.5">3L daily target · 0.6L per hour</p>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] font-black tracking-[0.35em] text-[#2196F3] uppercase">Hydration</p>
+          <h1 className="text-5xl font-black leading-none mt-0.5" style={{ color: pct >= 1 ? '#2196F3' : '#EDEDF0' }}>H₂O</h1>
+          <p className="text-[11px] font-bold text-[#686870] mt-1.5">
+            {pct >= 1 ? '3L GOAL CRUSHED ✓' : `${(remaining / 1000).toFixed(2)}L remaining`}
+          </p>
+        </div>
+        <div className="text-right pb-1">
+          <div className="text-3xl font-black" style={{ color: '#2196F3' }}>{liters}L</div>
+          <div className="text-[10px] font-bold text-[#686870]">{Math.round(pct * 100)}% of 3L</div>
+        </div>
       </div>
 
       {/* Big Tank */}
@@ -107,8 +115,12 @@ export default function HydrationPage() {
         <div className="grid grid-cols-4 gap-2">
           {AMOUNTS.map(({ label, value }) => (
             <button key={value} onClick={() => log(value)}
-              className="py-3 rounded-xl border border-[#2196F333] font-black text-xs text-[#2196F3] hover:bg-[#2196F322] active:scale-95 transition-all cursor-pointer btn-press"
-              style={{ background: '#111116' }}>
+              className="py-4 rounded-2xl font-black text-sm text-[#2196F3] active:scale-95 transition-all cursor-pointer btn-press"
+              style={{
+                background: 'linear-gradient(180deg, rgba(33,150,243,0.1) 0%, #111116 100%)',
+                border: '1px solid rgba(33,150,243,0.28)',
+                boxShadow: 'inset 0 1.5px 0 rgba(33,150,243,0.2)',
+              }}>
               {label}
             </button>
           ))}

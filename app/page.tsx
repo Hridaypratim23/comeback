@@ -309,8 +309,14 @@ export default function HomePage() {
         <div>
           <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
           <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
-          <p className="text-[10px] font-black tracking-widest text-[#686870] mt-1.5">
-            <span className="text-[#EDEDF0]">{stats.streak}</span> DAY STREAK · {stats.workoutsCompleted} WORKOUTS
+          <p className="text-[11px] font-black tracking-widest text-[#686870] mt-1.5 flex items-center gap-1.5 flex-wrap">
+            <Flame size={11} className="text-[#FF5500] inline-block flex-shrink-0" />
+            <span className="text-[#EDEDF0]">{stats.streak}</span>
+            <span>STREAK</span>
+            <span className="text-[#1E1E26] mx-0.5">·</span>
+            <Trophy size={11} className="text-[#D4A017] inline-block flex-shrink-0" />
+            <span className="text-[#EDEDF0]">{stats.workoutsCompleted}</span>
+            <span>WORKOUTS</span>
           </p>
         </div>
 
@@ -547,7 +553,7 @@ export default function HomePage() {
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-2">
               <Link href="/nutrition" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 hover:red-border-glow transition-all">
+                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(255,85,0,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Flame size={14} className="text-[#FF5500]" />
                     <span className="text-[9px] font-black tracking-widest text-[#686870]">CALORIES</span>
@@ -555,12 +561,12 @@ export default function HomePage() {
                   <div className="text-xl font-black text-[#EDEDF0]">{totalCal}</div>
                   <div className="text-[10px] text-[#686870]">/ {TARGETS.calories}</div>
                   <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#FF5500] rounded-full" style={{ width: `${Math.min((totalCal / TARGETS.calories) * 100, 100)}%` }} />
+                    <div className="h-full rounded-full" style={{ width: `${Math.min((totalCal / TARGETS.calories) * 100, 100)}%`, background: 'linear-gradient(90deg, #CC4000, #FF5500)' }} />
                   </div>
                 </div>
               </Link>
               <Link href="/hydration" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 hover:red-border-glow transition-all">
+                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Droplets size={14} className="text-[#2196F3]" />
                     <span className="text-[9px] font-black tracking-widest text-[#686870]">WATER</span>
@@ -568,12 +574,12 @@ export default function HomePage() {
                   <div className="text-xl font-black text-[#EDEDF0]">{((todayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</div>
                   <div className="text-[10px] text-[#686870]">/ 3.0L</div>
                   <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#2196F3] rounded-full" style={{ width: `${waterPct}%` }} />
+                    <div className="h-full rounded-full" style={{ width: `${waterPct}%`, background: 'linear-gradient(90deg, #1470CC, #2196F3)' }} />
                   </div>
                 </div>
               </Link>
               <Link href="/progress" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 hover:red-border-glow transition-all">
+                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Trophy size={14} className="text-[#D4A017]" />
                     <span className="text-[9px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
@@ -581,7 +587,7 @@ export default function HomePage() {
                   <div className="text-xl font-black text-[#EDEDF0]">{stats.workoutsCompleted}</div>
                   <div className="text-[10px] text-[#686870]">total</div>
                   <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#D4A017] rounded-full" style={{ width: `${Math.min((stats.workoutsCompleted / 100) * 100, 100)}%` }} />
+                    <div className="h-full rounded-full" style={{ width: `${Math.min((stats.workoutsCompleted / 100) * 100, 100)}%`, background: 'linear-gradient(90deg, #B08A00, #D4A017)' }} />
                   </div>
                 </div>
               </Link>

@@ -176,7 +176,7 @@ export default function WorkoutPage() {
                   </div>
                   <div className="h-3 bg-[#111116] border border-[#1E1E26] rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%`, backgroundColor: workout.color }} />
+                      style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${workout.color}88, ${workout.color})` }} />
                   </div>
                 </div>
 

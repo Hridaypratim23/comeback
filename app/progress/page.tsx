@@ -160,10 +160,12 @@ function ScoreBar({ label, value, max, color, count, target, unit }: {
   unit: string
 }) {
   const pct = Math.min(value / max, 1) * 100
+  const isActive = value > 0
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[10px] font-black tracking-widest text-[#686870]">{label}</span>
+        <span className="text-[10px] font-black tracking-widest transition-colors duration-300"
+              style={{ color: isActive ? color : '#686870' }}>{label}</span>
         <span className="text-[10px] font-black" style={{ color }}>
           {count}/{target} {unit}
         </span>
@@ -171,7 +173,7 @@ function ScoreBar({ label, value, max, color, count, target, unit }: {
       <div className="h-2 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: color }}
+          style={{ width: `${pct}%`, background: isActive ? `linear-gradient(90deg, ${color}88, ${color})` : color }}
         />
       </div>
     </div>
