@@ -279,6 +279,9 @@ export default function ProgressPage() {
     weightChange = parseFloat((monthBodyHistory[monthBodyHistory.length - 1].weight - monthBodyHistory[0].weight).toFixed(1))
   }
   const hasMonthData = workoutsThisMonth > 0 || avgCal !== null || avgWater !== null || avgSteps !== null
+  const monthTotalSteps = monthDayLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
+  const monthCalsBurned = Math.round((monthTotalSteps / 10000) * 500)
+  const monthFastingHours = monthDayLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
   const weightChartData = bodyHistory.map(e => ({ date: e.date, value: e.weight }))
   const bfChartData = bodyHistory.map(e => ({ date: e.date, value: e.bodyFat }))
@@ -368,11 +371,38 @@ export default function ProgressPage() {
             </div>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL WORKOUTS</span>
-            <span className="text-sm font-black text-[#FF2800]">{stats.workoutsCompleted} <span className="text-[10px] text-[#686870] font-bold">all time</span></span>
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
+            <span className="text-sm font-black text-[#FF2800]">{weekWorkouts} <span className="text-[10px] text-[#686870] font-bold">/ 5 sessions</span></span>
           </div>
         </div>
         <div className="text-[9px] text-[#686870] mt-2">Resets Monday · 10,000 steps = 500 kcal</div>
+      </div>
+
+      {/* ── MONTH IN NUMBERS ────────────────────────────────────────────────── */}
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MONTH IN NUMBERS</div>
+          <div className="text-[9px] font-bold text-[#2C2C38] tracking-widest">{monthName}</div>
+        </div>
+        <div className="space-y-0">
+          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL STEPS</span>
+            <span className="text-sm font-black text-[#2196F3]">{monthTotalSteps.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">CALS BURNED (STEPS)</span>
+            <span className="text-sm font-black text-[#FF5500]">{monthCalsBurned.toLocaleString()} kcal</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING HOURS</span>
+            <span className="text-sm font-black text-[#1DB954]">{monthFastingHours}h</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
+            <span className="text-sm font-black text-[#FF2800]">{workoutsThisMonth} <span className="text-[10px] text-[#686870] font-bold">sessions</span></span>
+          </div>
+        </div>
+        <div className="text-[9px] text-[#686870] mt-2">Resets 1st of each month · 10,000 steps = 500 kcal</div>
       </div>
 
       {/* ── 7-DAY ACTIVITY ──────────────────────────────────────────────────── */}
