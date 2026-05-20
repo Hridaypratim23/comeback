@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="COMEBACK" />
         <link rel="apple-touch-icon" href="/icon.png" />
+        <meta httpEquiv="Cache-Control" content="no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
       </head>
       <body className="bg-[#070709] text-[#EDEDF0] min-h-dvh">
         <AppInit />

@@ -689,6 +689,9 @@ export default function HomePage() {
           </>
         )}
       </div>
+      <p className="text-center text-[8px] font-bold text-[#1E1E26] tracking-widest mt-4 pb-2 select-none">
+        BUILD 20260520-v6
+      </p>
     </div>
   )
 }
