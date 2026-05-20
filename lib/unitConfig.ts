@@ -37,8 +37,8 @@ const RULES: Rule[] = [
     config: { unit: 'banana', singular: 'banana', plural: 'bananas', min: 0.5, max: 4, step: 0.5, defaultQty: 1 },
   },
   {
-    keywords: ['apple', 'orange', 'pear', 'mango', 'kiwi', 'peach', 'plum', 'guava', 'papaya', 'pomegranate', 'fig', 'dates', 'date'],
-    config: { unit: 'piece', singular: 'piece', plural: 'pieces', min: 0.5, max: 5, step: 0.5, defaultQty: 1 },
+    keywords: ['apple', 'orange', 'pear', 'mango', 'kiwi', 'peach', 'plum', 'guava', 'papaya', 'pomegranate', 'fig', 'dates', 'date', 'lemon', 'lime', 'grape', 'grapes', 'watermelon', 'pineapple', 'strawberry', 'blueberry', 'cherry', 'melon'],
+    config: { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 1 },
   },
   {
     keywords: ['sprout', 'sprouts', 'salad', 'oats', 'oatmeal', 'cereal', 'muesli', 'granola', 'poha', 'upma', 'dalia'],
