@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStore, TARGETS, CustomMealTemplate } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
 import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
@@ -82,10 +82,45 @@ export default function NutritionPage() {
   const difference = TDEE - totalCal
   const isDeficit  = difference >= 0
 
-  const filteredQuick  = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+  const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
+
+  // Build a set of meal names logged in the past 7 days for search prioritisation
+  const recentMealNames = useMemo(() => {
+    const names = new Set<string>()
+    const now = new Date()
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dk = d.toISOString().split('T')[0]
+      dayLogs[dk]?.meals.forEach(m => {
+        names.add(m.name.replace(/\s*\(.*?\)\s*$/, '').trim().toLowerCase())
+      })
+    }
+    return names
+  }, [dayLogs])
+
+  const filteredQuick = QUICK_MEALS
+    .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const ar = recentMealNames.has(a.name.toLowerCase()) ? 0 : 1
+      const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
+      return ar !== br ? ar - br : a.name.localeCompare(b.name)
+    })
   const filteredCustom = customMeals
     .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => {
+      const ar = recentMealNames.has(a.name.toLowerCase()) ? 0 : 1
+      const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
+      return ar !== br ? ar - br : a.name.localeCompare(b.name)
+    })
+
+  // Yesterday's meals for quick-repeat
+  const yesterdayMeals = useMemo(() => {
+    const y = new Date()
+    y.setDate(y.getDate() - 1)
+    const yk = y.toISOString().split('T')[0]
+    return dayLogs[yk]?.meals ?? []
+  }, [dayLogs])
 
   const submitCreate = () => {
     const name = form.name.trim()
@@ -145,6 +180,7 @@ export default function NutritionPage() {
       })
     }
     setServingMeal(null)
+    haptic()
   }
 
   const TABS: { key: Tab; label: string }[] = [
@@ -204,6 +240,28 @@ export default function NutritionPage() {
           <MacroRing val={totalFat}   max={TARGETS.fat}     color="#D4A017" label="FAT" />
           <MacroRing val={totalFibre} max={TARGETS.fibre}   color="#1DB954" label="FIBRE" />
         </div>
+        {totalCal > 0 && (() => {
+          const pCal = totalPro * 4, cCal = totalCarb * 4, fCal = totalFat * 9
+          const tot = pCal + cCal + fCal || 1
+          const pPct = Math.round(pCal / tot * 100)
+          const cPct = Math.round(cCal / tot * 100)
+          const fPct = 100 - pPct - cPct
+          return (
+            <div className="mt-4 pt-4 border-t border-[#1E1E26]">
+              <div className="text-[9px] font-black tracking-widest text-[#686870] mb-2">CALORIE SPLIT</div>
+              <div className="flex rounded-full overflow-hidden h-2.5 gap-px">
+                {pCal > 0 && <div style={{ flex: pCal, background: '#FF2800' }} />}
+                {cCal > 0 && <div style={{ flex: cCal, background: '#FF5500' }} />}
+                {fCal > 0 && <div style={{ flex: fCal, background: '#D4A017' }} />}
+              </div>
+              <div className="flex justify-between mt-2">
+                <span className="text-[9px] font-black" style={{ color: '#FF2800' }}>P {pPct}%</span>
+                <span className="text-[9px] font-black" style={{ color: '#FF5500' }}>C {cPct}%</span>
+                <span className="text-[9px] font-black" style={{ color: '#D4A017' }}>F {fPct}%</span>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Today's Meals */}
@@ -267,6 +325,31 @@ export default function NutritionPage() {
       )}
 
       {/* MY MEALS tab */}
+      {tab === 'my-meals' && yesterdayMeals.length > 0 && !search && (
+        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-[#1E1E26] flex items-center justify-between">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">REPEAT YESTERDAY</span>
+            <span className="text-[8px] text-[#2C2C38] font-bold tracking-widest">{yesterdayMeals.length} MEALS</span>
+          </div>
+          <div className="divide-y divide-[#1E1E26]">
+            {yesterdayMeals.slice(0, 5).map(m => (
+              <button key={m.id}
+                onClick={() => {
+                  addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, fibre: m.fibre ?? 0 })
+                  haptic()
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
+                  <div className="text-[10px] text-[#686870]">{m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
+                </div>
+                <Plus size={15} className="text-[#686870] flex-shrink-0 ml-2" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tab === 'my-meals' && (
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
           {filteredCustom.length === 0 ? (
@@ -310,6 +393,7 @@ export default function NutritionPage() {
                   </button>
                   <button
                     onClick={() => {
+                      haptic()
                       if (m.unit || m.servingSize) {
                         openServingSlider(m)
                       } else {
@@ -331,7 +415,7 @@ export default function NutritionPage() {
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
           <div className="divide-y divide-[#1E1E26] max-h-80 overflow-y-auto">
             {filteredQuick.map(m => (
-              <button key={m.name} onClick={() => addMeal({ ...m, fibre: 0 })}
+              <button key={m.name} onClick={() => { addMeal({ ...m, fibre: 0 }); haptic() }}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
                 <div>
                   <div className="font-bold text-sm text-[#EDEDF0]">{m.name}</div>

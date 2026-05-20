@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useStore, TARGETS } from '@/lib/store'
 import { buildDaySchedule, requestNotificationPermission } from '@/lib/notifications'
@@ -41,6 +41,7 @@ export default function AppInit() {
   const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase } = useStore()
   const pathname = usePathname()
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isOnline, setIsOnline] = useState(true)
 
   function buildSchedule() {
     const now   = new Date()
@@ -75,6 +76,8 @@ export default function AppInit() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    setIsOnline(navigator.onLine)
+
     // Pull remote state and merge with local, then push merged result back
     fetch('/api/state')
       .then(r => r.json())
@@ -100,7 +103,19 @@ export default function AppInit() {
       await subscribeToPush(buildSchedule())
     }, 2000)
 
-    return () => clearTimeout(timer)
+    const handleOnline = () => {
+      setIsOnline(true)
+      useStore.getState().syncToSupabase()
+    }
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -127,5 +142,12 @@ export default function AppInit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayLogs, stats, customMeals])
 
+  if (!isOnline) {
+    return (
+      <div className="fixed top-0 inset-x-0 z-[200] bg-[#1E1E26] border-b border-[#2C2C38] py-1.5 text-center">
+        <span className="text-[10px] font-black tracking-widest text-[#686870]">⚡ OFFLINE — data saved locally</span>
+      </div>
+    )
+  }
   return null
 }

@@ -245,6 +245,22 @@ export function buildDaySchedule(params: {
     )
   }
 
+  // ── Sunday 7:30 PM — weekly summary ──────────────────────────────────
+  if (new Date().getDay() === 0) {
+    const wrapup = weekWorkoutsCompleted >= 5
+      ? 'Full week. 5/5. Machine standard — hold it next week.'
+      : weekWorkoutsCompleted >= 3
+      ? `${weekWorkoutsCompleted}/5 workouts. Decent. Not enough. Attack Monday harder.`
+      : `${weekWorkoutsCompleted}/5 this week. Well below standard. Sunday reset — Monday attack.`
+    add(
+      'weekly_summary',
+      todayAt(19, 30),
+      `WEEK DONE — ${weekWorkoutsCompleted}/5 WORKOUTS`,
+      withQuote(`Streak: ${streak} days. ${wrapup}`, 19),
+      '/progress'
+    )
+  }
+
   // ── 8:30 PM — wind down ───────────────────────────────────────────────
   add(
     'winddown_830',

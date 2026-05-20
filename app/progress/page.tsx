@@ -266,7 +266,8 @@ export default function ProgressPage() {
     const steps = log?.steps ?? 0
     const workoutDone = log?.workoutDone ?? false
     const barScore = (workoutDone ? 50 : 0) + Math.min(steps / 10000, 1) * 50
-    return { dk, label: dateLabel, isToday: dk === today, workoutDone, steps, barScore }
+    const calories = log?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
+    return { dk, label: dateLabel, isToday: dk === today, workoutDone, steps, barScore, calories }
   })
 
   // ── Monthly summary ──────────────────────────────────────────────────────
@@ -480,6 +481,62 @@ export default function ProgressPage() {
           <span>👟 <span className="font-black text-[#2196F3]">{last7.filter(d => d.steps >= 10000).length}</span>/7 days 10K+</span>
           <span>Total <span className="font-black text-[#EDEDF0]">{last7.reduce((s, d) => s + d.steps, 0).toLocaleString()}</span> steps</span>
         </div>
+
+        {/* Calorie trend */}
+        {(() => {
+          const calDays = last7.filter(d => d.calories > 0)
+          if (calDays.length === 0) return null
+          const maxCal = Math.max(...last7.map(d => d.calories), TARGETS.calories)
+          const calAvg = Math.round(calDays.reduce((s, d) => s + d.calories, 0) / calDays.length)
+          const H = 48
+          const toY = (v: number) => H - Math.round((v / maxCal) * H)
+          const targetY = toY(TARGETS.calories)
+          const avgY = toY(calAvg)
+          const pts = last7.map((d, i) => ({ x: Math.round((i / 6) * 100), y: d.calories > 0 ? toY(d.calories) : null, ...d }))
+          const linePts = pts.filter(p => p.y !== null)
+          return (
+            <div className="mt-4 pt-4 border-t border-[#1E1E26]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] font-black tracking-widest text-[#686870]">7-DAY CALORIE TREND</span>
+                <span className="text-[9px] font-black" style={{ color: calAvg <= TARGETS.calories ? '#1DB954' : '#FF2800' }}>
+                  avg {calAvg.toLocaleString()} kcal
+                </span>
+              </div>
+              <svg viewBox={`0 0 100 ${H + 12}`} className="w-full" style={{ height: 72 }}>
+                {/* Target line */}
+                <line x1={0} y1={targetY} x2={100} y2={targetY} stroke="#1DB95444" strokeWidth="0.6" strokeDasharray="2,2" />
+                {/* Average line */}
+                <line x1={0} y1={avgY} x2={100} y2={avgY} stroke="#D4A01766" strokeWidth="0.8" strokeDasharray="3,2" />
+                {/* Data line */}
+                {linePts.length >= 2 && (
+                  <polyline
+                    points={linePts.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="none" stroke="#FF5500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                  />
+                )}
+                {pts.map((p, i) => p.y !== null && (
+                  <circle key={i} cx={p.x} cy={p.y!} r="2"
+                    fill={p.calories <= TARGETS.calories ? '#1DB954' : '#FF2800'} />
+                ))}
+                {/* Date labels */}
+                {last7.map((d, i) => (
+                  <text key={i} x={Math.round((i / 6) * 100)} y={H + 10} textAnchor="middle" fontSize="5.5"
+                    fill={d.isToday ? '#FF2800' : '#686870'}>{d.label}</text>
+                ))}
+              </svg>
+              <div className="flex items-center gap-4 mt-1">
+                <span className="flex items-center gap-1 text-[8px] text-[#686870]">
+                  <svg width="12" height="4"><line x1="0" y1="2" x2="12" y2="2" stroke="#1DB954" strokeWidth="1" strokeDasharray="2,2"/></svg>
+                  target {TARGETS.calories}
+                </span>
+                <span className="flex items-center gap-1 text-[8px] text-[#686870]">
+                  <svg width="12" height="4"><line x1="0" y1="2" x2="12" y2="2" stroke="#D4A017" strokeWidth="1" strokeDasharray="3,2"/></svg>
+                  7d avg {calAvg.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Body Metrics */}

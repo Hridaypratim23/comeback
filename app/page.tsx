@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
 import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -134,7 +134,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, toggleHabit, setFastingHours } = useStore()
+  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
@@ -148,6 +148,9 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState('')
   const [tasksOpen, setTasksOpen] = useState(false)
   const [unCheckPending, setUnCheckPending] = useState<{ id: string; label: string; icon: string } | null>(null)
+  const [celebrating, setCelebrating] = useState(false)
+  const [celebrateFading, setCelebrateFading] = useState(false)
+  const prevDailyScoreRef = useRef(0)
   const [dismissedHydrationHours, setDismissedHydrationHours] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') return new Set()
     try {
@@ -182,6 +185,8 @@ export default function HomePage() {
     setQuoteVisible(false)
     setTimeout(() => { setQuoteIdx(i => (i + 1) % QUOTES.length); setQuoteVisible(true) }, 420)
   }, [])
+
+  const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
 
   if (!mounted || !selectedDate) return null
 
@@ -334,6 +339,16 @@ export default function HomePage() {
     Math.min(weekSleepDays / 7, 1) * 25 +
     Math.min(weekGoodDays / 6, 1) * 25
   )
+
+  // Trigger celebration when rings first close
+  if (prevDailyScoreRef.current < 100 && dailyScore >= 100 && !celebrating) {
+    setCelebrating(true)
+    setCelebrateFading(false)
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([80, 40, 80, 40, 120])
+    setTimeout(() => setCelebrateFading(true), 2000)
+    setTimeout(() => { setCelebrating(false); setCelebrateFading(false) }, 2500)
+  }
+  prevDailyScoreRef.current = dailyScore
 
   return (
     <div className="pb-4 space-y-4">
@@ -663,8 +678,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
-              <Link href="/hydration" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
+              <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
+                <Link href="/hydration" className="block">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Droplets size={14} className="text-[#2196F3]" />
                     <span className="text-[9px] font-black tracking-widest text-[#686870]">WATER</span>
@@ -674,8 +689,13 @@ export default function HomePage() {
                   <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${waterPct}%`, background: 'linear-gradient(90deg, #1470CC, #2196F3)' }} />
                   </div>
-                </div>
-              </Link>
+                </Link>
+                <button
+                  onClick={() => { addWater(250); haptic() }}
+                  className="w-full mt-2 py-1 rounded-lg bg-[#2196F322] text-[#2196F3] text-[9px] font-black tracking-widest cursor-pointer active:scale-95 transition-all border border-[#2196F322]">
+                  +250ml
+                </button>
+              </div>
               <Link href="/progress" className="cursor-pointer">
                 <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
@@ -765,9 +785,9 @@ export default function HomePage() {
                       const done = !!habits[habit.id]
                       return (
                         <button key={habit.id}
-                          onClick={() => done
+                          onClick={() => { haptic(); done
                             ? setUnCheckPending({ id: habit.id, label: habit.label, icon: habit.icon })
-                            : toggleHabit(habit.id)}
+                            : toggleHabit(habit.id) }}
                           className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer btn-press text-left
                             ${done ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
                           <span className="text-xl leading-none">{habit.icon}</span>
@@ -858,6 +878,27 @@ export default function HomePage() {
       <p className="text-center text-[8px] font-bold text-[#1E1E26] tracking-widest mt-4 pb-2 select-none">
         BUILD 20260520-v6
       </p>
+
+      {/* ── Celebration overlay ── */}
+      {celebrating && (
+        <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="confetti-dot absolute w-2.5 h-2.5 rounded-full"
+              style={{
+                background: ['#FF2800','#1DB954','#D4A017','#2196F3','#FF5500'][i % 5],
+                left: `${8 + i * 9}%`,
+                top: `${15 + (i % 4) * 18}%`,
+                animationDelay: `${i * 0.07}s`,
+              }} />
+          ))}
+          <div className={`${celebrateFading ? 'celebrate-fade' : 'celebrate-pop'} bg-[#070709ee] border-2 border-[#1DB954] rounded-2xl px-10 py-7 text-center`}
+            style={{ boxShadow: '0 0 40px #1DB95444' }}>
+            <div className="text-5xl mb-3">🔥</div>
+            <div className="text-2xl font-black text-[#1DB954] tracking-wider">RINGS CLOSED</div>
+            <div className="text-sm font-bold tracking-widest mt-1" style={{ color: '#1DB95488' }}>PERFECT DAY</div>
+          </div>
+        </div>
+      )}
 
       {/* ── Uncheck habit confirmation ── */}
       {unCheckPending && (
