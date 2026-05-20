@@ -5,13 +5,6 @@ import { useStore, TARGETS } from '@/lib/store'
 import { Edit3, Check, X } from 'lucide-react'
 import type { Measurement } from '@/lib/store'
 
-const MAIN_LIFTS = [
-  { id: 'bench', name: 'BENCH PRESS' },
-  { id: 'dl', name: 'DEADLIFT' },
-  { id: 'squat', name: 'BACK SQUAT' },
-  { id: 'ohp', name: 'OHP' },
-  { id: 'pullup', name: 'PULL-UPS' },
-]
 
 function StatEditor({
   label,
@@ -181,7 +174,7 @@ function ScoreBar({ label, value, max, color, count, target, unit }: {
 }
 
 export default function ProgressPage() {
-  const { stats, dayLogs, updateBodyStats, bodyHistory, prs, measurements, weeklyCheckins, addMeasurement, saveWeeklyCheckin } = useStore()
+  const { stats, dayLogs, updateBodyStats, bodyHistory, prs, measurements, addMeasurement, saveWeeklyCheckin } = useStore()
   const [mounted, setMounted] = useState(false)
 
   const [mChest, setMChest] = useState('')
@@ -192,9 +185,7 @@ export default function ProgressPage() {
   const [mLeftThigh, setMLeftThigh] = useState('')
   const [measureSaved, setMeasureSaved] = useState(false)
 
-  const [ciRating, setCiRating] = useState(0)
   const [ciWeight, setCiWeight] = useState('')
-  const [ciIntention, setCiIntention] = useState('')
   const [ciSaved, setCiSaved] = useState(false)
 
   useEffect(() => {
@@ -288,14 +279,6 @@ export default function ProgressPage() {
     weightChange = parseFloat((monthBodyHistory[monthBodyHistory.length - 1].weight - monthBodyHistory[0].weight).toFixed(1))
   }
   const hasMonthData = workoutsThisMonth > 0 || avgCal !== null || avgWater !== null || avgSteps !== null
-
-  // ── Weekly check-in visibility ────────────────────────────────────────────
-  const isSunday = nowDate.getDay() === 0
-  const lastCheckin = weeklyCheckins.length > 0 ? weeklyCheckins[weeklyCheckins.length - 1] : null
-  const lastCheckinAge = lastCheckin
-    ? (nowDate.getTime() - new Date(lastCheckin.date).getTime()) / (1000 * 60 * 60 * 24)
-    : Infinity
-  const showCheckin = isSunday || lastCheckinAge > 6
 
   const weightChartData = bodyHistory.map(e => ({ date: e.date, value: e.weight }))
   const bfChartData = bodyHistory.map(e => ({ date: e.date, value: e.bodyFat }))
@@ -417,30 +400,6 @@ export default function ProgressPage() {
         <div className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL WORKOUTS</div>
         <div className="text-3xl font-black text-[#FF2800] mt-1 leading-none">{stats.workoutsCompleted}</div>
         <div className="text-[10px] text-[#686870] mt-0.5">all time</div>
-      </div>
-
-      {/* Top Lifts / 1RM */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-        <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-3">TOP LIFTS · 1RM</div>
-        <div className="grid grid-cols-2 gap-2">
-          {MAIN_LIFTS.map(lift => {
-            const pr = prs[lift.id]
-            return (
-              <div key={lift.id} className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg p-3">
-                <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">{lift.name}</div>
-                {pr ? (
-                  <>
-                    <div className="text-sm font-black text-[#EDEDF0] leading-none">{pr.weight}kg × {pr.reps}</div>
-                    <div className="text-[10px] text-[#D4A017] font-bold mt-0.5">1RM ~{pr.oneRM}kg</div>
-                    <div className="text-[9px] text-[#686870] mt-0.5">{pr.date}</div>
-                  </>
-                ) : (
-                  <div className="text-xl font-black text-[#2C2C38]">—</div>
-                )}
-              </div>
-            )
-          })}
-        </div>
       </div>
 
       {/* Body Metrics */}
@@ -587,64 +546,81 @@ export default function ProgressPage() {
         })()}
       </div>
 
-      {/* Weekly Check-in */}
-      {showCheckin && (
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-4">WEEKLY CHECK-IN</div>
-          {ciSaved ? (
-            <div className="py-6 text-center text-sm font-black tracking-widest text-[#1DB954]">CHECK-IN SAVED ✓</div>
-          ) : (
-            <>
-              <div className="mb-4">
-                <div className="text-[10px] font-black tracking-widest text-[#686870] mb-2">HOW WAS THIS WEEK?</div>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setCiRating(n)}
-                      className={`flex-1 py-2.5 rounded-lg border text-sm font-black transition-all cursor-pointer btn-press active:scale-95
-                        ${ciRating === n ? 'bg-[#FF2800] border-[#FF2800] text-white' : 'bg-[#0D0D10] border-[#1E1E26] text-[#686870] hover:border-[#FF280066]'}`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="mb-4">
-                <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">CURRENT WEIGHT <span className="text-[#2C2C38]">kg</span></div>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={ciWeight}
-                  onChange={e => setCiWeight(e.target.value)}
-                  className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] outline-none"
-                />
-              </div>
-              <div className="mb-4">
-                <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">INTENTION FOR NEXT WEEK</div>
-                <textarea
-                  rows={3}
-                  value={ciIntention}
-                  onChange={e => setCiIntention(e.target.value)}
-                  placeholder="INTENTION FOR NEXT WEEK"
-                  className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none resize-none"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  if (!ciRating) return
-                  const weight = parseFloat(ciWeight) || stats.weight
-                  saveWeeklyCheckin({ rating: ciRating, weight, intention: ciIntention })
-                  setCiSaved(true)
-                }}
-                className="w-full py-3 rounded-lg bg-[#FF2800] text-white text-[10px] font-black tracking-widest cursor-pointer btn-press active:scale-95 transition-all"
-              >
-                SAVE CHECK-IN
-              </button>
-            </>
+      {/* Weight Tracker */}
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">WEIGHT TRACKER</div>
+          {bodyHistory.length > 0 && (
+            <span className="text-[9px] text-[#686870]">
+              Last: {bodyHistory[bodyHistory.length - 1].weight}kg · {bodyHistory[bodyHistory.length - 1].date.slice(5).replace('-', '/')}
+            </span>
           )}
         </div>
-      )}
+        <div className="text-[9px] text-[#2C2C38] font-bold tracking-widest mb-4">LOG EVERY MONDAY MORNING</div>
+
+        <LineChart data={weightChartData} color="#2196F3" label="WEIGHT (kg)" unit="kg" />
+
+        <div className="mt-4">
+          {ciSaved ? (
+            <div className="py-3 text-center text-sm font-black tracking-widest text-[#1DB954]">LOGGED ✓</div>
+          ) : (
+            <div className="flex gap-2 items-center">
+              <input
+                type="number"
+                inputMode="decimal"
+                value={ciWeight}
+                onChange={e => setCiWeight(e.target.value)}
+                placeholder="Enter weight"
+                className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none"
+              />
+              <span className="text-[10px] text-[#686870] font-bold">kg</span>
+              <button
+                onClick={() => {
+                  const weight = parseFloat(ciWeight)
+                  if (!weight || weight <= 0) return
+                  updateBodyStats(weight, stats.bodyFat)
+                  setCiSaved(true)
+                  setTimeout(() => { setCiSaved(false); setCiWeight('') }, 2000)
+                }}
+                className="px-5 py-2.5 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer btn-press"
+              >
+                LOG
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Monthly weight dots */}
+        {bodyHistory.length >= 2 && (() => {
+          const recent = [...bodyHistory].slice(-12)
+          const weights = recent.map(e => e.weight)
+          const minW = Math.min(...weights)
+          const maxW = Math.max(...weights)
+          const range = maxW - minW || 1
+          return (
+            <div className="mt-4 pt-4 border-t border-[#1E1E26]">
+              <div className="text-[9px] font-black tracking-widest text-[#2C2C38] mb-2">LAST {recent.length} ENTRIES</div>
+              <div className="flex items-end gap-1.5 h-10">
+                {recent.map((e, i) => {
+                  const pct = ((e.weight - minW) / range)
+                  const h = 8 + pct * 24
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full rounded-sm bg-[#2196F3]" style={{ height: h }} />
+                      <span className="text-[7px] text-[#686870] font-bold">{e.date.slice(5).replace('-', '/')}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex justify-between text-[9px] text-[#686870] mt-1">
+                <span>{minW}kg</span>
+                <span className="font-black text-[#2196F3]">{bodyHistory[bodyHistory.length - 1].weight}kg now</span>
+                <span>{maxW}kg</span>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
     </div>
   )
 }

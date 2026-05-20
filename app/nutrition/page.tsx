@@ -80,7 +80,9 @@ export default function NutritionPage() {
   const isDeficit  = difference >= 0
 
   const filteredQuick  = QUICK_MEALS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
-  const filteredCustom = customMeals.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredCustom = customMeals
+    .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const submitCreate = () => {
     const name = form.name.trim()
