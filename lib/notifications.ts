@@ -244,14 +244,62 @@ export function buildDaySchedule(params: {
     )
   }
 
+  // ── 8:30 PM — wind down ───────────────────────────────────────────────
+  add(
+    'winddown_830',
+    todayAt(20, 30),
+    'WIND DOWN. PHONE DOWN IN 30.',
+    "You're up at 5:30. Every minute on this screen costs you recovery. Start winding down — now.",
+    '/'
+  )
+
+  // ── 9:00 PM — phone away ──────────────────────────────────────────────
+  add(
+    'phone_down_900',
+    todayAt(21, 0),
+    'PHONE DOWN. GYM IN 9 HOURS.',
+    "Put it face down. Right now. Tomorrow's session is built on tonight's sleep. Screen off.",
+    '/'
+  )
+
+  // ── 9:30 PM — pre-gym motivation ──────────────────────────────────────
+  add(
+    'prep_gym_930',
+    todayAt(21, 30),
+    'TOMORROW YOU LIFT.',
+    withQuote(
+      "Bar is loaded at 6AM. Lights off by 10. Your future self is already in the gym — make sure you show up.",
+      21
+    ),
+    '/workout'
+  )
+
   // ── 10:00 PM — bedtime ────────────────────────────────────────────────
   add(
     'bedtime',
     todayAt(22, 0),
     'SLEEP IS GAINS. PUT IT DOWN.',
+    'GH peaks at midnight. 8 hours = free gains. Screen off. Eyes shut. You know the drill.',
+    '/'
+  )
+
+  // ── 10:30 PM — lights out ─────────────────────────────────────────────
+  add(
+    'sleep_now_1030',
+    todayAt(22, 30),
+    'LIGHTS OUT. NOW.',
+    "Sleep is the most anabolic thing you can do right now. Cortisol spikes when you skip it. Testosterone drops. Close the screen.",
+    '/'
+  )
+
+  // ── 11:00 PM — final push ─────────────────────────────────────────────
+  add(
+    'final_1100',
+    todayAt(23, 0),
+    "IT'S 11PM. FLOOR IT.",
     withQuote(
-      'GH peaks at midnight. 8 hours = free gains. Screen off. Eyes shut.',
-      22
+      "5:30AM alarm in 6.5 hours. You signed up for this. Put the phone down and own the next 6 hours of recovery.",
+      23
     ),
     '/'
   )
