@@ -96,7 +96,8 @@ export interface CustomMealTemplate {
   carbs: number
   fat: number
   fibre?: number
-  servingSize?: boolean  // if true, macros are per 50g
+  unit?: string       // if set, macros are per 1 unit (or per 100g if unit==='g')
+  servingSize?: boolean  // legacy field — kept for backward compat
 }
 
 interface AppState {
@@ -134,9 +135,17 @@ interface AppState {
   saveCustomMeal: (m: Omit<CustomMealTemplate, 'id'>) => void
   deleteCustomMeal: (id: string) => void
   syncToSupabase: () => Promise<void>
+  mergeRemoteState: (remote: Partial<AppState>) => void
 }
 
 const todayStr = () => new Date().toISOString().split('T')[0]
+
+function mergeByDate<T extends { date: string }>(remote: T[], local: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const item of remote) map.set(item.date, item)
+  for (const item of local) map.set(item.date, item) // local wins per date
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
 
 const defaultDay = (date: string): DayLog => ({
   date,
@@ -305,6 +314,7 @@ export const useStore = create<AppState>()(
             stats: { ...s.stats, totalXP, level },
           }
         })
+        get().syncToSupabase()
       },
 
       setSteps: (steps) => {
@@ -377,6 +387,7 @@ export const useStore = create<AppState>()(
             stats: { ...s.stats, totalXP, level },
           }
         })
+        get().syncToSupabase()
       },
 
       updateStats: (partial) => {
@@ -405,32 +416,50 @@ export const useStore = create<AppState>()(
 
       syncToSupabase: async () => {
         try {
-          const sb = getSupabase()
-          if (!sb) return
-          const d = todayStr()
-          const day = get().dayLogs[d]
-          const stats = get().stats
-          if (!day) return
-          await sb.from('day_logs').upsert({
-            date: d,
-            workout_done: day.workoutDone,
-            water_ml: day.waterMl,
-            steps: day.steps,
-            xp_earned: day.xpEarned,
-            meals: day.meals,
-            exercise_logs: day.exerciseLogs,
-          }, { onConflict: 'date' })
-          await sb.from('user_stats').upsert({
-            id: 'singleton',
-            level: stats.level,
-            total_xp: stats.totalXP,
-            streak: stats.streak,
-            workouts_completed: stats.workoutsCompleted,
-            badges: stats.badges,
-            weight: stats.weight,
-            body_fat: stats.bodyFat,
-          }, { onConflict: 'id' })
+          const s = get()
+          const payload = {
+            dayLogs: s.dayLogs,
+            stats: s.stats,
+            prs: s.prs,
+            bodyHistory: s.bodyHistory,
+            exerciseHistory: s.exerciseHistory,
+            measurements: s.measurements,
+            weeklyCheckins: s.weeklyCheckins,
+            customMeals: s.customMeals,
+          }
+          await fetch('/api/state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
         } catch { /* fire-and-forget */ }
+      },
+
+      mergeRemoteState: (remote) => {
+        set(s => {
+          // Merge dayLogs: union, preferring whichever has more meals/data per day
+          const mergedDayLogs: Record<string, DayLog> = { ...remote.dayLogs }
+          for (const [date, local] of Object.entries(s.dayLogs)) {
+            const rem = mergedDayLogs[date]
+            if (!rem) { mergedDayLogs[date] = local; continue }
+            // Keep whichever has more meals logged
+            mergedDayLogs[date] = local.meals.length >= rem.meals.length ? local : rem
+          }
+
+          // Stats: take whichever has higher XP (more complete)
+          const stats = (remote.stats?.totalXP ?? 0) > s.stats.totalXP
+            ? remote.stats! : s.stats
+
+          return {
+            dayLogs: mergedDayLogs,
+            stats,
+            prs: { ...remote.prs, ...s.prs },
+            bodyHistory: mergeByDate(remote.bodyHistory ?? [], s.bodyHistory).slice(-90),
+            measurements: mergeByDate(remote.measurements ?? [], s.measurements).slice(-90),
+            weeklyCheckins: mergeByDate(remote.weeklyCheckins ?? [], s.weeklyCheckins).slice(-52),
+            customMeals: s.customMeals.length > 0 ? s.customMeals : (remote.customMeals ?? []),
+          }
+        })
       },
 
       addMeasurement: (m) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useStore, TARGETS } from '@/lib/store'
 import { buildDaySchedule, requestNotificationPermission } from '@/lib/notifications'
@@ -39,8 +39,9 @@ async function subscribeToPush(schedule: ReturnType<typeof buildDaySchedule>) {
 }
 
 export default function AppInit() {
-  const { stats, dayLogs } = useStore()
+  const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase } = useStore()
   const pathname = usePathname()
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function buildSchedule() {
     const today   = new Date().toISOString().split('T')[0]
@@ -63,6 +64,17 @@ export default function AppInit() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    // Pull remote state and merge with local, then push merged result back
+    fetch('/api/state')
+      .then(r => r.json())
+      .then(({ data }) => {
+        if (data) mergeRemoteState(data)
+        // Push current local state up so it's always backed up
+        useStore.getState().syncToSupabase()
+      })
+      .catch(() => {})
+
     if (!('serviceWorker' in navigator)) return
 
     navigator.serviceWorker.register('/sw.js').catch(() => {})
@@ -95,6 +107,15 @@ export default function AppInit() {
     subscribeToPush(buildSchedule())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.streak, dayLogs])
+
+  // Debounced cloud backup on every state change (3s after last write)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (syncTimer.current) clearTimeout(syncTimer.current)
+    syncTimer.current = setTimeout(() => { syncToSupabase() }, 3000)
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayLogs, stats, customMeals])
 
   return null
 }

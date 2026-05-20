@@ -59,9 +59,37 @@ create table if not exists user_stats (
 -- Single user — seed the stats row
 insert into user_stats (id) values (1) on conflict (id) do nothing;
 
+-- Full app state backup (single user — id='main')
+create table if not exists app_state (
+  id         text primary key default 'main',
+  data       jsonb not null,
+  updated_at timestamptz default now()
+);
+
+-- Push notification subscription (single user — id='main')
+create table if not exists push_subscriptions (
+  id           text primary key,
+  subscription jsonb not null,
+  updated_at   timestamptz default now()
+);
+
+-- Daily notification schedule — rows inserted on subscribe, fired=true once sent
+create table if not exists notification_schedule (
+  id         text primary key,
+  show_at    bigint not null,
+  title      text not null,
+  body       text not null,
+  url        text default '/',
+  fired      boolean default false,
+  created_at timestamptz default now()
+);
+
 -- Disable RLS (personal app, single user — no need for row-level security)
-alter table day_logs      disable row level security;
-alter table meals         disable row level security;
-alter table water_entries disable row level security;
-alter table workout_sets  disable row level security;
-alter table user_stats    disable row level security;
+alter table day_logs             disable row level security;
+alter table meals                disable row level security;
+alter table water_entries        disable row level security;
+alter table workout_sets         disable row level security;
+alter table user_stats           disable row level security;
+alter table app_state             disable row level security;
+alter table push_subscriptions   disable row level security;
+alter table notification_schedule disable row level security;
