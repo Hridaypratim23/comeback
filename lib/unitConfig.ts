@@ -24,7 +24,7 @@ function pluralise(word: string): string {
   return word + 's'
 }
 
-const FRUIT_BASE = { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 1 }
+const FRUIT_BASE = { unit: 'piece', singular: 'piece', plural: 'pieces', min: 0.5, max: 8, step: 0.5, defaultQty: 1 }
 
 const RULES: Rule[] = [
   {
@@ -49,7 +49,7 @@ const RULES: Rule[] = [
   },
   {
     keywords: ['banana'],
-    config: { unit: 'banana', singular: 'banana', plural: 'bananas', min: 1, max: 6, step: 1, defaultQty: 1 },
+    config: { unit: 'banana', singular: 'banana', plural: 'bananas', min: 0.5, max: 6, step: 0.5, defaultQty: 1 },
   },
   // Fruits — dynamic: matched keyword becomes the unit label ("1 apple", "2 oranges")
   {
@@ -118,10 +118,18 @@ export function getUnitConfig(foodName: string): UnitConfig {
   return GRAMS_CONFIG
 }
 
+function formatFraction(qty: number): string {
+  const whole = Math.floor(qty)
+  const half = Math.abs(qty - whole - 0.5) < 0.01
+  if (whole === 0) return '1/2'
+  return half ? `${whole} 1/2` : `${whole}`
+}
+
 export function formatQty(qty: number, config: UnitConfig): string {
   if (config.isGrams) return `${qty}g`
-  const label = qty === 1 ? config.singular : config.plural
-  return `${qty} ${label}`
+  const label = qty <= 1 ? config.singular : config.plural
+  const qtyStr = Number.isInteger(qty) ? `${qty}` : formatFraction(qty)
+  return `${qtyStr} ${label}`
 }
 
 export function scaleRatio(qty: number, config: UnitConfig): number {
