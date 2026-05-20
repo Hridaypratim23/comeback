@@ -121,6 +121,7 @@ interface AppState {
   setWorkoutNotes: (notes: string) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
   removeMeal: (id: string) => void
+  updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
   addSteps: (steps: number) => void
@@ -296,6 +297,20 @@ export const useStore = create<AppState>()(
           const day = s.dayLogs[d]
           if (!day) return s
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, meals: day.meals.filter(m => m.id !== id) } } }
+        })
+      },
+
+      updateMeal: (id, updates) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d]
+          if (!day) return s
+          return {
+            dayLogs: {
+              ...s.dayLogs,
+              [d]: { ...day, meals: day.meals.map(m => m.id === id ? { ...m, ...updates } : m) },
+            },
+          }
         })
       },
 

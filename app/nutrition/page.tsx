@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useStore, TARGETS, CustomMealTemplate } from '@/lib/store'
+import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
 import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { getUnitConfig, formatQty, scaleRatio } from '@/lib/unitConfig'
@@ -39,7 +39,7 @@ function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: n
 const emptyForm = { name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' }
 
 export default function NutritionPage() {
-  const { dayLogs, addMeal, removeMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
+  const { dayLogs, addMeal, removeMeal, updateMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
   const [mounted, setMounted] = useState(false)
   const [tab, setTab] = useState<Tab>('my-meals')
   const [search, setSearch] = useState('')
@@ -55,8 +55,12 @@ export default function NutritionPage() {
   const [servingMeal, setServingMeal] = useState<CustomMealTemplate | null>(null)
   const [servingQty, setServingQty] = useState(1)
 
-  // delete confirmation
+  // delete confirmation (saved meals)
   const [deletePending, setDeletePending] = useState<CustomMealTemplate | null>(null)
+
+  // logged meal action modal (delete or edit quantity)
+  const [loggedMealAction, setLoggedMealAction] = useState<MealEntry | null>(null)
+  const [mealQtyFactor, setMealQtyFactor] = useState(1)
 
   useEffect(() => {
     setMounted(true)
@@ -284,7 +288,7 @@ export default function NutritionPage() {
                       {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`} · {m.time}
                     </div>
                   </div>
-                  <button onClick={() => removeMeal(m.id)}
+                  <button onClick={() => { setLoggedMealAction(m); setMealQtyFactor(1) }}
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
                     <X size={13} />
                   </button>
@@ -575,6 +579,104 @@ export default function NutritionPage() {
                   className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
                   LOG
                 </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Logged meal action modal (delete / edit quantity) ── */}
+      {loggedMealAction && (() => {
+        const m = loggedMealAction
+        const scaledCal  = Math.round(m.calories * mealQtyFactor)
+        const scaledPro  = Math.round(m.protein  * mealQtyFactor)
+        const scaledCarb = Math.round(m.carbs    * mealQtyFactor)
+        const scaledFat  = Math.round(m.fat      * mealQtyFactor)
+        const scaledFibre = Math.round((m.fibre ?? 0) * mealQtyFactor)
+        const changed = Math.abs(mealQtyFactor - 1) > 0.01
+
+        function factorLabel(f: number): string {
+          const whole = Math.floor(f)
+          const frac = f - whole
+          const fracStr = frac < 0.01 ? '' : frac < 0.3 ? '¼' : frac < 0.6 ? '½' : '¾'
+          if (whole === 0) return `${fracStr}×`
+          return `${whole}${fracStr}×`
+        }
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setLoggedMealAction(null)}>
+            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-t-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
+                <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-1">LOGGED MEAL</div>
+                <div className="text-base font-black text-[#EDEDF0] leading-snug truncate">{m.name}</div>
+                <div className="text-[10px] text-[#686870] mt-1">{m.time}</div>
+              </div>
+
+              {/* Quantity multiplier */}
+              <div className="px-5 pt-4 pb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black tracking-widest text-[#686870]">QUANTITY</span>
+                  <span className="text-lg font-black text-[#FF2800]">{factorLabel(mealQtyFactor)}</span>
+                </div>
+                <input
+                  type="range" min={0.25} max={3} step={0.25}
+                  value={mealQtyFactor}
+                  onChange={e => setMealQtyFactor(Number(e.target.value))}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+                />
+                <div className="flex justify-between text-[8px] text-[#2C2C38] font-bold mt-1">
+                  <span>¼×</span><span>½×</span><span>¾×</span><span>1×</span><span>1½×</span><span>2×</span><span>2½×</span><span>3×</span>
+                </div>
+
+                {/* Macro preview */}
+                <div className="mt-4 bg-[#0D0D10] rounded-xl p-3">
+                  <div className="text-xl font-black text-[#FF5500] leading-none mb-1.5">
+                    {scaledCal} <span className="text-sm text-[#686870] font-normal">cal</span>
+                    {changed && <span className="text-xs text-[#686870] font-normal ml-2 line-through">{m.calories}</span>}
+                  </div>
+                  <div className="flex gap-3 text-[11px] font-black flex-wrap">
+                    <span style={{ color: '#FF2800' }}>{scaledPro}g P{changed && m.protein !== scaledPro && <span className="opacity-40 line-through ml-1">{m.protein}</span>}</span>
+                    <span style={{ color: '#FF5500' }}>{scaledCarb}g C{changed && m.carbs !== scaledCarb && <span className="opacity-40 line-through ml-1">{m.carbs}</span>}</span>
+                    <span style={{ color: '#D4A017' }}>{scaledFat}g F{changed && m.fat !== scaledFat && <span className="opacity-40 line-through ml-1">{m.fat}</span>}</span>
+                    {(m.fibre ?? 0) > 0 && <span style={{ color: '#1DB954' }}>{scaledFibre}g Fi</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 px-5 pb-6 pt-1">
+                <button
+                  onClick={() => { removeMeal(m.id); setLoggedMealAction(null); haptic() }}
+                  className="py-3 px-4 rounded-xl bg-[#FF280018] text-[#FF2800] text-[11px] font-black tracking-widest cursor-pointer btn-press border border-[#FF280033]">
+                  DELETE
+                </button>
+                <button
+                  onClick={() => setLoggedMealAction(null)}
+                  className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                  GO BACK
+                </button>
+                {changed && (
+                  <button
+                    onClick={() => {
+                      updateMeal(m.id, {
+                        calories: scaledCal,
+                        protein:  scaledPro,
+                        carbs:    scaledCarb,
+                        fat:      scaledFat,
+                        fibre:    scaledFibre,
+                        name:     m.name.replace(/\s*\(×[\d.]+\)$/, '') + (Math.abs(mealQtyFactor - 1) > 0.01 ? ` (×${mealQtyFactor})` : ''),
+                      })
+                      setLoggedMealAction(null)
+                      haptic()
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                    SAVE
+                  </button>
+                )}
               </div>
             </div>
           </div>
