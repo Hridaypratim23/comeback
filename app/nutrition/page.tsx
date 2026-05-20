@@ -55,6 +55,9 @@ export default function NutritionPage() {
   const [servingMeal, setServingMeal] = useState<CustomMealTemplate | null>(null)
   const [servingQty, setServingQty] = useState(1)
 
+  // delete confirmation
+  const [deletePending, setDeletePending] = useState<CustomMealTemplate | null>(null)
+
   useEffect(() => {
     setMounted(true)
     getOrCreateToday()
@@ -301,7 +304,7 @@ export default function NutritionPage() {
                       {(m.fibre ?? 0) > 0 && ` · ${m.fibre}g Fi`}
                     </div>
                   </div>
-                  <button onClick={() => deleteCustomMeal(m.id)}
+                  <button onClick={() => setDeletePending(m)}
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
                     <Trash2 size={13} />
                   </button>
@@ -494,6 +497,46 @@ export default function NutritionPage() {
           </div>
         )
       })()}
+
+      {/* ── Delete confirmation modal ── */}
+      {deletePending && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setDeletePending(null)}>
+          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
+              <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-1">DELETE MEAL</div>
+              <div className="text-base font-black text-[#EDEDF0] leading-snug">{deletePending.name}</div>
+              <div className="text-[10px] text-[#686870] mt-1">
+                {deletePending.calories} cal
+                {deletePending.protein > 0 && ` · ${deletePending.protein}g P`}
+                {deletePending.carbs > 0 && ` · ${deletePending.carbs}g C`}
+                {deletePending.fat > 0 && ` · ${deletePending.fat}g F`}
+              </div>
+            </div>
+            {/* Body */}
+            <div className="px-5 py-4">
+              <p className="text-[11px] text-[#686870] leading-relaxed">
+                This will permanently remove <span className="text-[#EDEDF0] font-bold">{deletePending.name}</span> from your saved meals. This cannot be undone.
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-2 px-5 pb-5">
+              <button
+                onClick={() => setDeletePending(null)}
+                className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                GO BACK
+              </button>
+              <button
+                onClick={() => { deleteCustomMeal(deletePending.id); setDeletePending(null) }}
+                className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
