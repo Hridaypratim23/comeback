@@ -67,24 +67,7 @@ export default function NutritionPage() {
     if (mounted && customMeals.length === 0) setTab('quick-add')
   }, [mounted, customMeals.length])
 
-  if (!mounted) return null
-
-  const today = new Date().toISOString().split('T')[0]
-  const dayLog = dayLogs[today]
-  const meals = dayLog?.meals ?? []
-  const totalCal   = meals.reduce((s, m) => s + m.calories, 0)
-  const totalPro   = meals.reduce((s, m) => s + m.protein, 0)
-  const totalCarb  = meals.reduce((s, m) => s + m.carbs, 0)
-  const totalFat   = meals.reduce((s, m) => s + m.fat, 0)
-  const totalFibre = meals.reduce((s, m) => s + (m.fibre ?? 0), 0)
-  const calPct     = Math.min((totalCal / TARGETS.calories) * 100, 100)
-  const remaining  = TARGETS.calories - totalCal
-  const difference = TDEE - totalCal
-  const isDeficit  = difference >= 0
-
-  const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
-
-  // Build a set of meal names logged in the past 7 days for search prioritisation
+  // Hooks must be called before any early return
   const recentMealNames = useMemo(() => {
     const names = new Set<string>()
     const now = new Date()
@@ -98,6 +81,30 @@ export default function NutritionPage() {
     }
     return names
   }, [dayLogs])
+
+  const yesterdayMeals = useMemo(() => {
+    const y = new Date()
+    y.setDate(y.getDate() - 1)
+    const yk = y.toISOString().split('T')[0]
+    return dayLogs[yk]?.meals ?? []
+  }, [dayLogs])
+
+  if (!mounted) return null
+
+  const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
+
+  const today = new Date().toISOString().split('T')[0]
+  const dayLog = dayLogs[today]
+  const meals = dayLog?.meals ?? []
+  const totalCal   = meals.reduce((s, m) => s + m.calories, 0)
+  const totalPro   = meals.reduce((s, m) => s + m.protein, 0)
+  const totalCarb  = meals.reduce((s, m) => s + m.carbs, 0)
+  const totalFat   = meals.reduce((s, m) => s + m.fat, 0)
+  const totalFibre = meals.reduce((s, m) => s + (m.fibre ?? 0), 0)
+  const calPct     = Math.min((totalCal / TARGETS.calories) * 100, 100)
+  const remaining  = TARGETS.calories - totalCal
+  const difference = TDEE - totalCal
+  const isDeficit  = difference >= 0
 
   const filteredQuick = QUICK_MEALS
     .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
@@ -113,14 +120,6 @@ export default function NutritionPage() {
       const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
       return ar !== br ? ar - br : a.name.localeCompare(b.name)
     })
-
-  // Yesterday's meals for quick-repeat
-  const yesterdayMeals = useMemo(() => {
-    const y = new Date()
-    y.setDate(y.getDate() - 1)
-    const yk = y.toISOString().split('T')[0]
-    return dayLogs[yk]?.meals ?? []
-  }, [dayLogs])
 
   const submitCreate = () => {
     const name = form.name.trim()
