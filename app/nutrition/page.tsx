@@ -371,7 +371,7 @@ export default function NutritionPage() {
 
       {/* Serving Size Dialog — shown after CREATE */}
       {showServingDialog && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={() => setShowServingDialog(false)}>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setShowServingDialog(false)}>
           <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
                onClick={e => e.stopPropagation()}>
             <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
@@ -396,7 +396,7 @@ export default function NutritionPage() {
 
       {/* Serving Size Slider — shown when logging a servingSize meal */}
       {servingMeal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={() => setServingMeal(null)}>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setServingMeal(null)}>
           <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
                onClick={e => e.stopPropagation()}>
             <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
