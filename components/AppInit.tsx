@@ -78,30 +78,16 @@ export default function AppInit() {
       await subscribeToPush(buildSchedule())
     }, 2000)
 
-    // Smooth scroll focused inputs into view when the iOS keyboard opens,
-    // preventing the jarring instant-scroll the browser does by default.
-    const vv = window.visualViewport
-    const handleKeyboard = () => {
-      const el = document.activeElement
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
-      }
-    }
-    vv?.addEventListener('resize', handleKeyboard)
-
-    return () => {
-      clearTimeout(timer)
-      vv?.removeEventListener('resize', handleKeyboard)
-    }
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Reset scroll position to top on every page navigation.
+  // Scroll to top instantly on page navigation (override smooth scroll-behavior).
   useEffect(() => {
-    document.getElementById('main-scroll')?.scrollTo(0, 0)
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [pathname])
 
-  // Re-save schedule to server whenever state changes (workout done, meals logged, etc.)
+  // Re-save schedule to server whenever state changes.
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (typeof Notification === 'undefined') return

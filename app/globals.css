@@ -7,20 +7,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  height: 100%;
-}
-
-body {
+html, body {
   background: #070709;
   color: #EDEDF0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  /* position:fixed is the only reliable way to stop iOS from scrolling
-     the page when the software keyboard opens */
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  overflow: hidden;
+  min-height: 100dvh;
   overscroll-behavior: none;
+  /* smooth keyboard-focus scroll on iOS instead of instant jump */
+  scroll-behavior: smooth;
 }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
