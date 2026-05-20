@@ -1,7 +1,41 @@
-const VERSION = 'comeback-v5'
+const VERSION = 'comeback-v6'
+const CACHE = `comeback-${VERSION}`
 
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', e => e.waitUntil(clients.claim()))
+// ── Lifecycle ──────────────────────────────────────────────────────────────
+self.addEventListener('install', e => {
+  // Pre-cache icons so they're available offline
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(['/icon.png']))
+      .then(() => self.skipWaiting())   // activate immediately, don't wait for old SW to die
+  )
+})
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    // Delete every cache that isn't the current version
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim()) // take control of all open tabs right now
+  )
+})
+
+// ── Fetch: cache-first for immutable static assets ────────────────────────
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url)
+  if (url.origin !== self.location.origin) return
+  if (!url.pathname.startsWith('/_next/static/')) return
+
+  e.respondWith(
+    caches.match(e.request).then(hit => {
+      if (hit) return hit
+      return fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
+        return res
+      })
+    })
+  )
+})
 
 // ── Real Web Push (server-sent) ────────────────────────────────────────────
 self.addEventListener('push', event => {

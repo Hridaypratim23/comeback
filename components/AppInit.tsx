@@ -70,6 +70,13 @@ export default function AppInit() {
 
     navigator.serviceWorker.register('/sw.js').catch(() => {})
 
+    // When a new SW takes control (after skipWaiting + claim), reload so the
+    // user immediately gets the latest version — no manual refresh needed.
+    let reloading = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!reloading) { reloading = true; window.location.reload() }
+    })
+
     const ping = () => pingServiceWorker()
     window.addEventListener('focus', ping)
     document.addEventListener('visibilitychange', () => {
