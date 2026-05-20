@@ -11,9 +11,10 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 export async function GET(req: NextRequest) {
-  // Vercel automatically sets CRON_SECRET and passes it as Authorization header
   const auth = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const keyParam = new URL(req.url).searchParams.get('key')
+  const secret = process.env.CRON_SECRET
+  if (secret && auth !== `Bearer ${secret}` && keyParam !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

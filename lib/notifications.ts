@@ -63,29 +63,29 @@ export function buildDaySchedule(params: {
     }
   }
 
-  // ── 5:55 AM — pre-workout ──────────────────────────────────────────────
+  // ── 5:30 AM — wake-up call ─────────────────────────────────────────────
   if (isWorkoutDay && !workoutDone) {
     add(
       'preworkout',
-      todayAt(5, 55),
+      todayAt(5, 30),
       `RISE. ${workoutLabel.toUpperCase()}. NOW.`,
       withQuote(
-        'Bar is loaded. Clock is running. Get your gear on.',
+        'Up. Gym in 30 minutes. Get your gear on.',
         5
       ),
       '/workout'
     )
   }
 
-  // ── 6:00 AM — wake-up call ─────────────────────────────────────────────
+  // ── 5:50 AM — leave now ────────────────────────────────────────────────
   if (isWorkoutDay && !workoutDone) {
     add(
       'wakeup',
-      todayAt(6, 0),
-      `RISE. ${workoutLabel.toUpperCase()}. NOW.`,
+      todayAt(5, 50),
+      `LEAVE NOW. ${workoutLabel.toUpperCase()}.`,
       withQuote(
-        '6AM. Every rep you do now, your competition is sleeping through.',
-        6
+        'Gym opens in 10 minutes. Every rep you do now, your competition is sleeping through.',
+        5
       ),
       '/workout'
     )
