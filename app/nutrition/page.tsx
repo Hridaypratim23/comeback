@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
-import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
 import { getUnitConfig, formatQty, scaleRatio } from '@/lib/unitConfig'
 
 const TDEE = 2400
@@ -58,8 +58,9 @@ export default function NutritionPage() {
   // delete confirmation (saved meals)
   const [deletePending, setDeletePending] = useState<CustomMealTemplate | null>(null)
 
-  // logged meal action modal (delete or edit)
-  const [loggedMealAction, setLoggedMealAction] = useState<MealEntry | null>(null)
+  // logged meal: separate delete confirm and edit modal
+  const [loggedMealDelete, setLoggedMealDelete] = useState<MealEntry | null>(null)
+  const [loggedMealEdit, setLoggedMealEdit] = useState<MealEntry | null>(null)
   const [mealQtyFactor, setMealQtyFactor] = useState(1)
   const [mealEditMode, setMealEditMode] = useState<'qty' | 'values'>('qty')
   const [mealEditForm, setMealEditForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' })
@@ -291,11 +292,15 @@ export default function NutritionPage() {
                     </div>
                   </div>
                   <button onClick={() => {
-                    setLoggedMealAction(m)
+                    setLoggedMealEdit(m)
                     setMealQtyFactor(1)
                     setMealEditMode('qty')
                     setMealEditForm({ name: m.name, calories: String(m.calories), protein: String(m.protein), carbs: String(m.carbs), fat: String(m.fat), fibre: String(m.fibre ?? 0) })
                   }}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#2196F322] hover:text-[#2196F3] transition-all cursor-pointer">
+                    <Edit3 size={12} />
+                  </button>
+                  <button onClick={() => setLoggedMealDelete(m)}
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1E1E26] text-[#686870] hover:bg-[#FF280022] hover:text-[#FF2800] transition-all cursor-pointer">
                     <X size={13} />
                   </button>
@@ -592,25 +597,52 @@ export default function NutritionPage() {
         )
       })()}
 
-      {/* ── Logged meal action modal (delete / edit) ── */}
-      {loggedMealAction && (() => {
-        const m = loggedMealAction
+      {/* ── Delete confirmation (centered) ── */}
+      {loggedMealDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm"
+          onClick={() => setLoggedMealDelete(null)}>
+          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
+              <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-2">DELETE MEAL</div>
+              <div className="text-base font-black text-[#EDEDF0] leading-snug truncate">{loggedMealDelete.name}</div>
+              <div className="text-[10px] text-[#686870] mt-1">
+                {loggedMealDelete.calories} cal · {loggedMealDelete.protein}g P · {loggedMealDelete.carbs}g C · {loggedMealDelete.fat}g F
+              </div>
+            </div>
+            <div className="px-5 py-4 text-[11px] text-[#686870]">
+              Remove this entry from today&apos;s log? This cannot be undone.
+            </div>
+            <div className="flex gap-2 px-5 pb-5">
+              <button onClick={() => setLoggedMealDelete(null)}
+                className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                GO BACK
+              </button>
+              <button onClick={() => { removeMeal(loggedMealDelete.id); setLoggedMealDelete(null); haptic() }}
+                className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        // qty mode
+      {/* ── Edit logged meal (centered) ── */}
+      {loggedMealEdit && (() => {
+        const m = loggedMealEdit
         const scaledCal   = Math.round(m.calories * mealQtyFactor)
         const scaledPro   = Math.round(m.protein  * mealQtyFactor)
         const scaledCarb  = Math.round(m.carbs    * mealQtyFactor)
         const scaledFat   = Math.round(m.fat      * mealQtyFactor)
         const scaledFibre = Math.round((m.fibre ?? 0) * mealQtyFactor)
         const qtyChanged  = Math.abs(mealQtyFactor - 1) > 0.01
-
-        // values mode
         const vCal   = parseFloat(mealEditForm.calories) || 0
         const vPro   = parseFloat(mealEditForm.protein)  || 0
         const vCarb  = parseFloat(mealEditForm.carbs)    || 0
         const vFat   = parseFloat(mealEditForm.fat)      || 0
         const vFibre = parseFloat(mealEditForm.fibre)    || 0
         const valuesChanged = mealEditForm.name.trim() !== m.name || vCal !== m.calories || vPro !== m.protein || vCarb !== m.carbs || vFat !== m.fat
+        const canSave = mealEditMode === 'qty' ? qtyChanged : valuesChanged
 
         function factorLabel(f: number): string {
           const whole = Math.floor(f)
@@ -620,29 +652,26 @@ export default function NutritionPage() {
         }
 
         return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setLoggedMealAction(null)}>
-            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-t-2xl overflow-hidden"
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setLoggedMealEdit(null)}>
+            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}
               <div className="px-5 pt-5 pb-3 border-b border-[#1E1E26]">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-1">
                   <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">EDIT MEAL</div>
                   <div className="text-[10px] text-[#686870]">{m.time}</div>
                 </div>
                 {mealEditMode === 'qty'
-                  ? <div className="text-base font-black text-[#EDEDF0] mt-1 truncate">{m.name}</div>
-                  : <input
-                      value={mealEditForm.name}
-                      onChange={e => setMealEditForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full mt-2 bg-[#0D0D10] border border-[#2C2C38] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none"
-                    />
+                  ? <div className="text-sm font-black text-[#EDEDF0] truncate">{m.name}</div>
+                  : <input value={mealEditForm.name} onChange={e => setMealEditForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full mt-1 bg-[#0D0D10] border border-[#2C2C38] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none" />
                 }
               </div>
 
               {/* Mode toggle */}
-              <div className="flex mx-5 mt-4 bg-[#0D0D10] rounded-lg p-0.5 gap-0.5">
+              <div className="flex mx-5 mt-3 bg-[#0D0D10] rounded-lg p-0.5 gap-0.5">
                 {(['qty', 'values'] as const).map(mode => (
                   <button key={mode} onClick={() => setMealEditMode(mode)}
                     className={`flex-1 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all cursor-pointer
@@ -652,23 +681,21 @@ export default function NutritionPage() {
                 ))}
               </div>
 
-              <div className="px-5 pt-4 pb-3">
+              <div className="px-5 pt-3 pb-3">
                 {mealEditMode === 'qty' ? (
                   <>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-black tracking-widest text-[#686870]">SCALE</span>
                       <span className="text-lg font-black text-[#FF2800]">{factorLabel(mealQtyFactor)}</span>
                     </div>
-                    <input type="range" min={0.25} max={3} step={0.25}
-                      value={mealQtyFactor}
+                    <input type="range" min={0.25} max={3} step={0.25} value={mealQtyFactor}
                       onChange={e => setMealQtyFactor(Number(e.target.value))}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
-                    />
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]" />
                     <div className="flex justify-between text-[8px] text-[#2C2C38] font-bold mt-1 px-0.5">
                       <span>¼×</span><span>½×</span><span>¾×</span><span>1×</span><span>1½×</span><span>2×</span><span>2½×</span><span>3×</span>
                     </div>
-                    <div className="mt-4 bg-[#0D0D10] rounded-xl p-3">
-                      <div className="text-xl font-black text-[#FF5500] leading-none mb-1.5">
+                    <div className="mt-3 bg-[#0D0D10] rounded-xl p-3">
+                      <div className="text-xl font-black text-[#FF5500] leading-none mb-1">
                         {scaledCal} <span className="text-sm text-[#686870] font-normal">cal</span>
                         {qtyChanged && <span className="text-xs text-[#686870] font-normal ml-2 line-through">{m.calories}</span>}
                       </div>
@@ -681,58 +708,41 @@ export default function NutritionPage() {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { key: 'calories', label: 'CALORIES', color: '#FF5500', unit: 'kcal' },
-                        { key: 'protein',  label: 'PROTEIN',  color: '#FF2800', unit: 'g' },
-                        { key: 'carbs',    label: 'CARBS',    color: '#FF5500', unit: 'g' },
-                        { key: 'fat',      label: 'FAT',      color: '#D4A017', unit: 'g' },
-                        { key: 'fibre',    label: 'FIBRE',    color: '#1DB954', unit: 'g' },
-                      ].map(({ key, label, color, unit }) => (
-                        <div key={key} className={key === 'calories' ? 'col-span-2' : ''}>
-                          <div className="text-[9px] font-black tracking-wider mb-1" style={{ color }}>{label} <span className="text-[#2C2C38]">{unit}</span></div>
-                          <input type="number" inputMode="decimal" placeholder="0"
-                            value={mealEditForm[key as keyof typeof mealEditForm]}
-                            onChange={e => setMealEditForm(f => ({ ...f, [key]: e.target.value }))}
-                            className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center transition-colors"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'calories', label: 'CALORIES', color: '#FF5500', unit: 'kcal' },
+                      { key: 'protein',  label: 'PROTEIN',  color: '#FF2800', unit: 'g' },
+                      { key: 'carbs',    label: 'CARBS',    color: '#FF5500', unit: 'g' },
+                      { key: 'fat',      label: 'FAT',      color: '#D4A017', unit: 'g' },
+                      { key: 'fibre',    label: 'FIBRE',    color: '#1DB954', unit: 'g' },
+                    ].map(({ key, label, color, unit }) => (
+                      <div key={key} className={key === 'calories' ? 'col-span-2' : ''}>
+                        <div className="text-[9px] font-black tracking-wider mb-1" style={{ color }}>{label} <span className="text-[#2C2C38]">{unit}</span></div>
+                        <input type="number" inputMode="decimal" placeholder="0"
+                          value={mealEditForm[key as keyof typeof mealEditForm]}
+                          onChange={e => setMealEditForm(f => ({ ...f, [key]: e.target.value }))}
+                          className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center transition-colors" />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 px-5 pb-6 pt-1">
-                <button
-                  onClick={() => { removeMeal(m.id); setLoggedMealAction(null); haptic() }}
-                  className="py-3 px-4 rounded-xl bg-[#FF280018] text-[#FF2800] text-[11px] font-black tracking-widest cursor-pointer btn-press border border-[#FF280033]">
-                  DELETE
-                </button>
-                <button
-                  onClick={() => setLoggedMealAction(null)}
+              <div className="flex gap-2 px-5 pb-5">
+                <button onClick={() => setLoggedMealEdit(null)}
                   className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
                   GO BACK
                 </button>
-                {(mealEditMode === 'qty' ? qtyChanged : valuesChanged) && (
-                  <button
-                    onClick={() => {
-                      if (mealEditMode === 'qty') {
-                        updateMeal(m.id, {
-                          calories: scaledCal, protein: scaledPro, carbs: scaledCarb, fat: scaledFat, fibre: scaledFibre,
-                          name: m.name.replace(/\s*\(×[\d.]+\)$/, '') + (qtyChanged ? ` (×${mealQtyFactor})` : ''),
-                        })
-                      } else {
-                        updateMeal(m.id, {
-                          name: mealEditForm.name.trim() || m.name,
-                          calories: vCal, protein: vPro, carbs: vCarb, fat: vFat, fibre: vFibre,
-                        })
-                      }
-                      setLoggedMealAction(null)
-                      haptic()
-                    }}
+                {canSave && (
+                  <button onClick={() => {
+                    if (mealEditMode === 'qty') {
+                      updateMeal(m.id, { calories: scaledCal, protein: scaledPro, carbs: scaledCarb, fat: scaledFat, fibre: scaledFibre,
+                        name: m.name.replace(/\s*\(×[\d.]+\)$/, '') + (qtyChanged ? ` (×${mealQtyFactor})` : '') })
+                    } else {
+                      updateMeal(m.id, { name: mealEditForm.name.trim() || m.name, calories: vCal, protein: vPro, carbs: vCarb, fat: vFat, fibre: vFibre })
+                    }
+                    setLoggedMealEdit(null); haptic()
+                  }}
                     className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press">
                     SAVE
                   </button>
