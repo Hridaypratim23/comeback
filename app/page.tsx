@@ -393,7 +393,7 @@ export default function HomePage() {
               Achieve your prime again
             </p>
           </div>
-          <button onClick={() => { if (!tasksOpen) dismissHydrationForCurrentHour(); setTasksOpen(o => !o) }}
+          <button onClick={() => { if (tasksOpen) dismissHydrationForCurrentHour(); setTasksOpen(o => !o) }}
             className="relative mt-2 w-9 h-9 flex items-center justify-center rounded-full bg-[#111116] border border-[#1E1E26] cursor-pointer btn-press">
             <Bell size={16} className={pendingCount > 0 ? 'text-[#D4A017]' : 'text-[#686870]'} />
             {pendingCount > 0 && (
