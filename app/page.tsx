@@ -15,52 +15,68 @@ import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
-interface Pillar { icon: string; label: string; detail: string; pct: number; color: string }
+function ProgressRings({ dailyScore, weeklyScore }: { dailyScore: number; weeklyScore: number }) {
+  const cx = 62, cy = 62, RING_W = 12
+  const outerR = 50, innerR = 34
+  const outerCirc = 2 * Math.PI * outerR
+  const innerCirc = 2 * Math.PI * innerR
+  const outerFilled = dailyScore > 0 ? Math.max(outerCirc * (dailyScore / 100), 12) : 0
+  const innerFilled = weeklyScore > 0 ? Math.max(innerCirc * (weeklyScore / 100), 12) : 0
 
-function ScoreRing({ title, score, color, pillars }: {
-  title: string; score: number; color: string; pillars: Pillar[]
-}) {
-  const cx = 56, cy = 56, r = 46, RING_W = 10
-  const circ = 2 * Math.PI * r
-  const filled = score > 0 ? Math.max(circ * (score / 100), 10) : 0
   return (
     <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-      <div className="text-[9px] font-black tracking-[0.3em] text-[#686870] mb-4">{title}</div>
+      <div className="flex items-center gap-5">
 
-      {/* Ring */}
-      <div className="flex justify-center mb-4">
-        <svg width="112" height="112" viewBox="0 0 112 112">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={RING_W} opacity={0.13} />
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={RING_W}
+        {/* Two concentric rings */}
+        <svg width="124" height="124" viewBox="0 0 124 124" className="flex-shrink-0">
+          {/* Outer = today */}
+          <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#FF2800" strokeWidth={RING_W} opacity={0.13} />
+          <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#FF2800" strokeWidth={RING_W}
             strokeLinecap="round"
-            strokeDasharray={`${filled} ${circ}`}
+            strokeDasharray={`${outerFilled} ${outerCirc}`}
             transform={`rotate(-90 ${cx} ${cy})`}
-            style={{
-              transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)',
-              filter: score > 0 ? `drop-shadow(0 0 8px ${color}99)` : 'none',
-            }}
+            style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)', filter: dailyScore > 0 ? 'drop-shadow(0 0 6px #FF280099)' : 'none' }}
           />
-          <text x={cx} y={cy - 4} textAnchor="middle" fontSize="22" fontWeight="900"
-            fill={score > 0 ? '#EDEDF0' : '#2C2C38'} fontFamily="inherit">{score}</text>
-          <text x={cx} y={cy + 11} textAnchor="middle" fontSize="9" fontWeight="700"
-            fill="#686870" fontFamily="inherit" letterSpacing="1">%</text>
+          {/* Inner = this week */}
+          <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#1DB954" strokeWidth={RING_W} opacity={0.13} />
+          <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#1DB954" strokeWidth={RING_W}
+            strokeLinecap="round"
+            strokeDasharray={`${innerFilled} ${innerCirc}`}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)', filter: weeklyScore > 0 ? 'drop-shadow(0 0 6px #1DB95499)' : 'none' }}
+          />
         </svg>
-      </div>
 
-      {/* Breakdown */}
-      <div className="space-y-2.5 border-t border-[#1E1E26] pt-3">
-        {pillars.map(p => (
-          <div key={p.label} className="flex items-center gap-2.5">
-            <span className="text-sm leading-none w-5 flex-shrink-0">{p.icon}</span>
-            <span className="text-[9px] font-black tracking-wider text-[#686870] w-14 flex-shrink-0 uppercase">{p.label}</span>
-            <div className="flex-1 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.min(p.pct * 100, 100)}%`, backgroundColor: p.color }} />
+        {/* Metric rows */}
+        <div className="flex-1 space-y-5 min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: '#FF280022' }}>
+              <span className="text-base leading-none">📅</span>
             </div>
-            <span className="text-[9px] font-bold w-24 text-right flex-shrink-0 truncate"
-              style={{ color: p.pct >= 1 ? p.color : '#686870' }}>{p.detail}</span>
+            <div>
+              <div className="text-[9px] font-bold tracking-wider text-[#686870] mb-0.5">Today&apos;s Score</div>
+              <div className="text-[15px] leading-tight">
+                <span className="font-black text-[#EDEDF0]">{dailyScore}</span>
+                <span className="font-bold text-[#686870]">/100</span>
+              </div>
+            </div>
           </div>
-        ))}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: '#1DB95422' }}>
+              <span className="text-base leading-none">📆</span>
+            </div>
+            <div>
+              <div className="text-[9px] font-bold tracking-wider text-[#686870] mb-0.5">This Week</div>
+              <div className="text-[15px] leading-tight">
+                <span className="font-black text-[#EDEDF0]">{weeklyScore}</span>
+                <span className="font-bold text-[#686870]">/100</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )
@@ -392,68 +408,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Score Rings ── */}
-        <ScoreRing
-          title="TODAY"
-          score={dailyScore}
-          color="#FF2800"
-          pillars={[
-            {
-              icon: '🏋️', label: 'Workout',
-              pct: todayLog?.workoutDone ? 1 : 0,
-              color: '#FF2800',
-              detail: todayLog?.workoutDone ? 'Done ✓' : 'Not done',
-            },
-            {
-              icon: '👟', label: 'Steps',
-              pct: Math.min(todaySteps / 10000, 1),
-              color: '#2196F3',
-              detail: `${todaySteps.toLocaleString()} / 10K`,
-            },
-            {
-              icon: '😴', label: 'Sleep',
-              pct: todayLog?.habits?.sleep ? 1 : 0,
-              color: '#9B59B6',
-              detail: todayLog?.habits?.sleep ? 'Logged ✓' : 'Not logged',
-            },
-            {
-              icon: '🔥', label: 'Diet',
-              pct: todayCal > 0 ? Math.min(todayCal / TARGETS.calories, 1) : 0,
-              color: '#1DB954',
-              detail: `${todayCal} / ${TARGETS.calories} kcal`,
-            },
-          ]}
-        />
-        <ScoreRing
-          title="THIS WEEK"
-          score={weeklyScore}
-          color="#1DB954"
-          pillars={[
-            {
-              icon: '🏋️', label: 'Workouts',
-              pct: Math.min(weekWorkouts / 5, 1),
-              color: '#FF2800',
-              detail: `${weekWorkouts} / 5 sessions`,
-            },
-            {
-              icon: '👟', label: 'Steps',
-              pct: Math.min(weekStepDays / 5, 1),
-              color: '#2196F3',
-              detail: `${weekStepDays} / 5 days hit`,
-            },
-            {
-              icon: '😴', label: 'Sleep',
-              pct: Math.min(weekSleepDays / 7, 1),
-              color: '#9B59B6',
-              detail: `${weekSleepDays} / 7 nights`,
-            },
-            {
-              icon: '🔥', label: 'Diet',
-              pct: Math.min(weekGoodDays / 6, 1),
-              color: '#1DB954',
-              detail: `${weekGoodDays} / 6 clean days`,
-            },
-          ]}
-        />
+        <ProgressRings dailyScore={dailyScore} weeklyScore={weeklyScore} />
 
         {/* ── Wellness Journal / Week Navigator ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
