@@ -306,7 +306,7 @@ export default function HomePage() {
         {/* ── Header ── */}
         <div>
           <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
-          <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
+          <h1 className="text-5xl font-black tracking-[-0.04em] text-[#1DB954] leading-none mt-0.5">COMEBACK ✓</h1>
           <p className="text-[10px] font-black tracking-widest text-[#686870] mt-1.5">
             <span className="text-[#EDEDF0]">{stats.streak}</span> DAY STREAK · {stats.workoutsCompleted} WORKOUTS
           </p>
