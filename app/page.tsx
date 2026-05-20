@@ -147,6 +147,7 @@ export default function HomePage() {
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
   const [tasksOpen, setTasksOpen] = useState(false)
+  const [unCheckPending, setUnCheckPending] = useState<{ id: string; label: string; icon: string } | null>(null)
   const [dismissedHydrationHours, setDismissedHydrationHours] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') return new Set()
     try {
@@ -763,7 +764,10 @@ export default function HomePage() {
                     {DAILY_HABITS.map(habit => {
                       const done = !!habits[habit.id]
                       return (
-                        <button key={habit.id} onClick={() => toggleHabit(habit.id)}
+                        <button key={habit.id}
+                          onClick={() => done
+                            ? setUnCheckPending({ id: habit.id, label: habit.label, icon: habit.icon })
+                            : toggleHabit(habit.id)}
                           className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer btn-press text-left
                             ${done ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
                           <span className="text-xl leading-none">{habit.icon}</span>
@@ -854,6 +858,41 @@ export default function HomePage() {
       <p className="text-center text-[8px] font-bold text-[#1E1E26] tracking-widest mt-4 pb-2 select-none">
         BUILD 20260520-v6
       </p>
+
+      {/* ── Uncheck habit confirmation ── */}
+      {unCheckPending && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setUnCheckPending(null)}>
+          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
+              <div className="text-[10px] font-black tracking-[0.3em] text-[#D4A017] mb-2">UNCHECK HABIT?</div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{unCheckPending.icon}</span>
+                <span className="text-base font-black text-[#EDEDF0]">{unCheckPending.label}</span>
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[11px] text-[#686870] leading-relaxed">
+                You already marked this as done. Are you sure you want to uncheck it?
+              </p>
+            </div>
+            <div className="flex gap-2 px-5 pb-5">
+              <button
+                onClick={() => setUnCheckPending(null)}
+                className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                GO BACK
+              </button>
+              <button
+                onClick={() => { toggleHabit(unCheckPending.id); setUnCheckPending(null) }}
+                className="flex-1 py-3 rounded-xl bg-[#D4A017] text-[#070709] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                UNCHECK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
