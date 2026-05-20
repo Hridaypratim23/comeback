@@ -144,31 +144,44 @@ function calcMaintenance(weight: number, bodyFat: number): number {
 }
 
 function ScoreBar({ label, value, max, color, count, target, unit }: {
-  label: string
-  value: number
-  max: number
-  color: string
-  count: number
-  target: number
-  unit: string
+  label: string; value: number; max: number; color: string
+  count: number; target: number; unit: string
 }) {
   const pct = Math.min(value / max, 1) * 100
-  const isActive = value > 0
+  const done = pct >= 100
   return (
-    <div>
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-[10px] font-black tracking-widest transition-colors duration-300"
-              style={{ color: isActive ? color : '#686870' }}>{label}</span>
-        <span className="text-[10px] font-black" style={{ color }}>
-          {count}/{target} {unit}
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-baseline">
+        <span className="text-[9px] font-black tracking-widest"
+          style={{ color: pct > 0 ? '#EDEDF0' : '#686870' }}>{label}</span>
+        <span className="text-[10px] font-black" style={{ color: done ? color : '#686870' }}>
+          {done && '✓ '}{count}<span className="text-[9px] opacity-50">/{target} {unit}</span>
         </span>
       </div>
-      <div className="h-2 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: isActive ? `linear-gradient(90deg, ${color}88, ${color})` : color }}
-        />
+      <div className="h-2.5 bg-[#0D0D10] rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-700 relative"
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}55, ${color})` }}>
+          <div className="absolute inset-0 rounded-full"
+            style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.1) 0%,transparent 100%)' }} />
+        </div>
       </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value, sub, color }: {
+  icon: string; label: string; value: string; sub: string; color: string
+}) {
+  return (
+    <div className="bg-[#0D0D10] rounded-xl p-3.5 border border-[#1E1E26]"
+      style={{ borderTopWidth: 2, borderTopColor: color }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm leading-none"
+          style={{ backgroundColor: `${color}20` }}>{icon}</div>
+        <span className="text-[8px] font-black tracking-widest text-[#686870]">{label}</span>
+      </div>
+      <div className="text-[22px] font-black leading-none text-[#EDEDF0] mb-1">{value}</div>
+      <div className="text-[9px] text-[#686870]">{sub}</div>
     </div>
   )
 }
@@ -349,105 +362,123 @@ export default function ProgressPage() {
         <div className="text-[9px] text-[#686870] mt-2">Clean day = no junk habit ✓ + calories ≤ maintenance</div>
       </div>
 
-      {/* ── WEEKLY ACTIVITY STATS ───────────────────────────────────────────── */}
+      {/* ── WEEK IN NUMBERS ─────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-        <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-3">WEEK IN NUMBERS</div>
-        <div className="space-y-0">
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL STEPS</span>
-            <span className="text-sm font-black text-[#2196F3]">{weekTotalSteps.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">CALS BURNED (STEPS)</span>
-            <span className="text-sm font-black text-[#FF5500]">{weekCalsBurned.toLocaleString()} kcal</span>
-          </div>
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING HOURS</span>
-            <div className="text-right">
-              <span className="text-sm font-black text-[#1DB954]">{weekFastingHours}h</span>
-              {weekFastingHours === 0 && (
-                <span className="text-[10px] text-[#2C2C38] ml-1">log via habits</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
-            <span className="text-sm font-black text-[#FF2800]">{weekWorkouts} <span className="text-[10px] text-[#686870] font-bold">/ 5 sessions</span></span>
-          </div>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">WEEK IN NUMBERS</span>
+          <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">RESETS MONDAY</span>
         </div>
-        <div className="text-[9px] text-[#686870] mt-2">Resets Monday · 10,000 steps = 500 kcal</div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
+            value={weekTotalSteps.toLocaleString()}
+            sub={`${weekStepDays}/5 days hit 10K`} />
+          <StatCard icon="🔥" label="CALS BURNED" color="#FF5500"
+            value={weekCalsBurned.toLocaleString()}
+            sub="from steps" />
+          <StatCard icon="⏱️" label="FASTING" color="#1DB954"
+            value={weekFastingHours > 0 ? `${weekFastingHours}h` : '—'}
+            sub={weekFastingHours > 0 ? 'total this week' : 'log via habits'} />
+          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
+            value={`${weekWorkouts}/5`}
+            sub="sessions done" />
+        </div>
       </div>
 
       {/* ── MONTH IN NUMBERS ────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MONTH IN NUMBERS</div>
-          <div className="text-[9px] font-bold text-[#2C2C38] tracking-widest">{monthName}</div>
+          <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MONTH IN NUMBERS</span>
+          <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">{monthName}</span>
         </div>
-        <div className="space-y-0">
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL STEPS</span>
-            <span className="text-sm font-black text-[#2196F3]">{monthTotalSteps.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">CALS BURNED (STEPS)</span>
-            <span className="text-sm font-black text-[#FF5500]">{monthCalsBurned.toLocaleString()} kcal</span>
-          </div>
-          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING HOURS</span>
-            <span className="text-sm font-black text-[#1DB954]">{monthFastingHours}h</span>
-          </div>
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
-            <span className="text-sm font-black text-[#FF2800]">{workoutsThisMonth} <span className="text-[10px] text-[#686870] font-bold">sessions</span></span>
-          </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
+            value={monthTotalSteps.toLocaleString()}
+            sub={`avg ${avgSteps !== null ? avgSteps.toLocaleString() : '—'} / day`} />
+          <StatCard icon="🔥" label="CALS BURNED" color="#FF5500"
+            value={monthCalsBurned.toLocaleString()}
+            sub="from steps" />
+          <StatCard icon="⏱️" label="FASTING" color="#1DB954"
+            value={monthFastingHours > 0 ? `${monthFastingHours}h` : '—'}
+            sub={monthFastingHours > 0 ? 'total this month' : 'log via habits'} />
+          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
+            value={`${workoutsThisMonth}`}
+            sub="sessions done" />
         </div>
-        <div className="text-[9px] text-[#686870] mt-2">Resets 1st of each month · 10,000 steps = 500 kcal</div>
       </div>
 
       {/* ── 7-DAY ACTIVITY ──────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">7-DAY ACTIVITY</div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">7-DAY ACTIVITY</span>
           <div className="flex items-center gap-3 text-[9px] text-[#686870]">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#2196F3] inline-block" /> Steps</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#FF2800] inline-block" /> Workout</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#2196F3] inline-block" />Steps</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#FF2800] inline-block" />Workout</span>
+          </div>
+        </div>
+        <div className="text-[9px] text-[#2C2C38] font-bold tracking-widest mb-4">Full bar = 10,000 steps</div>
+
+        {/* Chart area */}
+        <div className="relative">
+          {/* Dashed reference lines at 25 / 50 / 75 / 100% */}
+          {[75, 50, 25].map(p => (
+            <div key={p} className="absolute left-0 right-0 flex items-center" style={{ bottom: `${(p / 100) * 72}px` }}>
+              <div className="flex-1 border-t border-dashed border-[#1E1E2666]" />
+              <span className="text-[7px] text-[#2C2C38] font-bold ml-1 w-6 text-right">{(10000 * p / 100 / 1000).toFixed(0)}K</span>
+            </div>
+          ))}
+          <div className="absolute left-0 right-0 flex items-center" style={{ bottom: 72 }}>
+            <div className="flex-1 border-t border-dashed border-[#2196F344]" />
+            <span className="text-[7px] text-[#2196F3] font-bold ml-1 w-6 text-right">10K</span>
+          </div>
+
+          {/* Bars */}
+          <div className="flex items-end gap-1.5 pr-7" style={{ height: 110 }}>
+            {last7.map(({ dk, label, isToday, workoutDone, steps }) => {
+              const stepPct = Math.min(steps / 10000, 1)
+              const barH = Math.round(stepPct * 72)
+              const stepsLabel = steps >= 1000 ? `${(steps / 1000).toFixed(1)}K` : steps > 0 ? `${steps}` : ''
+              return (
+                <div key={dk} className="flex-1 flex flex-col items-center" style={{ height: 110 }}>
+                  {/* Step label */}
+                  <div style={{ height: 14 }} className="flex items-end justify-center mb-0.5">
+                    {steps > 0 && (
+                      <span className="text-[7px] font-black leading-none"
+                        style={{ color: stepPct >= 1 ? '#2196F3' : '#686870' }}>{stepsLabel}</span>
+                    )}
+                  </div>
+                  {/* Workout dot */}
+                  <div style={{ height: 10 }} className="flex items-center justify-center">
+                    {workoutDone && (
+                      <div className="w-2 h-2 rounded-full bg-[#FF2800]"
+                        style={{ boxShadow: '0 0 5px #FF280099' }} />
+                    )}
+                  </div>
+                  {/* Bar */}
+                  <div className="flex-1 flex items-end w-full">
+                    <div className="w-full rounded-t-md transition-all duration-700"
+                      style={{
+                        height: barH > 0 ? barH : (steps > 0 ? 3 : 2),
+                        background: stepPct >= 1
+                          ? 'linear-gradient(180deg,#2196F3,#1470CC)'
+                          : steps > 0
+                          ? 'linear-gradient(180deg,#2196F344,#2196F322)'
+                          : '#1E1E26',
+                      }}
+                    />
+                  </div>
+                  {/* Date */}
+                  <span className={`text-[8px] font-black mt-1.5 ${isToday ? 'text-[#FF2800]' : 'text-[#686870]'}`}>{label}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Bars: height = steps/10K, dot above = workout done */}
-        <div className="flex items-end gap-1.5" style={{ height: 88 }}>
-          {last7.map(({ dk, label, isToday, workoutDone, steps }) => {
-            const stepPct = Math.min(steps / 10000, 1)
-            const barH = Math.round(stepPct * 60)  // max 60px
-            return (
-              <div key={dk} className="flex-1 flex flex-col items-center" style={{ height: 88 }}>
-                {/* Workout dot */}
-                <div className="flex items-center justify-center" style={{ height: 12 }}>
-                  {workoutDone && <div className="w-2 h-2 rounded-full bg-[#FF2800]" style={{ boxShadow: '0 0 4px #FF280099' }} />}
-                </div>
-                {/* Step bar */}
-                <div className="flex-1 flex items-end w-full">
-                  <div
-                    className="w-full rounded-t transition-all duration-700"
-                    style={{
-                      height: barH > 0 ? barH : (steps > 0 ? 3 : 2),
-                      backgroundColor: stepPct >= 1 ? '#2196F3' : steps > 0 ? '#2196F355' : '#1E1E26',
-                    }}
-                  />
-                </div>
-                {/* Date */}
-                <span className={`text-[8px] font-black mt-1 ${isToday ? 'text-[#FF2800]' : 'text-[#686870]'}`}>{label}</span>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* 10K reference label */}
-        <div className="flex justify-between text-[9px] text-[#686870] mt-2">
-          <span>{last7.filter(d => d.workoutDone).length}/7 workouts</span>
-          <span>10K steps = full bar</span>
-          <span>{last7.filter(d => d.steps >= 10000).length}/7 days 10K+</span>
+        {/* Summary row */}
+        <div className="flex justify-between text-[9px] text-[#686870] mt-3 pt-3 border-t border-[#1E1E26]">
+          <span>🏋️ <span className="font-black text-[#FF2800]">{last7.filter(d => d.workoutDone).length}</span>/7 workouts</span>
+          <span>👟 <span className="font-black text-[#2196F3]">{last7.filter(d => d.steps >= 10000).length}</span>/7 days 10K+</span>
+          <span>Total <span className="font-black text-[#EDEDF0]">{last7.reduce((s, d) => s + d.steps, 0).toLocaleString()}</span> steps</span>
         </div>
       </div>
 
