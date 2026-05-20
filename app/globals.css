@@ -19,6 +19,12 @@ html, body {
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 
+/* iOS zooms in on inputs with font-size < 16px then snaps back out on blur.
+   Attribute selector (0,1,1) beats Tailwind's class (0,1,0) so no !important needed. */
+input[type], input:not([type]), textarea, select {
+  font-size: 1rem;
+}
+
 @layer utilities {
   .no-select { user-select: none; }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
