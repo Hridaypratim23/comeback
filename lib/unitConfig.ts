@@ -9,7 +9,22 @@ export interface UnitConfig {
   isGrams: boolean  // if true, macros are per 100g; else per 1 unit
 }
 
-type Rule = { keywords: string[]; config: Omit<UnitConfig, 'isGrams'> & { isGrams?: false } }
+type Rule = {
+  keywords: string[]
+  config: Omit<UnitConfig, 'isGrams'> & { isGrams?: false }
+  dynamic?: boolean  // if true, use the matched keyword as the unit name
+}
+
+// Simple pluraliser for fruit names
+function pluralise(word: string): string {
+  if (word.endsWith('berry')) return word.slice(0, -5) + 'berries'
+  if (word.endsWith('cherry')) return 'cherries'
+  if (word === 'mango') return 'mangoes'
+  if (word.endsWith('s')) return word  // already plural (grapes, dates…)
+  return word + 's'
+}
+
+const FRUIT_BASE = { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 1 }
 
 const RULES: Rule[] = [
   {
@@ -34,11 +49,15 @@ const RULES: Rule[] = [
   },
   {
     keywords: ['banana'],
-    config: { unit: 'banana', singular: 'banana', plural: 'bananas', min: 0.5, max: 4, step: 0.5, defaultQty: 1 },
+    config: { unit: 'banana', singular: 'banana', plural: 'bananas', min: 1, max: 6, step: 1, defaultQty: 1 },
   },
+  // Fruits — dynamic: matched keyword becomes the unit label ("1 apple", "2 oranges")
   {
-    keywords: ['apple', 'orange', 'pear', 'mango', 'kiwi', 'peach', 'plum', 'guava', 'papaya', 'pomegranate', 'fig', 'dates', 'date', 'lemon', 'lime', 'grape', 'grapes', 'watermelon', 'pineapple', 'strawberry', 'blueberry', 'cherry', 'melon'],
-    config: { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 1 },
+    dynamic: true,
+    keywords: ['apple', 'orange', 'pear', 'mango', 'kiwi', 'peach', 'plum', 'guava', 'papaya',
+               'pomegranate', 'fig', 'date', 'lemon', 'lime', 'grape', 'watermelon', 'pineapple',
+               'strawberry', 'blueberry', 'cherry', 'melon'],
+    config: { ...FRUIT_BASE },
   },
   {
     keywords: ['sprout', 'sprouts', 'salad', 'oats', 'oatmeal', 'cereal', 'muesli', 'granola', 'poha', 'upma', 'dalia'],
@@ -82,7 +101,17 @@ const GRAMS_CONFIG: UnitConfig = {
 export function getUnitConfig(foodName: string): UnitConfig {
   const lower = foodName.toLowerCase()
   for (const rule of RULES) {
-    if (rule.keywords.some(kw => lower.includes(kw))) {
+    const matched = rule.keywords.find(kw => lower.includes(kw))
+    if (matched) {
+      if (rule.dynamic) {
+        return {
+          ...rule.config,
+          isGrams: false,
+          unit: matched,
+          singular: matched,
+          plural: pluralise(matched),
+        }
+      }
       return { ...rule.config, isGrams: false }
     }
   }
