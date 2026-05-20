@@ -15,7 +15,13 @@ import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
-function ProgressRings({ dailyScore, weeklyScore }: { dailyScore: number; weeklyScore: number }) {
+interface ProgressRingsProps {
+  dailyScore: number; weeklyScore: number
+  workoutDone: boolean; todaySteps: number; sleepDone: boolean; todayCal: number; calTarget: number
+  weekWorkouts: number; weekStepDays: number; weekSleepDays: number; weekGoodDays: number
+}
+
+function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleepDone, todayCal, calTarget, weekWorkouts, weekStepDays, weekSleepDays, weekGoodDays }: ProgressRingsProps) {
   const cx = 62, cy = 62, RING_W = 12
   const outerR = 50, innerR = 34
   const outerCirc = 2 * Math.PI * outerR
@@ -23,52 +29,56 @@ function ProgressRings({ dailyScore, weeklyScore }: { dailyScore: number; weekly
   const outerFilled = dailyScore > 0 ? Math.max(outerCirc * (dailyScore / 100), 12) : 0
   const innerFilled = weeklyScore > 0 ? Math.max(innerCirc * (weeklyScore / 100), 12) : 0
 
+  const todayPillars = [
+    { icon: '🏋️', label: 'Workout', done: workoutDone, detail: workoutDone ? 'Done' : 'Not done' },
+    { icon: '👟', label: 'Steps', done: todaySteps >= 10000, detail: `${todaySteps.toLocaleString()} / 10K` },
+    { icon: '😴', label: 'Sleep', done: sleepDone, detail: sleepDone ? 'Logged' : 'Not logged' },
+    { icon: '🔥', label: 'Diet', done: todayCal > 0 && todayCal <= calTarget, detail: `${todayCal} / ${calTarget}` },
+  ]
+  const weekPillars = [
+    { icon: '🏋️', label: 'Workouts', done: weekWorkouts >= 5, detail: `${weekWorkouts} / 5` },
+    { icon: '👟', label: 'Steps', done: weekStepDays >= 5, detail: `${weekStepDays} / 5 days` },
+    { icon: '😴', label: 'Sleep', done: weekSleepDays >= 7, detail: `${weekSleepDays} / 7 nights` },
+    { icon: '🔥', label: 'Diet', done: weekGoodDays >= 6, detail: `${weekGoodDays} / 6 days` },
+  ]
+
   return (
     <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-      <div className="flex items-center gap-5">
 
-        {/* Two concentric rings */}
+      {/* Rings + score rows */}
+      <div className="flex items-center gap-5">
         <svg width="124" height="124" viewBox="0 0 124 124" className="flex-shrink-0">
-          {/* Outer = today */}
           <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#FF2800" strokeWidth={RING_W} opacity={0.13} />
           <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#FF2800" strokeWidth={RING_W}
-            strokeLinecap="round"
-            strokeDasharray={`${outerFilled} ${outerCirc}`}
+            strokeLinecap="round" strokeDasharray={`${outerFilled} ${outerCirc}`}
             transform={`rotate(-90 ${cx} ${cy})`}
             style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)', filter: dailyScore > 0 ? 'drop-shadow(0 0 6px #FF280099)' : 'none' }}
           />
-          {/* Inner = this week */}
           <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#1DB954" strokeWidth={RING_W} opacity={0.13} />
           <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#1DB954" strokeWidth={RING_W}
-            strokeLinecap="round"
-            strokeDasharray={`${innerFilled} ${innerCirc}`}
+            strokeLinecap="round" strokeDasharray={`${innerFilled} ${innerCirc}`}
             transform={`rotate(-90 ${cx} ${cy})`}
             style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)', filter: weeklyScore > 0 ? 'drop-shadow(0 0 6px #1DB95499)' : 'none' }}
           />
         </svg>
 
-        {/* Metric rows */}
         <div className="flex-1 space-y-5 min-w-0">
+          {/* Today row */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: '#FF280022' }}>
-              <span className="text-base leading-none">📅</span>
-            </div>
+            <div className="w-1 h-10 rounded-full flex-shrink-0 bg-[#FF2800]" />
             <div>
-              <div className="text-[9px] font-bold tracking-wider text-[#686870] mb-0.5">Today&apos;s Score</div>
+              <div className="text-[9px] font-black tracking-[0.2em] text-[#FF2800] mb-0.5">TODAY</div>
               <div className="text-[15px] leading-tight">
                 <span className="font-black text-[#EDEDF0]">{dailyScore}</span>
                 <span className="font-bold text-[#686870]">/100</span>
               </div>
             </div>
           </div>
+          {/* Week row */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: '#1DB95422' }}>
-              <span className="text-base leading-none">📆</span>
-            </div>
+            <div className="w-1 h-10 rounded-full flex-shrink-0 bg-[#1DB954]" />
             <div>
-              <div className="text-[9px] font-bold tracking-wider text-[#686870] mb-0.5">This Week</div>
+              <div className="text-[9px] font-black tracking-[0.2em] text-[#1DB954] mb-0.5">THIS WEEK</div>
               <div className="text-[15px] leading-tight">
                 <span className="font-black text-[#EDEDF0]">{weeklyScore}</span>
                 <span className="font-bold text-[#686870]">/100</span>
@@ -76,8 +86,36 @@ function ProgressRings({ dailyScore, weeklyScore }: { dailyScore: number; weekly
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* Breakdown */}
+      <div className="mt-4 pt-3 border-t border-[#1E1E26] space-y-3">
+        {[
+          { label: 'TODAY', color: '#FF2800', pillars: todayPillars },
+          { label: 'THIS WEEK', color: '#1DB954', pillars: weekPillars },
+        ].map(({ label, color, pillars }) => (
+          <div key={label}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span className="text-[8px] font-black tracking-widest" style={{ color }}>{label}</span>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {pillars.map(p => (
+                <span key={p.label}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border"
+                  style={{
+                    background: p.done ? `${color}18` : '#0D0D10',
+                    borderColor: p.done ? `${color}44` : '#1E1E26',
+                    color: p.done ? color : '#686870',
+                  }}>
+                  {p.icon} {p.detail}{p.done ? ' ✓' : ''}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
@@ -408,7 +446,19 @@ export default function HomePage() {
         </div>
 
         {/* ── Score Rings ── */}
-        <ProgressRings dailyScore={dailyScore} weeklyScore={weeklyScore} />
+        <ProgressRings
+          dailyScore={dailyScore}
+          weeklyScore={weeklyScore}
+          workoutDone={todayLog?.workoutDone ?? false}
+          todaySteps={todaySteps}
+          sleepDone={!!(todayLog?.habits?.sleep)}
+          todayCal={todayCal}
+          calTarget={TARGETS.calories}
+          weekWorkouts={weekWorkouts}
+          weekStepDays={weekStepDays}
+          weekSleepDays={weekSleepDays}
+          weekGoodDays={weekGoodDays}
+        />
 
         {/* ── Wellness Journal / Week Navigator ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
