@@ -62,53 +62,49 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleep
           />
         </svg>
 
-        <div className="flex-1 space-y-5 min-w-0">
-          {/* Today row */}
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-10 rounded-full flex-shrink-0 bg-[#FF2800]" />
-            <div>
-              <div className="text-[9px] font-black tracking-[0.2em] text-[#FF2800] mb-0.5">TODAY</div>
-              <div className="text-[15px] leading-tight">
-                <span className="font-black text-[#EDEDF0]">{dailyScore}</span>
-                <span className="font-bold text-[#686870]">/100</span>
+        {/* Score labels — vertically centred against the 124px SVG */}
+        <div className="flex-1 flex flex-col justify-center gap-6 min-w-0">
+          {[
+            { label: 'TODAY', score: dailyScore, color: '#FF2800' },
+            { label: 'THIS WEEK', score: weeklyScore, color: '#1DB954' },
+          ].map(({ label, score, color }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+              <div>
+                <div className="text-[9px] font-black tracking-[0.2em] mb-0.5" style={{ color }}>{label}</div>
+                <div className="text-[15px] leading-tight">
+                  <span className="font-black text-[#EDEDF0]">{score}</span>
+                  <span className="font-bold text-[#686870]">/100</span>
+                </div>
               </div>
             </div>
-          </div>
-          {/* Week row */}
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-10 rounded-full flex-shrink-0 bg-[#1DB954]" />
-            <div>
-              <div className="text-[9px] font-black tracking-[0.2em] text-[#1DB954] mb-0.5">THIS WEEK</div>
-              <div className="text-[15px] leading-tight">
-                <span className="font-black text-[#EDEDF0]">{weeklyScore}</span>
-                <span className="font-bold text-[#686870]">/100</span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Breakdown */}
-      <div className="mt-4 pt-3 border-t border-[#1E1E26] space-y-3">
+      {/* Breakdown — label + 4 equal pills per row, perfectly aligned */}
+      <div className="mt-4 pt-3 border-t border-[#1E1E26] space-y-2">
         {[
           { label: 'TODAY', color: '#FF2800', pillars: todayPillars },
           { label: 'THIS WEEK', color: '#1DB954', pillars: weekPillars },
         ].map(({ label, color, pillars }) => (
-          <div key={label}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[8px] font-black tracking-widest" style={{ color }}>{label}</span>
+          <div key={label} className="flex items-center gap-2">
+            {/* Fixed-width label */}
+            <div className="flex items-center gap-1 w-[62px] flex-shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+              <span className="text-[8px] font-black tracking-wider leading-none" style={{ color }}>{label}</span>
             </div>
-            <div className="flex gap-1 flex-wrap">
+            {/* 4 equal-width pills */}
+            <div className="flex gap-1 flex-1">
               {pillars.map(p => (
                 <span key={p.label}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold border"
+                  className="flex-1 text-center px-1 py-0.5 rounded text-[8px] font-bold border leading-tight"
                   style={{
                     background: p.done ? `${color}18` : '#0D0D10',
                     borderColor: p.done ? `${color}44` : '#1E1E26',
                     color: p.done ? color : '#686870',
                   }}>
-                  {p.icon} {p.detail}{p.done ? ' ✓' : ''}
+                  {p.icon} {p.detail}
                 </span>
               ))}
             </div>
