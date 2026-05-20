@@ -229,6 +229,9 @@ export default function ProgressPage() {
     const cal = d.meals.reduce((s, m) => s + m.calories, 0)
     return d.habits?.nojunk && (cal === 0 || cal <= maintenance)
   }).length
+  const weekTotalSteps = weekLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
+  const weekCalsBurned = Math.round((weekTotalSteps / 10000) * 500)
+  const weekFastingHours = weekLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
   const weeklyWorkoutPct = Math.min(weekWorkouts / 5, 1) * 25
   const weeklyStepsPct = Math.min(weekStepDays / 5, 1) * 25
@@ -356,6 +359,31 @@ export default function ProgressPage() {
           <ScoreBar label="CLEAN EAT × 6 DAYS" value={weeklyNutritionPct} max={25} color="#1DB954" count={weekGoodNutritionDays} target={6} unit="days" />
         </div>
         <div className="text-[9px] text-[#686870] mt-2">Clean day = no junk habit ✓ + calories ≤ maintenance</div>
+      </div>
+
+      {/* ── WEEKLY ACTIVITY STATS ───────────────────────────────────────────── */}
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+        <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-3">WEEK IN NUMBERS</div>
+        <div className="space-y-0">
+          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">TOTAL STEPS</span>
+            <span className="text-sm font-black text-[#2196F3]">{weekTotalSteps.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5 border-b border-[#1E1E26]">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">CALS BURNED (STEPS)</span>
+            <span className="text-sm font-black text-[#FF5500]">{weekCalsBurned.toLocaleString()} kcal</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING HOURS</span>
+            <div className="text-right">
+              <span className="text-sm font-black text-[#1DB954]">{weekFastingHours}h</span>
+              {weekFastingHours === 0 && (
+                <span className="text-[10px] text-[#2C2C38] ml-1">log via habits</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="text-[9px] text-[#686870] mt-2">Resets Monday · 10,000 steps = 500 kcal</div>
       </div>
 
       {/* ── 7-DAY ACTIVITY (date labels) ────────────────────────────────────── */}

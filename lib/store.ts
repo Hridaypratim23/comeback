@@ -37,6 +37,7 @@ export interface DayLog {
   steps: number
   xpEarned: number
   habits: Record<string, boolean>
+  fastingHours?: number
 }
 
 export const DAILY_HABITS = [
@@ -129,6 +130,7 @@ interface AppState {
   clearNewPR: () => void
   addMeasurement: (m: Omit<Measurement, 'date'>) => void
   saveWeeklyCheckin: (c: Omit<WeeklyCheckin, 'date'>) => void
+  setFastingHours: (hours: number) => void
   saveCustomMeal: (m: Omit<CustomMealTemplate, 'id'>) => void
   deleteCustomMeal: (id: string) => void
   syncToSupabase: () => Promise<void>
@@ -436,6 +438,14 @@ export const useStore = create<AppState>()(
         set(s => ({
           measurements: [...s.measurements.filter(x => x.date !== d), { ...m, date: d }].slice(-90),
         }))
+      },
+
+      setFastingHours: (hours) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, fastingHours: hours } } }
+        })
       },
 
       saveCustomMeal: (m) => {
