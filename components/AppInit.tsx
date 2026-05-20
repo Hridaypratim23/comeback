@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useStore, TARGETS } from '@/lib/store'
 import { buildDaySchedule, requestNotificationPermission } from '@/lib/notifications'
 import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
@@ -39,6 +40,7 @@ async function subscribeToPush(schedule: ReturnType<typeof buildDaySchedule>) {
 
 export default function AppInit() {
   const { stats, dayLogs } = useStore()
+  const pathname = usePathname()
 
   function buildSchedule() {
     const today   = new Date().toISOString().split('T')[0]
@@ -76,9 +78,28 @@ export default function AppInit() {
       await subscribeToPush(buildSchedule())
     }, 2000)
 
-    return () => clearTimeout(timer)
+    // Smooth scroll focused inputs into view when the iOS keyboard opens,
+    // preventing the jarring instant-scroll the browser does by default.
+    const vv = window.visualViewport
+    const handleKeyboard = () => {
+      const el = document.activeElement
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+      }
+    }
+    vv?.addEventListener('resize', handleKeyboard)
+
+    return () => {
+      clearTimeout(timer)
+      vv?.removeEventListener('resize', handleKeyboard)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reset scroll position to top on every page navigation.
+  useEffect(() => {
+    document.getElementById('main-scroll')?.scrollTo(0, 0)
+  }, [pathname])
 
   // Re-save schedule to server whenever state changes (workout done, meals logged, etc.)
   useEffect(() => {
