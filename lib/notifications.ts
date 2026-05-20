@@ -305,6 +305,16 @@ export function buildDaySchedule(params: {
     '/'
   )
 
+  // De-conflict: if two notifications land at the exact same time, push
+  // each subsequent one 5 minutes later so none are swallowed.
+  const FIVE_MIN = 5 * 60 * 1000
+  schedule.sort((a, b) => a.showAt - b.showAt)
+  for (let i = 1; i < schedule.length; i++) {
+    if (schedule[i].showAt === schedule[i - 1].showAt) {
+      schedule[i].showAt = schedule[i - 1].showAt + FIVE_MIN
+    }
+  }
+
   return schedule
 }
 
