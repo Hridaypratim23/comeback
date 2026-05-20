@@ -113,6 +113,16 @@ export default function HomePage() {
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
   const [tasksOpen, setTasksOpen] = useState(false)
+  const [dismissedHydrationHours, setDismissedHydrationHours] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const raw = localStorage.getItem('hydration-dismissed')
+      if (!raw) return new Set()
+      const { date, hours } = JSON.parse(raw)
+      const today = new Date().toISOString().split('T')[0]
+      return date === today ? new Set<number>(hours) : new Set<number>()
+    } catch { return new Set() }
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -206,8 +216,7 @@ export default function HomePage() {
         waterMl: todayLog?.waterMl ?? 0,
         waterTarget: TARGETS.waterMl,
         workoutDone,
-        isWorkoutDay,
-        workoutLabel: workout.label,
+        weekWorkoutsCompleted: weekWorkouts,
         mealCount: todayLog?.meals.length ?? 0,
         totalCal: todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0,
         calTarget: TARGETS.calories,
@@ -222,6 +231,8 @@ export default function HomePage() {
   const daysSinceWeighIn = lastWeighIn
     ? (now.getTime() - new Date(lastWeighIn.date).getTime()) / (1000 * 60 * 60 * 24)
     : Infinity
+  // Hydration: one reminder per hour, 10 AM – 6 PM, dismissed on bell open
+  const hydrationDue = currentHour >= 10 && currentHour <= 18 && !dismissedHydrationHours.has(currentHour)
   const pendingTasks: { label: string; sub: string }[] = []
   if (isMonday && daysSinceWeighIn > 0.5)
     pendingTasks.push({ label: 'LOG MONDAY WEIGHT', sub: 'Go to GAINS → Weight Tracker' })
@@ -231,7 +242,22 @@ export default function HomePage() {
     pendingTasks.push({ label: 'NO MEALS LOGGED TODAY', sub: 'Track your nutrition' })
   if (isWorkoutDay && !workoutDone && currentHour >= 15)
     pendingTasks.push({ label: 'WORKOUT NOT DONE', sub: workout.label })
+  if (hydrationDue)
+    pendingTasks.push({ label: 'DRINK WATER NOW', sub: `Hourly reminder · ${currentHour}:00` })
   const pendingCount = pendingTasks.length
+
+  const dismissHydrationForCurrentHour = () => {
+    if (!hydrationDue) return
+    const updated = new Set(dismissedHydrationHours)
+    updated.add(currentHour)
+    setDismissedHydrationHours(updated)
+    try {
+      localStorage.setItem('hydration-dismissed', JSON.stringify({
+        date: todayKey,
+        hours: Array.from(updated),
+      }))
+    } catch { /* ignore */ }
+  }
 
   const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
   const dayStr  = DAY_LABELS[now.getDay()]
@@ -332,7 +358,7 @@ export default function HomePage() {
               Achieve your prime again
             </p>
           </div>
-          <button onClick={() => setTasksOpen(o => !o)}
+          <button onClick={() => { if (!tasksOpen) dismissHydrationForCurrentHour(); setTasksOpen(o => !o) }}
             className="relative mt-2 w-9 h-9 flex items-center justify-center rounded-full bg-[#111116] border border-[#1E1E26] cursor-pointer btn-press">
             <Bell size={16} className={pendingCount > 0 ? 'text-[#D4A017]' : 'text-[#686870]'} />
             {pendingCount > 0 && (

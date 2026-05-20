@@ -30,8 +30,7 @@ export function buildDaySchedule(params: {
   waterMl: number
   waterTarget: number
   workoutDone: boolean
-  isWorkoutDay: boolean
-  workoutLabel: string
+  weekWorkoutsCompleted: number
   mealCount: number
   totalCal: number
   calTarget: number
@@ -41,12 +40,14 @@ export function buildDaySchedule(params: {
     waterMl,
     waterTarget,
     workoutDone,
-    isWorkoutDay,
-    workoutLabel,
+    weekWorkoutsCompleted,
     mealCount,
     totalCal,
     calTarget,
   } = params
+
+  const needsWorkout = weekWorkoutsCompleted < 5 && !workoutDone
+  const weekDone = weekWorkoutsCompleted >= 5
 
   const now      = Date.now()
   const schedule: ScheduledNotification[] = []
@@ -64,13 +65,13 @@ export function buildDaySchedule(params: {
   }
 
   // ── 5:30 AM — wake-up call ─────────────────────────────────────────────
-  if (isWorkoutDay && !workoutDone) {
+  if (needsWorkout) {
     add(
       'preworkout',
       todayAt(5, 30),
-      `RISE. ${workoutLabel.toUpperCase()}. NOW.`,
+      'RISE. GET TO THE GYM.',
       withQuote(
-        'Up. Gym in 30 minutes. Get your gear on.',
+        `Up. ${weekWorkoutsCompleted}/5 workouts this week. Gym in 30 minutes — get your gear on.`,
         5
       ),
       '/workout'
@@ -78,27 +79,27 @@ export function buildDaySchedule(params: {
   }
 
   // ── 5:50 AM — leave now ────────────────────────────────────────────────
-  if (isWorkoutDay && !workoutDone) {
+  if (needsWorkout) {
     add(
       'wakeup',
       todayAt(5, 50),
-      `LEAVE NOW. ${workoutLabel.toUpperCase()}.`,
+      'LEAVE NOW.',
       withQuote(
-        'Gym opens in 10 minutes. Every rep you do now, your competition is sleeping through.',
+        'Every rep you do now, your competition is sleeping through. 10 minutes — out the door.',
         5
       ),
       '/workout'
     )
   }
 
-  // ── 9:00 AM — rest day ────────────────────────────────────────────────
-  if (!isWorkoutDay) {
+  // ── 9:00 AM — rest day (weekly target hit) ────────────────────────────
+  if (weekDone && !workoutDone) {
     add(
       'restday',
       todayAt(9, 0),
-      'REST DAY. RECOVER HARD.',
+      '5/5. EARNED REST DAY.',
       withQuote(
-        'Hit protein. Hit water. Muscle grows when you rest.',
+        'You hit your 5 workouts this week. Today is recovery — hit protein, hit water, let the muscle grow.',
         9
       ),
       '/'
@@ -177,7 +178,7 @@ export function buildDaySchedule(params: {
   )
 
   // ── 8:00 PM — streak warning ──────────────────────────────────────────
-  if (streak > 0 && !workoutDone && isWorkoutDay) {
+  if (streak > 0 && needsWorkout) {
     add(
       'streak_warn',
       todayAt(20, 0),
@@ -191,7 +192,7 @@ export function buildDaySchedule(params: {
   }
 
   // ── 10:30 PM — critical streak ────────────────────────────────────────
-  if (streak > 2 && !workoutDone && isWorkoutDay) {
+  if (streak > 2 && needsWorkout) {
     add(
       'streak_critical',
       todayAt(22, 30),

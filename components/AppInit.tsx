@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useStore, TARGETS } from '@/lib/store'
 import { buildDaySchedule, requestNotificationPermission } from '@/lib/notifications'
-import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 
@@ -44,21 +43,32 @@ export default function AppInit() {
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function buildSchedule() {
-    const today   = new Date().toISOString().split('T')[0]
-    const dayLog  = dayLogs[today]
-    const workout = dayLog?.selectedWorkoutId ? getWorkoutById(dayLog.selectedWorkoutId) : REST_WORKOUT
+    const now   = new Date()
+    const today = now.toISOString().split('T')[0]
+    const dayLog = dayLogs[today]
     const totalCal = dayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
 
+    // Count workouts completed Mon–Sun of the current week
+    const dow = now.getDay()
+    const diffToMon = dow === 0 ? -6 : 1 - dow
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() + diffToMon)
+    weekStart.setHours(0, 0, 0, 0)
+    const weekWorkoutsCompleted = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart)
+      d.setDate(weekStart.getDate() + i)
+      return d.toISOString().split('T')[0]
+    }).filter(dk => dk <= today && dayLogs[dk]?.workoutDone).length
+
     return buildDaySchedule({
-      streak:       stats.streak,
-      waterMl:      dayLog?.waterMl ?? 0,
-      waterTarget:  TARGETS.waterMl,
-      workoutDone:  dayLog?.workoutDone ?? false,
-      isWorkoutDay: workout.exercises.length > 0,
-      workoutLabel: workout.label,
-      mealCount:    dayLog?.meals.length ?? 0,
+      streak:               stats.streak,
+      waterMl:              dayLog?.waterMl ?? 0,
+      waterTarget:          TARGETS.waterMl,
+      workoutDone:          dayLog?.workoutDone ?? false,
+      weekWorkoutsCompleted,
+      mealCount:            dayLog?.meals.length ?? 0,
       totalCal,
-      calTarget:    TARGETS.calories,
+      calTarget:            TARGETS.calories,
     })
   }
 
