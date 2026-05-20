@@ -615,9 +615,9 @@ export default function NutritionPage() {
 
       {/* ── Delete confirmation (centered) ── */}
       {loggedMealDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm overscroll-none"
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overscroll-none"
           onClick={() => setLoggedMealDelete(null)}>
-          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-3rem)] max-w-sm max-h-[85dvh] overflow-y-auto bg-[#111116] border border-[#2C2C38] rounded-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
               <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-2">DELETE MEAL</div>
@@ -668,9 +668,9 @@ export default function NutritionPage() {
         }
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm overscroll-none"
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overscroll-none"
             onClick={() => setLoggedMealEdit(null)}>
-            <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-sm max-h-[85dvh] overflow-y-auto bg-[#111116] border border-[#2C2C38] rounded-2xl"
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}
