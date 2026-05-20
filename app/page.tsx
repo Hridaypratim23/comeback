@@ -100,7 +100,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, getOrCreateToday, setSteps, toggleHabit, setFastingHours } = useStore()
+  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, toggleHabit, setFastingHours } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
@@ -112,6 +112,7 @@ export default function HomePage() {
   const [quoteVisible, setQuoteVisible] = useState(true)
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
+  const [tasksOpen, setTasksOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -215,6 +216,23 @@ export default function HomePage() {
     }
   }
 
+  // ── Pending tasks for bell ────────────────────────────────────────────────
+  const isMonday = now.getDay() === 1
+  const lastWeighIn = bodyHistory.length > 0 ? bodyHistory[bodyHistory.length - 1] : null
+  const daysSinceWeighIn = lastWeighIn
+    ? (now.getTime() - new Date(lastWeighIn.date).getTime()) / (1000 * 60 * 60 * 24)
+    : Infinity
+  const pendingTasks: { label: string; sub: string }[] = []
+  if (isMonday && daysSinceWeighIn > 0.5)
+    pendingTasks.push({ label: 'LOG MONDAY WEIGHT', sub: 'Go to GAINS → Weight Tracker' })
+  if (!isMonday && daysSinceWeighIn > 8)
+    pendingTasks.push({ label: 'WEIGH-IN OVERDUE', sub: `Last logged ${Math.floor(daysSinceWeighIn)} days ago` })
+  if (currentHour >= 12 && (todayLog?.meals.length ?? 0) === 0)
+    pendingTasks.push({ label: 'NO MEALS LOGGED TODAY', sub: 'Track your nutrition' })
+  if (isWorkoutDay && !workoutDone && currentHour >= 15)
+    pendingTasks.push({ label: 'WORKOUT NOT DONE', sub: workout.label })
+  const pendingCount = pendingTasks.length
+
   const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
   const dayStr  = DAY_LABELS[now.getDay()]
 
@@ -306,19 +324,50 @@ export default function HomePage() {
         )}
 
         {/* ── Header ── */}
-        <div>
-          <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
-          <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
-          <p className="text-[11px] font-black tracking-widest text-[#686870] mt-1.5 flex items-center gap-1.5 flex-wrap">
-            <Flame size={11} className="text-[#FF5500] inline-block flex-shrink-0" />
-            <span className="text-[#EDEDF0]">{stats.streak}</span>
-            <span>STREAK</span>
-            <span className="text-[#1E1E26] mx-0.5">·</span>
-            <Trophy size={11} className="text-[#D4A017] inline-block flex-shrink-0" />
-            <span className="text-[#EDEDF0]">{stats.workoutsCompleted}</span>
-            <span>WORKOUTS</span>
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
+            <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
+            <p className="text-[11px] font-bold italic text-[#686870] mt-1.5 tracking-wide">
+              Achieve your prime again
+            </p>
+          </div>
+          <button onClick={() => setTasksOpen(o => !o)}
+            className="relative mt-2 w-9 h-9 flex items-center justify-center rounded-full bg-[#111116] border border-[#1E1E26] cursor-pointer btn-press">
+            <Bell size={16} className={pendingCount > 0 ? 'text-[#D4A017]' : 'text-[#686870]'} />
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF2800] rounded-full text-[8px] font-black text-white flex items-center justify-center leading-none">
+                {pendingCount}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* ── Tasks Panel ── */}
+        {tasksOpen && (
+          <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1E1E26]">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">
+                {pendingCount > 0 ? `${pendingCount} TASK${pendingCount > 1 ? 'S' : ''} PENDING` : 'ALL CAUGHT UP'}
+              </span>
+            </div>
+            {pendingCount === 0 ? (
+              <div className="px-4 py-4 text-[11px] font-black text-[#1DB954] tracking-widest">✓ NOTHING OUTSTANDING</div>
+            ) : (
+              <div className="divide-y divide-[#1E1E26]">
+                {pendingTasks.map((t, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FF2800] flex-shrink-0" />
+                    <div>
+                      <div className="text-[11px] font-black text-[#EDEDF0] tracking-wider">{t.label}</div>
+                      <div className="text-[9px] text-[#686870] mt-0.5">{t.sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Quote Block ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-5 cursor-pointer btn-press" onClick={advanceQuote}>
