@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import NavBar from '@/components/NavBar'
 import AppInit from '@/components/AppInit'
+import PageTransition from '@/components/PageTransition'
 
 export const viewport: Viewport = {
   themeColor: '#FF2800',
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#070709] text-[#EDEDF0]">
         <AppInit />
         <main className="max-w-lg mx-auto pb-20 min-h-dvh">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
         <NavBar />
       </body>

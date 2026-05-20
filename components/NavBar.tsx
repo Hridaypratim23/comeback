@@ -5,39 +5,64 @@ import { usePathname } from 'next/navigation'
 import { Home, Dumbbell, Utensils, Droplets, TrendingUp } from 'lucide-react'
 
 const NAV = [
-  { href: '/', label: 'HOME', Icon: Home },
-  { href: '/workout', label: 'LIFT', Icon: Dumbbell },
-  { href: '/nutrition', label: 'FUEL', Icon: Utensils },
-  { href: '/hydration', label: 'H₂O', Icon: Droplets },
-  { href: '/progress', label: 'GAINS', Icon: TrendingUp },
+  { href: '/',          label: 'HOME',  Icon: Home },
+  { href: '/workout',   label: 'LIFT',  Icon: Dumbbell },
+  { href: '/nutrition', label: 'FUEL',  Icon: Utensils },
+  { href: '/hydration', label: 'H₂O',  Icon: Droplets },
+  { href: '/progress',  label: 'GAINS', Icon: TrendingUp },
 ]
 
 export default function NavBar() {
   const path = usePathname()
+  const activeIdx = NAV.findIndex(({ href }) =>
+    href === '/' ? path === '/' : path.startsWith(href)
+  )
+  const idx = Math.max(0, activeIdx)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0D10] border-t border-[#1E1E26]"
-         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
-      <div className="flex items-stretch max-w-lg mx-auto">
-        {NAV.map(({ href, label, Icon }) => {
-          const active = href === '/' ? path === '/' : path.startsWith(href)
-          return (
-            <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all duration-150 cursor-pointer
-                ${active
-                  ? 'text-[#FF2800]'
-                  : 'text-[#686870] hover:text-[#EDEDF0]'
-                }`}>
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
-              <span className={`text-[9px] font-black tracking-widest ${active ? 'text-[#FF2800]' : ''}`}>
-                {label}
-              </span>
-              {active && (
-                <span className="absolute bottom-0 w-6 h-0.5 bg-[#FF2800] rounded-t-full" />
-              )}
-            </Link>
-          )
-        })}
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0E]/95 backdrop-blur-2xl border-t border-white/[0.06]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 10px)' }}
+    >
+      <div className="max-w-lg mx-auto px-2 pt-2 pb-1">
+        <div className="relative flex items-stretch">
+
+          {/* Sliding pill — spring cubic-bezier gives the bounce */}
+          <div
+            className="absolute inset-y-0 rounded-2xl bg-[#FF2800]"
+            style={{
+              width: `${100 / NAV.length}%`,
+              left: `${(idx / NAV.length) * 100}%`,
+              transition: 'left 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              boxShadow: '0 0 22px rgba(255,40,0,0.35), 0 2px 8px rgba(255,40,0,0.25)',
+            }}
+          />
+
+          {NAV.map(({ href, label, Icon }, i) => {
+            const active = i === idx && activeIdx >= 0
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] py-3 relative z-10"
+              >
+                <Icon
+                  size={19}
+                  strokeWidth={active ? 2.5 : 1.7}
+                  className="transition-all duration-200"
+                  style={{ color: active ? '#fff' : '#4A4A5A' }}
+                />
+                <span
+                  className="text-[8px] font-black tracking-[0.14em] transition-all duration-200"
+                  style={{ color: active ? '#fff' : '#4A4A5A' }}
+                >
+                  {label}
+                </span>
+              </Link>
+            )
+          })}
+
+        </div>
       </div>
     </nav>
   )
