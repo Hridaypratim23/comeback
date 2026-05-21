@@ -106,11 +106,18 @@ export default function NutritionPage() {
     return names
   }, [dayLogs])
 
-  const yesterdayMeals = useMemo(() => {
-    const y = new Date()
-    y.setDate(y.getDate() - 1)
-    const yk = y.toISOString().split('T')[0]
-    return dayLogs[yk]?.meals ?? []
+  const allHistoricalMeals = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const seen = new Map<string, { meal: typeof dayLogs[string]['meals'][0]; date: string }>()
+    const sortedDates = Object.keys(dayLogs).sort().reverse()
+    for (const dk of sortedDates) {
+      if (dk === today) continue
+      for (const m of dayLogs[dk]?.meals ?? []) {
+        const key = m.name.replace(/\s*\(.*?\)\s*$/, '').trim().toLowerCase()
+        if (!seen.has(key)) seen.set(key, { meal: m, date: dk })
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => b.date.localeCompare(a.date))
   }, [dayLogs])
 
   if (!mounted) return null
@@ -137,6 +144,7 @@ export default function NutritionPage() {
       const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
       return ar !== br ? ar - br : a.name.localeCompare(b.name)
     })
+  const filteredHistory = allHistoricalMeals.filter(({ meal: m }) => m.name.toLowerCase().includes(search.toLowerCase()))
   const filteredCustom = customMeals
     .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
@@ -356,15 +364,15 @@ export default function NutritionPage() {
         </div>
       )}
 
-      {/* MY MEALS tab */}
-      {tab === 'my-meals' && yesterdayMeals.length > 0 && !search && (
+      {/* MY MEALS tab — all historical meals */}
+      {tab === 'my-meals' && filteredHistory.length > 0 && (
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
           <div className="px-4 py-2.5 border-b border-[#1E1E26] flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">REPEAT YESTERDAY</span>
-            <span className="text-[8px] text-[#2C2C38] font-bold tracking-widest">{yesterdayMeals.length} MEALS</span>
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MEAL HISTORY</span>
+            <span className="text-[8px] text-[#2C2C38] font-bold tracking-widest">{filteredHistory.length} MEALS</span>
           </div>
           <div className="divide-y divide-[#1E1E26]">
-            {yesterdayMeals.slice(0, 5).map(m => (
+            {filteredHistory.map(({ meal: m }) => (
               <button key={m.id}
                 onClick={() => {
                   addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, fibre: m.fibre ?? 0 })
