@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
 import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
@@ -614,10 +615,12 @@ export default function NutritionPage() {
       })()}
 
       {/* ── Delete confirmation (centered) ── */}
-      {loggedMealDelete && (
+      {loggedMealDelete && createPortal(
         <>
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setLoggedMealDelete(null)} />
-        <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-3rem)] max-w-sm max-h-[85vh] overflow-y-auto bg-[#111116] border border-[#2C2C38] rounded-2xl"
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setLoggedMealDelete(null)} />
+          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 3rem)', maxWidth: '24rem', maxHeight: '85vh', overflowY: 'auto' }}
+            className="bg-[#111116] border border-[#2C2C38] rounded-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
               <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-2">DELETE MEAL</div>
@@ -640,7 +643,8 @@ export default function NutritionPage() {
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* ── Edit logged meal (centered) ── */}
@@ -667,10 +671,12 @@ export default function NutritionPage() {
           return whole === 0 ? `${fracStr}×` : `${whole}${fracStr}×`
         }
 
-        return (
+        return createPortal(
           <>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setLoggedMealEdit(null)} />
-          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-sm max-h-[85vh] overflow-y-auto bg-[#111116] border border-[#2C2C38] rounded-2xl"
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setLoggedMealEdit(null)} />
+          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 2rem)', maxWidth: '24rem', maxHeight: '85vh', overflowY: 'auto' }}
+              className="bg-[#111116] border border-[#2C2C38] rounded-2xl"
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}
@@ -765,7 +771,8 @@ export default function NutritionPage() {
                 )}
               </div>
             </div>
-          </>
+          </>,
+          document.body
         )
       })()}
 
