@@ -320,11 +320,7 @@ export default function NutritionPage() {
   const handleBarcodeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file) return
-    if (!('BarcodeDetector' in window)) {
-      alert('Barcode scanning not supported on this browser — enter the barcode number manually.')
-      return
-    }
+    if (!file || !('BarcodeDetector' in window)) return
     setFoodLoading(true)
     setFoodNotFound(false)
     try {
@@ -339,11 +335,11 @@ export default function NutritionPage() {
         await lookupBarcode(codes[0].rawValue)
       } else {
         setFoodLoading(false)
-        alert('No barcode detected — try a clearer, well-lit photo.')
+        setFoodNotFound(true)
       }
     } catch {
       setFoodLoading(false)
-      alert('Scan failed. Enter the barcode number manually.')
+      setFoodNotFound(true)
     }
   }
 
@@ -672,13 +668,15 @@ export default function NutritionPage() {
                 </button>
               </div>
 
-              {/* Camera scan — full-width secondary button */}
-              <button
-                onClick={() => barcodeFileRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all border border-[#2C2C38]">
-                <Camera size={12} />
-                SCAN BARCODE WITH CAMERA
-              </button>
+              {/* Camera scan — only shown when BarcodeDetector is supported (Chrome/Android) */}
+              {'BarcodeDetector' in window && (
+                <button
+                  onClick={() => barcodeFileRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all border border-[#2C2C38]">
+                  <Camera size={12} />
+                  SCAN BARCODE WITH CAMERA
+                </button>
+              )}
 
               {foodLoading && (
                 <div className="text-center py-3 text-[10px] text-[#686870] font-black tracking-widest">SEARCHING...</div>
