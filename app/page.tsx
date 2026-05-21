@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
 import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -879,9 +880,9 @@ export default function HomePage() {
         BUILD 20260520-v6
       </p>
 
-      {/* ── Celebration overlay ── */}
-      {celebrating && (
-        <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+      {/* ── Celebration overlay (portalled to escape PageTransition transform) ── */}
+      {celebrating && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {[...Array(10)].map((_, i) => (
             <div key={i} className="confetti-dot absolute w-2.5 h-2.5 rounded-full"
               style={{
@@ -897,14 +898,17 @@ export default function HomePage() {
             <div className="text-2xl font-black text-[#1DB954] tracking-wider">RINGS CLOSED</div>
             <div className="text-sm font-bold tracking-widest mt-1" style={{ color: '#1DB95488' }}>PERFECT DAY</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ── Uncheck habit confirmation ── */}
-      {unCheckPending && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setUnCheckPending(null)}>
-          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+      {/* ── Uncheck habit confirmation (portalled to escape PageTransition transform) ── */}
+      {unCheckPending && createPortal(
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setUnCheckPending(null)} />
+          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 3rem)', maxWidth: '24rem', maxHeight: '85vh', overflowY: 'auto' }}
+            className="bg-[#111116] border border-[#2C2C38] rounded-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
               <div className="text-[10px] font-black tracking-[0.3em] text-[#D4A017] mb-2">UNCHECK HABIT?</div>
@@ -931,7 +935,8 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
 
     </div>
