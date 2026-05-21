@@ -679,8 +679,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
-              <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
-                <Link href="/hydration" className="block">
+              <Link href="/hydration" className="cursor-pointer">
+                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Droplets size={14} className="text-[#2196F3]" />
                     <span className="text-[9px] font-black tracking-widest text-[#686870]">WATER</span>
@@ -690,13 +690,8 @@ export default function HomePage() {
                   <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${waterPct}%`, background: 'linear-gradient(90deg, #1470CC, #2196F3)' }} />
                   </div>
-                </Link>
-                <button
-                  onClick={() => { addWater(250); haptic() }}
-                  className="w-full mt-2 py-1 rounded-lg bg-[#2196F322] text-[#2196F3] text-[9px] font-black tracking-widest cursor-pointer active:scale-95 transition-all border border-[#2196F322]">
-                  +250ml
-                </button>
-              </div>
+                </div>
+              </Link>
               <Link href="/progress" className="cursor-pointer">
                 <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
