@@ -242,6 +242,26 @@ export default function NutritionPage() {
     haptic()
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parseNutriments = (n: Record<string, any>): Omit<FoodResult, 'name'> => {
+    const get = (...keys: string[]) => {
+      for (const k of keys) {
+        const v = parseFloat(n[k])
+        if (!isNaN(v) && v >= 0) return Math.round(v)
+      }
+      return 0
+    }
+    const kcal = get('energy-kcal_100g', 'energy-kcal')
+    const calories = kcal > 0 ? kcal : Math.round(get('energy_100g', 'energy') / 4.184)
+    return {
+      calories,
+      protein: get('proteins_100g', 'protein_100g', 'proteins'),
+      carbs:   get('carbohydrates_100g', 'carbohydrate_100g', 'carbohydrates'),
+      fat:     get('fat_100g', 'fat'),
+      fibre:   get('fiber_100g', 'fibers_100g', 'fiber-total_100g', 'fiber', 'fibers'),
+    }
+  }
+
   const searchFood = async () => {
     if (!foodQuery.trim()) return
     setFoodLoading(true)
@@ -249,21 +269,16 @@ export default function NutritionPage() {
     setFoodResults([])
     try {
       const res = await fetch(
-        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(foodQuery)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,nutriments`
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(foodQuery)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,nutriments`
       )
       const data = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const results: FoodResult[] = (data.products ?? [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((p: any) => p.product_name && p.nutriments?.['energy-kcal_100g'] != null)
+        .filter((p: any) => p.product_name && p.nutriments)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((p: any) => ({
-          name:     String(p.product_name),
-          calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
-          protein:  Math.round(p.nutriments['proteins_100g']     || 0),
-          carbs:    Math.round(p.nutriments['carbohydrates_100g']|| 0),
-          fat:      Math.round(p.nutriments['fat_100g']          || 0),
-          fibre:    Math.round(p.nutriments['fiber_100g']        || p.nutriments['fibers_100g'] || 0),
-        }))
+        .map((p: any) => ({ name: String(p.product_name), ...parseNutriments(p.nutriments) }))
+        .filter((r: FoodResult) => r.calories > 0)
       setFoodResults(results)
       if (results.length === 0) setFoodNotFound(true)
     } catch {
@@ -299,14 +314,9 @@ export default function NutritionPage() {
       )
       const data = await res.json()
       if (data.status === 1 && data.product?.product_name) {
-        const n = data.product.nutriments ?? {}
         applyFoodResult({
-          name:     String(data.product.product_name),
-          calories: Math.round(n['energy-kcal_100g'] || 0),
-          protein:  Math.round(n['proteins_100g']     || 0),
-          carbs:    Math.round(n['carbohydrates_100g']|| 0),
-          fat:      Math.round(n['fat_100g']          || 0),
-          fibre:    Math.round(n['fiber_100g']        || n['fibers_100g'] || 0),
+          name: String(data.product.product_name),
+          ...parseNutriments(data.product.nutriments ?? {}),
         })
       } else {
         setFoodNotFound(true)
