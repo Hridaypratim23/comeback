@@ -4,11 +4,23 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
-import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
+import { Plus, X, Search, Bookmark, Trash2, ChevronDown, ChevronUp, Edit3, Camera } from 'lucide-react'
 import { getUnitConfig, formatQty, scaleRatio } from '@/lib/unitConfig'
 
-const TDEE = 2400
-const GOAL_DEFICIT = 457
+interface FoodResult {
+  name: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  fibre: number
+}
+
+function calcTDEE(weight: number, bodyFat: number): number {
+  const lbm = weight * (1 - bodyFat / 100)
+  const bmr = 370 + 21.6 * lbm
+  return Math.round(bmr * 1.55)
+}
 
 type Tab = 'my-meals' | 'quick-add' | 'create'
 
@@ -40,13 +52,21 @@ function MacroRing({ val, max, color, label, unit = 'g' }: { val: number; max: n
 const emptyForm = { name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' }
 
 export default function NutritionPage() {
-  const { dayLogs, addMeal, removeMeal, updateMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
+  const { dayLogs, stats, bodyHistory, addMeal, removeMeal, updateMeal, getOrCreateToday, customMeals, saveCustomMeal, deleteCustomMeal } = useStore()
   const [mounted, setMounted] = useState(false)
   const [tab, setTab] = useState<Tab>('my-meals')
   const [search, setSearch] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [saved, setSaved] = useState(false)
   const [mealsOpen, setMealsOpen] = useState(true)
+
+  // food database lookup
+  const [showFoodLookup, setShowFoodLookup] = useState(false)
+  const [foodQuery, setFoodQuery] = useState('')
+  const [barcodeInput, setBarcodeInput] = useState('')
+  const [foodResults, setFoodResults] = useState<FoodResult[]>([])
+  const [foodLoading, setFoodLoading] = useState(false)
+  const [foodNotFound, setFoodNotFound] = useState(false)
 
   // serving size dialog after CREATE
   const [showServingDialog, setShowServingDialog] = useState(false)
@@ -123,6 +143,12 @@ export default function NutritionPage() {
   if (!mounted) return null
 
   const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
+
+  const latestBody = bodyHistory[bodyHistory.length - 1]
+  const currentWeight = latestBody?.weight ?? stats.weight ?? 72
+  const currentBF = latestBody?.bodyFat ?? stats.bodyFat ?? 22
+  const TDEE = calcTDEE(currentWeight, currentBF)
+  const GOAL_DEFICIT = Math.max(TDEE - TARGETS.calories, 0)
 
   const today = new Date().toISOString().split('T')[0]
   const dayLog = dayLogs[today]
@@ -214,6 +240,110 @@ export default function NutritionPage() {
     haptic()
   }
 
+  const searchFood = async () => {
+    if (!foodQuery.trim()) return
+    setFoodLoading(true)
+    setFoodNotFound(false)
+    setFoodResults([])
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(foodQuery)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,nutriments`
+      )
+      const data = await res.json()
+      const results: FoodResult[] = (data.products ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((p: any) => p.product_name && p.nutriments?.['energy-kcal_100g'] != null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((p: any) => ({
+          name:     String(p.product_name),
+          calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
+          protein:  Math.round(p.nutriments['proteins_100g']     || 0),
+          carbs:    Math.round(p.nutriments['carbohydrates_100g']|| 0),
+          fat:      Math.round(p.nutriments['fat_100g']          || 0),
+          fibre:    Math.round(p.nutriments['fiber_100g']        || p.nutriments['fibers_100g'] || 0),
+        }))
+      setFoodResults(results)
+      if (results.length === 0) setFoodNotFound(true)
+    } catch {
+      setFoodNotFound(true)
+    }
+    setFoodLoading(false)
+  }
+
+  const applyFoodResult = (r: FoodResult) => {
+    setForm({
+      name:     r.name,
+      calories: String(r.calories),
+      protein:  String(r.protein),
+      carbs:    String(r.carbs),
+      fat:      String(r.fat),
+      fibre:    String(r.fibre),
+    })
+    setFoodResults([])
+    setFoodQuery('')
+    setBarcodeInput('')
+    setFoodNotFound(false)
+    setShowFoodLookup(false)
+  }
+
+  const lookupBarcode = async (barcode: string) => {
+    const code = barcode.trim()
+    if (!code) return
+    setFoodLoading(true)
+    setFoodNotFound(false)
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${code}.json?fields=product_name,nutriments`
+      )
+      const data = await res.json()
+      if (data.status === 1 && data.product?.product_name) {
+        const n = data.product.nutriments ?? {}
+        applyFoodResult({
+          name:     String(data.product.product_name),
+          calories: Math.round(n['energy-kcal_100g'] || 0),
+          protein:  Math.round(n['proteins_100g']     || 0),
+          carbs:    Math.round(n['carbohydrates_100g']|| 0),
+          fat:      Math.round(n['fat_100g']          || 0),
+          fibre:    Math.round(n['fiber_100g']        || n['fibers_100g'] || 0),
+        })
+      } else {
+        setFoodNotFound(true)
+      }
+    } catch {
+      setFoodNotFound(true)
+    }
+    setFoodLoading(false)
+  }
+
+  const scanBarcode = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.setAttribute('capture', 'environment')
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      if (!('BarcodeDetector' in window)) {
+        alert('Barcode scanning not supported on this browser — enter the number manually.')
+        return
+      }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bd = new (window as any).BarcodeDetector()
+        const img = await createImageBitmap(file)
+        const codes = await bd.detect(img)
+        if (codes.length > 0) {
+          lookupBarcode(codes[0].rawValue)
+        } else {
+          alert('No barcode detected. Try a clearer photo or enter the number manually.')
+        }
+      } catch {
+        alert('Scan failed. Enter the barcode number manually.')
+      }
+    }
+    input.click()
+  }
+
   const TABS: { key: Tab; label: string }[] = [
     { key: 'my-meals',  label: 'MY MEALS' },
     { key: 'quick-add', label: 'QUICK ADD' },
@@ -250,15 +380,20 @@ export default function NutritionPage() {
             <span className="text-[10px] font-black text-[#686870]">{TDEE} kcal</span>
           </div>
           <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[#2C2C38]">{currentWeight}kg · {currentBF}% BF · Katch-McArdle</span>
+          </div>
+          <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-[#686870]">{isDeficit ? 'DEFICIT' : 'SURPLUS'}</span>
             <span className="text-[11px] font-black" style={{ color: isDeficit ? '#1DB954' : '#FF5500' }}>
               {isDeficit ? '-' : '+'}{Math.abs(difference)} kcal
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[#686870]">GOAL</span>
-            <span className="text-[10px] font-black text-[#2196F3]">-{GOAL_DEFICIT} kcal/day → 15% BF</span>
-          </div>
+          {GOAL_DEFICIT > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#686870]">TARGET DEFICIT</span>
+              <span className="text-[10px] font-black text-[#2196F3]">-{GOAL_DEFICIT} kcal/day</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -475,7 +610,89 @@ export default function NutritionPage() {
       {/* CREATE tab */}
       {tab === 'create' && (
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">CREATE CUSTOM MEAL</div>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">CREATE CUSTOM MEAL</div>
+            <button
+              onClick={() => { setShowFoodLookup(v => !v); setFoodResults([]); setFoodNotFound(false) }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all cursor-pointer border ${showFoodLookup ? 'bg-[#2196F322] text-[#2196F3] border-[#2196F344]' : 'bg-[#1E1E26] text-[#686870] border-transparent'}`}>
+              <Search size={11} />
+              LOOKUP DB
+            </button>
+          </div>
+
+          {showFoodLookup && (
+            <div className="bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-3 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search food name..."
+                  value={foodQuery}
+                  onChange={e => setFoodQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchFood()}
+                  className="flex-1 bg-[#111116] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                />
+                <button
+                  onClick={searchFood}
+                  disabled={foodLoading || !foodQuery.trim()}
+                  className="px-3 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
+                  {foodLoading ? '···' : 'SEARCH'}
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Barcode number..."
+                  value={barcodeInput}
+                  onChange={e => setBarcodeInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && lookupBarcode(barcodeInput)}
+                  className="flex-1 bg-[#111116] border border-[#1E1E26] focus:border-[#D4A017] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                />
+                <button
+                  onClick={scanBarcode}
+                  title="Scan barcode with camera"
+                  className="px-3 py-2 rounded-lg bg-[#1E1E26] text-[#D4A017] cursor-pointer active:scale-95 transition-all border border-[#D4A01733]">
+                  <Camera size={14} />
+                </button>
+                <button
+                  onClick={() => lookupBarcode(barcodeInput)}
+                  disabled={foodLoading || !barcodeInput.trim()}
+                  className="px-3 py-2 rounded-lg bg-[#D4A017] text-black text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
+                  {foodLoading ? '···' : 'LOOKUP'}
+                </button>
+              </div>
+
+              {foodLoading && (
+                <div className="text-center py-3 text-[10px] text-[#686870] font-black tracking-widest">SEARCHING...</div>
+              )}
+              {foodNotFound && !foodLoading && (
+                <div className="text-center py-3 text-[10px] text-[#686870]">No results. Try a different term or enter values manually.</div>
+              )}
+              {foodResults.length > 0 && !foodLoading && (
+                <div className="rounded-xl border border-[#1E1E26] overflow-hidden max-h-56 overflow-y-auto">
+                  <div className="px-3 py-1.5 bg-[#111116] border-b border-[#1E1E26]">
+                    <span className="text-[8px] font-black tracking-widest text-[#2C2C38]">VALUES PER 100G — TAP TO PREFILL</span>
+                  </div>
+                  {foodResults.map((r, i) => (
+                    <button key={i} onClick={() => { applyFoodResult(r); haptic() }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#17171D] active:bg-[#1E1E26] transition-colors cursor-pointer text-left bg-[#0D0D10] border-b border-[#1E1E26] last:border-0">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="text-sm font-bold text-[#EDEDF0] truncate leading-snug">{r.name}</div>
+                        <div className="text-[10px] text-[#686870] mt-0.5">
+                          {[r.protein > 0 ? `${r.protein}g P` : '', r.carbs > 0 ? `${r.carbs}g C` : '', r.fat > 0 ? `${r.fat}g F` : ''].filter(Boolean).join(' · ')}
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-1 flex-shrink-0">
+                        <span className="text-sm font-black text-[#FF5500]">{r.calories}</span>
+                        <span className="text-[9px] text-[#686870]">cal</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <input type="text" placeholder="Meal name (required)"
             value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
