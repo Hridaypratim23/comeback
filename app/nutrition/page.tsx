@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
@@ -139,6 +139,8 @@ export default function NutritionPage() {
     }
     return Array.from(seen.values()).sort((a, b) => b.date.localeCompare(a.date))
   }, [dayLogs])
+
+  const barcodeFileRef = useRef<HTMLInputElement>(null)
 
   if (!mounted) return null
 
@@ -315,33 +317,34 @@ export default function NutritionPage() {
     setFoodLoading(false)
   }
 
-  const scanBarcode = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.setAttribute('capture', 'environment')
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-      if (!('BarcodeDetector' in window)) {
-        alert('Barcode scanning not supported on this browser — enter the number manually.')
-        return
-      }
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const bd = new (window as any).BarcodeDetector()
-        const img = await createImageBitmap(file)
-        const codes = await bd.detect(img)
-        if (codes.length > 0) {
-          lookupBarcode(codes[0].rawValue)
-        } else {
-          alert('No barcode detected. Try a clearer photo or enter the number manually.')
-        }
-      } catch {
-        alert('Scan failed. Enter the barcode number manually.')
-      }
+  const handleBarcodeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!('BarcodeDetector' in window)) {
+      alert('Barcode scanning not supported on this browser — enter the barcode number manually.')
+      return
     }
-    input.click()
+    setFoodLoading(true)
+    setFoodNotFound(false)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bd = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+      })
+      const img = await createImageBitmap(file)
+      const codes = await bd.detect(img)
+      if (codes.length > 0) {
+        setBarcodeInput(codes[0].rawValue)
+        await lookupBarcode(codes[0].rawValue)
+      } else {
+        setFoodLoading(false)
+        alert('No barcode detected — try a clearer, well-lit photo.')
+      }
+    } catch {
+      setFoodLoading(false)
+      alert('Scan failed. Enter the barcode number manually.')
+    }
   }
 
   const TABS: { key: Tab; label: string }[] = [
@@ -622,6 +625,17 @@ export default function NutritionPage() {
 
           {showFoodLookup && (
             <div className="bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-3 space-y-2">
+              {/* Hidden real file input — triggers camera reliably on mobile */}
+              <input
+                ref={barcodeFileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={handleBarcodeCapture}
+              />
+
+              {/* Name search */}
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -629,16 +643,17 @@ export default function NutritionPage() {
                   value={foodQuery}
                   onChange={e => setFoodQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && searchFood()}
-                  className="flex-1 bg-[#111116] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                  className="flex-1 min-w-0 bg-[#111116] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
                 />
                 <button
                   onClick={searchFood}
                   disabled={foodLoading || !foodQuery.trim()}
-                  className="px-3 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
+                  className="shrink-0 px-3 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
                   {foodLoading ? '···' : 'SEARCH'}
                 </button>
               </div>
 
+              {/* Barcode lookup */}
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -647,21 +662,23 @@ export default function NutritionPage() {
                   value={barcodeInput}
                   onChange={e => setBarcodeInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && lookupBarcode(barcodeInput)}
-                  className="flex-1 bg-[#111116] border border-[#1E1E26] focus:border-[#D4A017] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                  className="flex-1 min-w-0 bg-[#111116] border border-[#1E1E26] focus:border-[#D4A017] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
                 />
-                <button
-                  onClick={scanBarcode}
-                  title="Scan barcode with camera"
-                  className="px-3 py-2 rounded-lg bg-[#1E1E26] text-[#D4A017] cursor-pointer active:scale-95 transition-all border border-[#D4A01733]">
-                  <Camera size={14} />
-                </button>
                 <button
                   onClick={() => lookupBarcode(barcodeInput)}
                   disabled={foodLoading || !barcodeInput.trim()}
-                  className="px-3 py-2 rounded-lg bg-[#D4A017] text-black text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
+                  className="shrink-0 px-3 py-2 rounded-lg bg-[#D4A017] text-black text-[10px] font-black tracking-wider cursor-pointer disabled:opacity-40 active:scale-95 transition-all">
                   {foodLoading ? '···' : 'LOOKUP'}
                 </button>
               </div>
+
+              {/* Camera scan — full-width secondary button */}
+              <button
+                onClick={() => barcodeFileRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all border border-[#2C2C38]">
+                <Camera size={12} />
+                SCAN BARCODE WITH CAMERA
+              </button>
 
               {foodLoading && (
                 <div className="text-center py-3 text-[10px] text-[#686870] font-black tracking-widest">SEARCHING...</div>
@@ -670,8 +687,8 @@ export default function NutritionPage() {
                 <div className="text-center py-3 text-[10px] text-[#686870]">No results. Try a different term or enter values manually.</div>
               )}
               {foodResults.length > 0 && !foodLoading && (
-                <div className="rounded-xl border border-[#1E1E26] overflow-hidden max-h-56 overflow-y-auto">
-                  <div className="px-3 py-1.5 bg-[#111116] border-b border-[#1E1E26]">
+                <div className="rounded-xl border border-[#1E1E26] max-h-56 overflow-y-auto">
+                  <div className="sticky top-0 px-3 py-1.5 bg-[#111116] border-b border-[#1E1E26]">
                     <span className="text-[8px] font-black tracking-widest text-[#2C2C38]">VALUES PER 100G — TAP TO PREFILL</span>
                   </div>
                   {foodResults.map((r, i) => (
