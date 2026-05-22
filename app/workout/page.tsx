@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from '@/lib/store'
 import { WORKOUT_PLANS, REST_WORKOUT, getWorkoutById } from '@/constants/workouts'
 import { getQuoteOfHour } from '@/constants/quotes'
@@ -13,6 +13,9 @@ export default function WorkoutPage() {
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showFinisher, setShowFinisher] = useState(false)
+  const timerRef = useRef(0)
+  timerRef.current = timer
+  const startedAtRef = useRef<number | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -21,8 +24,19 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     if (!timerRunning) return
-    const id = setInterval(() => setTimer(t => t + 1), 1000)
-    return () => clearInterval(id)
+    // Anchor the wall-clock start so paused time is excluded
+    startedAtRef.current = Date.now() - timerRef.current * 1000
+    const tick = () => {
+      if (startedAtRef.current !== null)
+        setTimer(Math.floor((Date.now() - startedAtRef.current) / 1000))
+    }
+    const id = setInterval(tick, 1000)
+    // Snap display immediately when screen unlocks — zero background work
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', tick)
+    }
   }, [timerRunning])
 
   if (!mounted) return null
