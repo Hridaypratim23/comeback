@@ -762,107 +762,113 @@ export default function NutritionPage() {
       )}
 
       {/* Serving Size Dialog — shown after CREATE */}
-      {showServingDialog && pendingMeal && (() => {
-        const cfg = getUnitConfig(pendingMeal.name)
-        const perLabel = cfg.isGrams ? '100g' : `1 ${cfg.singular}`
-        const rangeLabel = cfg.isGrams
-          ? `${cfg.min}g – ${cfg.max}g`
-          : `${cfg.min}–${cfg.max} ${cfg.plural}`
-        return (
-          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setShowServingDialog(false)}>
-            <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
-                 onClick={e => e.stopPropagation()}>
-              <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
-              <p className="text-base font-black text-[#EDEDF0]">Add serving size support?</p>
-              <p className="text-[11px] text-[#686870] leading-relaxed">
-                If yes, macros you entered will be treated as{' '}
-                <span className="text-[#FF5500] font-black">per {perLabel}</span>.
-                When logging, pick quantity ({rangeLabel}).
-              </p>
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button onClick={() => confirmServingDialog(false)}
-                  className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
-                  NO
-                </button>
-                <button onClick={() => confirmServingDialog(true)}
-                  className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
-                  YES
-                </button>
+      {showServingDialog && pendingMeal && createPortal(
+        (() => {
+          const cfg = getUnitConfig(pendingMeal.name)
+          const perLabel = cfg.isGrams ? '100g' : `1 ${cfg.singular}`
+          const rangeLabel = cfg.isGrams
+            ? `${cfg.min}g – ${cfg.max}g`
+            : `${cfg.min}–${cfg.max} ${cfg.plural}`
+          return (
+            <div className="fixed inset-0 bg-black/70 z-[200] flex items-end" onClick={() => setShowServingDialog(false)}>
+              <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-4"
+                   onClick={e => e.stopPropagation()}>
+                <div className="text-[10px] font-black tracking-widest text-[#686870]">SERVING SIZE</div>
+                <p className="text-base font-black text-[#EDEDF0]">Add serving size support?</p>
+                <p className="text-[11px] text-[#686870] leading-relaxed">
+                  If yes, macros you entered will be treated as{' '}
+                  <span className="text-[#FF5500] font-black">per {perLabel}</span>.
+                  When logging, pick quantity ({rangeLabel}).
+                </p>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button onClick={() => confirmServingDialog(false)}
+                    className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                    NO
+                  </button>
+                  <button onClick={() => confirmServingDialog(true)}
+                    className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                    YES
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })(),
+        document.body
+      )}
 
       {/* Serving Size Slider — shown when logging a servingSize meal */}
-      {servingMeal && (() => {
-        // Support legacy per-50g meals and new unit-based meals
-        const isLegacy = !servingMeal.unit && servingMeal.servingSize
-        const cfg = isLegacy ? null : getUnitConfig(servingMeal.name)
-        const min  = isLegacy ? 50  : cfg!.min
-        const max  = isLegacy ? 1000 : cfg!.max
-        const step = isLegacy ? 50  : cfg!.step
-        const ratio = isLegacy
-          ? servingQty / 50
-          : scaleRatio(servingQty, cfg!)
-        const qtyLabel = isLegacy
-          ? `${servingQty}g`
-          : formatQty(servingQty, cfg!)
-        const minLabel = isLegacy ? '50g' : formatQty(min, cfg!)
-        const maxLabel = isLegacy ? '1000g' : formatQty(max, cfg!)
+      {servingMeal && createPortal(
+        (() => {
+          // Support legacy per-50g meals and new unit-based meals
+          const isLegacy = !servingMeal.unit && servingMeal.servingSize
+          const cfg = isLegacy ? null : getUnitConfig(servingMeal.name)
+          const min  = isLegacy ? 50  : cfg!.min
+          const max  = isLegacy ? 1000 : cfg!.max
+          const step = isLegacy ? 50  : cfg!.step
+          const ratio = isLegacy
+            ? servingQty / 50
+            : scaleRatio(servingQty, cfg!)
+          const qtyLabel = isLegacy
+            ? `${servingQty}g`
+            : formatQty(servingQty, cfg!)
+          const minLabel = isLegacy ? '50g' : formatQty(min, cfg!)
+          const maxLabel = isLegacy ? '1000g' : formatQty(max, cfg!)
 
-        return (
-          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setServingMeal(null)}>
-            <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
-                 onClick={e => e.stopPropagation()}>
-              <div className="text-[10px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
-              <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
+          return (
+            <div className="fixed inset-0 bg-black/70 z-[200] flex items-end" onClick={() => setServingMeal(null)}>
+              <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-6 space-y-5"
+                   onClick={e => e.stopPropagation()}>
+                <div className="text-[10px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
+                <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
 
-              {/* Slider */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[#686870]">{minLabel}</span>
-                  <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
-                  <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                {/* Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[#686870]">{minLabel}</span>
+                    <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
+                    <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                  </div>
+                  <input
+                    type="range" min={min} max={max} step={step}
+                    value={servingQty}
+                    onChange={e => setServingQty(Number(e.target.value))}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+                  />
                 </div>
-                <input
-                  type="range" min={min} max={max} step={step}
-                  value={servingQty}
-                  onChange={e => setServingQty(Number(e.target.value))}
-                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
-                />
-              </div>
 
-              {/* Scaled macro preview */}
-              <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
-                <div className="text-2xl font-black text-[#FF5500]">
-                  {Math.round(servingMeal.calories * ratio)}
-                  <span className="text-sm text-[#686870] font-normal ml-1">cal</span>
+                {/* Scaled macro preview */}
+                <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
+                  <div className="text-2xl font-black text-[#FF5500]">
+                    {Math.round(servingMeal.calories * ratio)}
+                    <span className="text-sm text-[#686870] font-normal ml-1">cal</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-[11px] font-black mt-1">
+                    <span style={{ color: '#FF2800' }}>{Math.round(servingMeal.protein * ratio)}g P</span>
+                    <span style={{ color: '#FF5500' }}>{Math.round(servingMeal.carbs   * ratio)}g C</span>
+                    <span style={{ color: '#D4A017' }}>{Math.round(servingMeal.fat     * ratio)}g F</span>
+                    {(servingMeal.fibre ?? 0) > 0 && (
+                      <span style={{ color: '#1DB954' }}>{Math.round((servingMeal.fibre ?? 0) * ratio)}g Fi</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3 text-[11px] font-black mt-1">
-                  <span style={{ color: '#FF2800' }}>{Math.round(servingMeal.protein * ratio)}g P</span>
-                  <span style={{ color: '#FF5500' }}>{Math.round(servingMeal.carbs   * ratio)}g C</span>
-                  <span style={{ color: '#D4A017' }}>{Math.round(servingMeal.fat     * ratio)}g F</span>
-                  {(servingMeal.fibre ?? 0) > 0 && (
-                    <span style={{ color: '#1DB954' }}>{Math.round((servingMeal.fibre ?? 0) * ratio)}g Fi</span>
-                  )}
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setServingMeal(null)}
-                  className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
-                  CANCEL
-                </button>
-                <button onClick={logServingMeal}
-                  className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
-                  LOG
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setServingMeal(null)}
+                    className="py-3 rounded-lg bg-[#1E1E26] text-[#EDEDF0] text-sm font-black tracking-widest cursor-pointer btn-press">
+                    CANCEL
+                  </button>
+                  <button onClick={logServingMeal}
+                    className="py-3 rounded-lg bg-[#FF2800] text-white text-sm font-black tracking-widest cursor-pointer btn-press">
+                    LOG
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })(),
+        document.body
+      )}
 
       {/* ── Delete confirmation (centered) ── */}
       {loggedMealDelete && createPortal(
