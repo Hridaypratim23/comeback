@@ -211,8 +211,9 @@ export const useStore = create<AppState>()(
           const xp = day.xpEarned + XP.workout
           const totalXP = s.stats.totalXP + XP.workout
           const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
+          const habits = { ...day.habits, workout: true }
           return {
-            dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDone: true, xpEarned: xp } },
+            dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDone: true, xpEarned: xp, habits } },
             stats: { ...s.stats, totalXP, level, workoutsCompleted: s.stats.workoutsCompleted + 1, streak: s.stats.streak + 1 },
           }
         })
