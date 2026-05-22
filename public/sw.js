@@ -41,20 +41,15 @@ self.addEventListener('push', event => {
   let data = {}
   try { data = event.data.json() } catch { return }
 
-  // Suppress banner if the app is open and visible — badge-only in foreground
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      const appVisible = clients.some(c => c.visibilityState === 'visible')
-      if (appVisible) return
-      return self.registration.showNotification(data.title || 'COMEBACK', {
-        body:               data.body || '',
-        icon:               '/icon.png',
-        badge:              '/icon.png',
-        tag:                data.tag || 'comeback',
-        requireInteraction: true,
-        vibrate:            [300, 100, 300, 100, 300],
-        data:               data.data || { url: '/' },
-      })
+    self.registration.showNotification(data.title || 'COMEBACK', {
+      body:               data.body || '',
+      icon:               '/icon.png',
+      badge:              '/icon.png',
+      tag:                data.tag || 'comeback',
+      requireInteraction: true,
+      vibrate:            [300, 100, 300, 100, 300],
+      data:               data.data || { url: '/' },
     })
   )
 })

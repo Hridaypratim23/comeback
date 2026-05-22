@@ -64,6 +64,30 @@ export function buildDaySchedule(params: {
     }
   }
 
+  // ── 5:00 AM — early alarm ──────────────────────────────────────────────
+  add(
+    'early_500',
+    todayAt(5, 0),
+    'ALARM. EYES OPEN.',
+    withQuote(
+      "It's 5AM. The gym is waiting. Everyone who skipped is still in bed — that's your edge. Get up.",
+      5
+    ),
+    '/workout'
+  )
+
+  // ── 5:15 AM — final push before gym ───────────────────────────────────
+  add(
+    'getup_515',
+    todayAt(5, 15),
+    "GET UP. DON'T MISS THIS.",
+    withQuote(
+      "You set this alarm for a reason. 15 minutes to get moving. Shoes on. Bag packed. Go.",
+      5
+    ),
+    '/workout'
+  )
+
   // ── 5:30 AM — wake-up call ─────────────────────────────────────────────
   if (needsWorkout) {
     add(
@@ -260,6 +284,15 @@ export function buildDaySchedule(params: {
       '/progress'
     )
   }
+
+  // ── 8:30 PM — log daily steps ─────────────────────────────────────────
+  add(
+    'log_steps_830',
+    todayAt(20, 30),
+    'LOG YOUR STEPS.',
+    "How many steps today? Open the app and log them before the day slips by.",
+    '/'
+  )
 
   // ── 8:30 PM — wind down ───────────────────────────────────────────────
   add(
