@@ -872,10 +872,9 @@ export default function NutritionPage() {
 
       {/* ── Delete confirmation (centered) ── */}
       {loggedMealDelete && createPortal(
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setLoggedMealDelete(null)} />
-          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 3rem)', maxWidth: '24rem', maxHeight: '85vh', overflowY: 'auto' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setLoggedMealDelete(null)}>
+          <div style={{ width: 'calc(100vw - 3rem)', maxWidth: '24rem' }}
             className="bg-[#111116] border border-[#2C2C38] rounded-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
@@ -899,7 +898,7 @@ export default function NutritionPage() {
               </button>
             </div>
           </div>
-        </>,
+        </div>,
         document.body
       )}
 
@@ -1034,10 +1033,9 @@ export default function NutritionPage() {
 
       {/* ── Delete confirmation modal ── */}
       {deletePending && createPortal(
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setDeletePending(null)} />
-          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 3rem)', maxWidth: '24rem' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setDeletePending(null)}>
+          <div style={{ width: 'calc(100vw - 3rem)', maxWidth: '24rem' }}
             className="bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
@@ -1068,7 +1066,7 @@ export default function NutritionPage() {
               </button>
             </div>
           </div>
-        </>,
+        </div>,
         document.body
       )}
 
