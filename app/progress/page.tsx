@@ -209,7 +209,7 @@ export default function ProgressPage() {
 
   if (!mounted) return null
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('en-CA')
   const nowDate = new Date()
   const maintenance = calcMaintenance(stats.weight, stats.bodyFat)
 
@@ -223,7 +223,7 @@ export default function ProgressPage() {
   const weekDayKeys = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStartDate)
     d.setDate(weekStartDate.getDate() + i)
-    return d.toISOString().split('T')[0]
+    return d.toLocaleDateString('en-CA')
   }).filter(dk => dk <= today)
 
   const weekLogs = weekDayKeys.map(dk => dayLogs[dk]).filter(Boolean)
@@ -260,7 +260,7 @@ export default function ProgressPage() {
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
-    const dk = d.toISOString().split('T')[0]
+    const dk = d.toLocaleDateString('en-CA')
     const log = dayLogs[dk]
     const dateLabel = `${d.getMonth() + 1}/${d.getDate()}`
     const steps = log?.steps ?? 0

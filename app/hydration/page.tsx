@@ -23,7 +23,7 @@ export default function HydrationPage() {
 
   if (!mounted) return null
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('en-CA')
   const dayLog = dayLogs[today]
   const waterMl = dayLog?.waterMl ?? 0
   const pct = Math.min(waterMl / TARGETS.waterMl, 1)

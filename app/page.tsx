@@ -158,7 +158,7 @@ export default function HomePage() {
       const raw = localStorage.getItem('hydration-dismissed')
       if (!raw) return new Set()
       const { date, hours } = JSON.parse(raw)
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toLocaleDateString('en-CA')
       return date === today ? new Set<number>(hours) : new Set<number>()
     } catch { return new Set() }
   })
@@ -169,7 +169,7 @@ export default function HomePage() {
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
     const d = new Date()
     setQuoteIdx((d.getHours() + d.getDate() * 3) % QUOTES.length)
-    setSelectedDate(d.toISOString().split('T')[0])
+    setSelectedDate(d.toLocaleDateString('en-CA'))
     const tick = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(tick)
   }, [getOrCreateToday])
@@ -191,7 +191,7 @@ export default function HomePage() {
 
   if (!mounted || !selectedDate) return null
 
-  const todayKey = now.toISOString().split('T')[0]
+  const todayKey = now.toLocaleDateString('en-CA')
   const isViewingToday = selectedDate === todayKey
   const dayLog = dayLogs[selectedDate]
   const todayLog = dayLogs[todayKey]
@@ -214,7 +214,7 @@ export default function HomePage() {
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStartDate)
     d.setDate(weekStartDate.getDate() + i)
-    const dk = d.toISOString().split('T')[0]
+    const dk = d.toLocaleDateString('en-CA')
     return {
       date: dk,
       day: d.getDate(),
@@ -323,7 +323,7 @@ export default function HomePage() {
   curWeekStart.setHours(0, 0, 0, 0)
   const curWeekKeys = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(curWeekStart); d.setDate(curWeekStart.getDate() + i)
-    return d.toISOString().split('T')[0]
+    return d.toLocaleDateString('en-CA')
   }).filter(dk => dk <= todayKey)
   const curWeekLogs = curWeekKeys.map(dk => dayLogs[dk]).filter(Boolean)
 

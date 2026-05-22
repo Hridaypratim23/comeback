@@ -118,7 +118,7 @@ export default function NutritionPage() {
     for (let i = 1; i <= 7; i++) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
-      const dk = d.toISOString().split('T')[0]
+      const dk = d.toLocaleDateString('en-CA')
       dayLogs[dk]?.meals.forEach(m => {
         names.add(m.name.replace(/\s*\(.*?\)\s*$/, '').trim().toLowerCase())
       })
@@ -127,7 +127,7 @@ export default function NutritionPage() {
   }, [dayLogs])
 
   const allHistoricalMeals = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toLocaleDateString('en-CA')
     const seen = new Map<string, { meal: typeof dayLogs[string]['meals'][0]; date: string }>()
     const sortedDates = Object.keys(dayLogs).sort().reverse()
     for (const dk of sortedDates) {
@@ -152,7 +152,7 @@ export default function NutritionPage() {
   const TDEE = calcTDEE(currentWeight, currentBF)
   const GOAL_DEFICIT = Math.max(TDEE - TARGETS.calories, 0)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('en-CA')
   const dayLog = dayLogs[today]
   const meals = dayLog?.meals ?? []
   const totalCal   = meals.reduce((s, m) => s + m.calories, 0)

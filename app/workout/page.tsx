@@ -41,7 +41,7 @@ export default function WorkoutPage() {
 
   if (!mounted) return null
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('en-CA')
   const dayLog = dayLogs[today]
   const selectedId = dayLog?.selectedWorkoutId
   const workout = selectedId ? getWorkoutById(selectedId) : null
