@@ -1033,12 +1033,13 @@ export default function NutritionPage() {
       })()}
 
       {/* ── Delete confirmation modal ── */}
-      {deletePending && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setDeletePending(null)}>
-          <div className="w-full max-w-sm bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
+      {deletePending && createPortal(
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setDeletePending(null)} />
+          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 3rem)', maxWidth: '24rem' }}
+            className="bg-[#111116] border border-[#2C2C38] rounded-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="px-5 pt-5 pb-4 border-b border-[#1E1E26]">
               <div className="text-[10px] font-black tracking-[0.3em] text-[#FF2800] mb-1">DELETE MEAL</div>
               <div className="text-base font-black text-[#EDEDF0] leading-snug">{deletePending.name}</div>
@@ -1049,13 +1050,11 @@ export default function NutritionPage() {
                 {deletePending.fat > 0 && ` · ${deletePending.fat}g F`}
               </div>
             </div>
-            {/* Body */}
             <div className="px-5 py-4">
               <p className="text-[11px] text-[#686870] leading-relaxed">
                 This will permanently remove <span className="text-[#EDEDF0] font-bold">{deletePending.name}</span> from your saved meals. This cannot be undone.
               </p>
             </div>
-            {/* Actions */}
             <div className="flex gap-2 px-5 pb-5">
               <button
                 onClick={() => setDeletePending(null)}
@@ -1069,7 +1068,8 @@ export default function NutritionPage() {
               </button>
             </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
 
     </div>
