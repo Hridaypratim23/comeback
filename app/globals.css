@@ -99,6 +99,14 @@ input[type], input:not([type]), textarea, select {
 
 .animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
 
+/* ── Workout card pulse ───────────────────────────────── */
+
+@keyframes workout-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,40,0,0.15), 0 4px 20px rgba(255,40,0,0.06); }
+  50%       { box-shadow: 0 0 0 1px rgba(255,40,0,0.55), 0 4px 32px rgba(255,40,0,0.20); }
+}
+.workout-card-pulse { animation: workout-pulse 2.5s ease-in-out infinite; }
+
 /* ── Streak fire shake ────────────────────────────────── */
 
 @keyframes shake {

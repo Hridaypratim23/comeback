@@ -457,16 +457,13 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Quote Block ── */}
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-5 cursor-pointer btn-press" onClick={advanceQuote}>
-          <div className="min-h-[52px] flex flex-col justify-center">
-            <p className={`text-xl font-black uppercase text-[#EDEDF0] leading-snug transition-opacity ${quoteVisible ? 'quote-enter' : 'quote-exit'}`}
-              style={{ opacity: quoteVisible ? 1 : 0 }}>
-              {getQuoteByIndex(quoteIdx)}
-            </p>
-          </div>
-          <p className="text-[10px] font-black tracking-widest text-[#FF2800] mt-3">— MIND OF A WARRIOR</p>
-          <p className="text-[9px] text-[#2C2C38] font-bold tracking-widest mt-1">TAP FOR NEXT</p>
+        {/* ── Quote Strip ── */}
+        <div className="flex items-center gap-3 cursor-pointer btn-press py-1" onClick={advanceQuote}>
+          <div className="w-[3px] self-stretch rounded-full flex-shrink-0" style={{ background: 'linear-gradient(180deg, #FF2800, #FF280044)' }} />
+          <p className={`flex-1 text-[13px] font-black uppercase text-[#686870] leading-snug ${quoteVisible ? 'quote-enter' : 'quote-exit'}`}
+            style={{ opacity: quoteVisible ? 1 : 0 }}>
+            {getQuoteByIndex(quoteIdx)}
+          </p>
         </div>
 
         {/* ── Score Rings ── */}
@@ -636,7 +633,7 @@ export default function HomePage() {
                   <ChevronRight size={20} className="text-[#FF2800]" />
                 </div>
               ) : (
-                <div className="rounded-xl overflow-hidden border-l-4 border border-[#1E1E26] hover:red-border-glow transition-all btn-press"
+                <div className={`rounded-xl overflow-hidden border-l-4 border border-[#1E1E26] transition-all btn-press ${!todayLog?.workoutDone ? 'workout-card-pulse' : ''}`}
                   style={{ borderLeftColor: workout.color }}>
                   <div className="p-4" style={{ background: `linear-gradient(135deg, ${workout.color}33 0%, #111116 55%)` }}>
                     <div className="flex items-start justify-between">
@@ -649,8 +646,8 @@ export default function HomePage() {
                         {todayLog?.workoutDone ? (
                           <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">DONE ✓</span>
                         ) : (
-                          <span className="flex items-center gap-1 px-3 py-1 rounded text-[10px] font-black tracking-wider cursor-pointer"
-                            style={{ background: `${workout.color}44`, color: workout.color }}>
+                          <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-black tracking-widest cursor-pointer"
+                            style={{ background: workout.color, color: '#fff' }}>
                             ATTACK <ChevronRight size={12} />
                           </span>
                         )}
@@ -675,102 +672,88 @@ export default function HomePage() {
               )}
             </Link>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-2">
-              <Link href="/nutrition" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(255,85,0,0.4)' }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Flame size={14} className="text-[#FF5500]" />
-                    <span className="text-[9px] font-black tracking-widest text-[#686870]">CALORIES</span>
-                  </div>
-                  <div className="text-xl font-black text-[#EDEDF0]">{totalCal}</div>
-                  <div className="text-[10px] text-[#686870]">/ {TARGETS.calories}</div>
-                  <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${Math.min((totalCal / TARGETS.calories) * 100, 100)}%`, background: 'linear-gradient(90deg, #CC4000, #FF5500)' }} />
-                  </div>
-                </div>
-              </Link>
-              <Link href="/hydration" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Droplets size={14} className="text-[#2196F3]" />
-                    <span className="text-[9px] font-black tracking-widest text-[#686870]">WATER</span>
-                  </div>
-                  <div className="text-xl font-black text-[#EDEDF0]">{((todayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</div>
-                  <div className="text-[10px] text-[#686870]">/ 3.0L</div>
-                  <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${waterPct}%`, background: 'linear-gradient(90deg, #1470CC, #2196F3)' }} />
-                  </div>
-                </div>
-              </Link>
-              <Link href="/progress" className="cursor-pointer">
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 transition-all" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Trophy size={14} className="text-[#D4A017]" />
-                    <span className="text-[9px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
-                  </div>
-                  <div className="text-xl font-black text-[#EDEDF0]">{stats.workoutsCompleted}</div>
-                  <div className="text-[10px] text-[#686870]">total</div>
-                  <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${Math.min((stats.workoutsCompleted / 100) * 100, 100)}%`, background: 'linear-gradient(90deg, #B08A00, #D4A017)' }} />
-                  </div>
-                </div>
-              </Link>
-            </div>
-
-            {/* Steps */}
+            {/* Stats 2×2 Grid */}
             {(() => {
               const steps = todayLog?.steps ?? 0
               const stepsPct = Math.min((steps / TARGETS.steps) * 100, 100)
-              const stepsLeft = Math.max(TARGETS.steps - steps, 0)
               const commitSteps = () => {
                 const n = parseInt(stepsInput)
                 if (!n || n <= 0) return
-                setSteps(n)           // always overwrite — manual entry is source of truth
+                setSteps(n)
                 setStepsInput('')
               }
+              const stepsDisplay = steps >= 1000 ? `${(steps / 1000).toFixed(1)}K` : String(steps)
               return (
-                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">👟</span>
-                      <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">STEPS</span>
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/nutrition" className="cursor-pointer">
+                      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(255,85,0,0.4)' }}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Flame size={13} className="text-[#FF5500]" />
+                          <span className="text-[9px] font-black tracking-widest text-[#686870]">CALORIES</span>
+                        </div>
+                        <div className="text-2xl font-black text-[#EDEDF0] leading-none">{totalCal}</div>
+                        <div className="text-[10px] text-[#686870] mt-0.5">/ {TARGETS.calories}</div>
+                        <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min((totalCal / TARGETS.calories) * 100, 100)}%`, background: 'linear-gradient(90deg, #CC4000, #FF5500)' }} />
+                        </div>
+                      </div>
+                    </Link>
+                    <Link href="/hydration" className="cursor-pointer">
+                      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.4)' }}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Droplets size={13} className="text-[#2196F3]" />
+                          <span className="text-[9px] font-black tracking-widest text-[#686870]">WATER</span>
+                        </div>
+                        <div className="text-2xl font-black text-[#EDEDF0] leading-none">{((todayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</div>
+                        <div className="text-[10px] text-[#686870] mt-0.5">/ 3.0L</div>
+                        <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${waterPct}%`, background: 'linear-gradient(90deg, #1470CC, #2196F3)' }} />
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3" style={{ boxShadow: 'inset 0 2px 0 rgba(33,150,243,0.2)' }}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-sm leading-none">👟</span>
+                        <span className="text-[9px] font-black tracking-widest text-[#686870]">STEPS</span>
+                      </div>
+                      <div className={`text-2xl font-black leading-none ${steps >= 10000 ? 'text-[#1DB954]' : 'text-[#EDEDF0]'}`}>{stepsDisplay}</div>
+                      <div className="text-[10px] text-[#686870] mt-0.5">/ 10K</div>
+                      <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${stepsPct}%`, background: 'linear-gradient(90deg, #1A6BB5, #2196F3)' }} />
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xl font-black text-[#EDEDF0]">{steps.toLocaleString()}</span>
-                      <span className="text-[10px] text-[#686870] ml-1">/ 10,000</span>
-                    </div>
+                    <Link href="/progress" className="cursor-pointer">
+                      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Trophy size={13} className="text-[#D4A017]" />
+                          <span className="text-[9px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
+                        </div>
+                        <div className="text-2xl font-black text-[#EDEDF0] leading-none">{stats.workoutsCompleted}</div>
+                        <div className="text-[10px] text-[#686870] mt-0.5">total</div>
+                        <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min((stats.workoutsCompleted / 100) * 100, 100)}%`, background: 'linear-gradient(90deg, #B08A00, #D4A017)' }} />
+                        </div>
+                      </div>
+                    </Link>
                   </div>
-                  <div className="h-2 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden mb-3">
-                    <div className="h-full bg-gradient-to-r from-[#1A6BB5] to-[#2196F3] rounded-full transition-all duration-700" style={{ width: `${stepsPct}%` }} />
+                  {/* Compact steps entry */}
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      placeholder={steps > 0 ? `Steps logged: ${steps.toLocaleString()}` : "Log today's steps…"}
+                      value={stepsInput}
+                      onChange={e => setStepsInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && commitSteps()}
+                      className="flex-1 bg-[#111116] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                    />
+                    <button onClick={commitSteps}
+                      className="px-4 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                      SAVE
+                    </button>
                   </div>
-                  {stepsPct < 100
-                    ? <p className="text-[10px] text-[#686870] mb-3">{stepsLeft.toLocaleString()} steps to goal</p>
-                    : <p className="text-[10px] font-black text-[#1DB954] mb-3">10K GOAL HIT ✓</p>
-                  }
-                  {/* Manual entry — always overwrites (source of truth) */}
-                  <div className="space-y-1.5">
-                    <div className="text-[9px] font-black tracking-widest text-[#686870]">
-                      ENTER TODAY&apos;S TOTAL — overwrites current
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder={`Current: ${steps.toLocaleString()}`}
-                        value={stepsInput}
-                        onChange={e => setStepsInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && commitSteps()}
-                        className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#2196F3] rounded-lg px-3 py-1.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
-                      />
-                      <button
-                        onClick={commitSteps}
-                        className="px-4 py-1.5 rounded-lg bg-[#2196F3] text-white text-[10px] font-black cursor-pointer active:scale-95 transition-all">
-                        SAVE
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                </>
               )
             })()}
 
