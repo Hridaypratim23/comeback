@@ -156,6 +156,7 @@ export default function HomePage() {
   const [celebrating, setCelebrating] = useState(false)
   const [celebrateFading, setCelebrateFading] = useState(false)
   const prevDailyScoreRef = useRef(0)
+  const celebratedTodayRef = useRef(false)
   const [dismissedHydrationHours, setDismissedHydrationHours] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') return new Set()
     try {
@@ -174,6 +175,10 @@ export default function HomePage() {
     const d = new Date()
     setQuoteIdx((d.getHours() + d.getDate() * 3) % QUOTES.length)
     setSelectedDate(d.toLocaleDateString('en-CA'))
+    // Prevent re-showing celebration if ring was already closed today
+    if (localStorage.getItem('ring-celebrated') === d.toLocaleDateString('en-CA')) {
+      celebratedTodayRef.current = true
+    }
     const tick = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(tick)
   }, [getOrCreateToday])
@@ -345,8 +350,10 @@ export default function HomePage() {
     Math.min(weekGoodDays / 6, 1) * 25
   )
 
-  // Trigger celebration when rings first close
-  if (prevDailyScoreRef.current < 100 && dailyScore >= 100 && !celebrating) {
+  // Trigger celebration only the first time rings close today
+  if (prevDailyScoreRef.current < 100 && dailyScore >= 100 && !celebrating && !celebratedTodayRef.current) {
+    celebratedTodayRef.current = true
+    localStorage.setItem('ring-celebrated', todayKey)
     setCelebrating(true)
     setCelebrateFading(false)
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([80, 40, 80, 40, 120])
