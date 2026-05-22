@@ -30,17 +30,19 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleep
   const outerFilled = dailyScore > 0 ? Math.max(outerCirc * (dailyScore / 100), 12) : 0
   const innerFilled = weeklyScore > 0 ? Math.max(innerCirc * (weeklyScore / 100), 12) : 0
 
+  const K = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : String(n)
+
   const todayPillars = [
-    { icon: '🏋️', label: 'Workout', done: workoutDone, detail: workoutDone ? 'Done' : 'Not done' },
-    { icon: '👟', label: 'Steps', done: todaySteps >= 10000, detail: `${todaySteps.toLocaleString()} / 10K` },
-    { icon: '😴', label: 'Sleep', done: sleepDone, detail: sleepDone ? 'Logged' : 'Not logged' },
-    { icon: '🔥', label: 'Diet', done: todayCal > 0 && todayCal <= calTarget, detail: `${todayCal} / ${calTarget}` },
+    { icon: '🏋️', done: workoutDone,                          value: workoutDone ? 'DONE' : '–',     sub: 'workout' },
+    { icon: '👟', done: todaySteps >= 10000,                  value: K(todaySteps),                   sub: '/ 10K'   },
+    { icon: '😴', done: sleepDone,                            value: sleepDone ? 'DONE' : '–',        sub: 'sleep'   },
+    { icon: '🔥', done: todayCal > 0 && todayCal <= calTarget, value: K(todayCal),                   sub: `/ ${K(calTarget)}` },
   ]
   const weekPillars = [
-    { icon: '🏋️', label: 'Workouts', done: weekWorkouts >= 5, detail: `${weekWorkouts} / 5` },
-    { icon: '👟', label: 'Steps', done: weekStepDays >= 5, detail: `${weekStepDays} / 5 days` },
-    { icon: '😴', label: 'Sleep', done: weekSleepDays >= 7, detail: `${weekSleepDays} / 7 nights` },
-    { icon: '🔥', label: 'Diet', done: weekGoodDays >= 6, detail: `${weekGoodDays} / 6 days` },
+    { icon: '🏋️', done: weekWorkouts >= 5,  value: `${weekWorkouts}/5`,  sub: 'lifts'   },
+    { icon: '👟', done: weekStepDays >= 5,   value: `${weekStepDays}/5`,  sub: 'step days' },
+    { icon: '😴', done: weekSleepDays >= 7,  value: `${weekSleepDays}/7`, sub: 'nights'  },
+    { icon: '🔥', done: weekGoodDays >= 6,   value: `${weekGoodDays}/6`,  sub: 'diet days' },
   ]
 
   return (
@@ -83,30 +85,32 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleep
         </div>
       </div>
 
-      {/* Breakdown — label + 4 equal pills per row, perfectly aligned */}
+      {/* Breakdown — label + 4 equal pills per row */}
       <div className="mt-4 pt-3 border-t border-[#1E1E26] space-y-2">
         {[
-          { label: 'TODAY', color: '#FF2800', pillars: todayPillars },
-          { label: 'THIS WEEK', color: '#1DB954', pillars: weekPillars },
+          { label: 'TODAY',     color: '#FF2800', pillars: todayPillars },
+          { label: 'THIS WEEK', color: '#1DB954', pillars: weekPillars  },
         ].map(({ label, color, pillars }) => (
-          <div key={label} className="flex items-center gap-2">
-            {/* Fixed-width label */}
-            <div className="flex items-center gap-1 w-[62px] flex-shrink-0">
-              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-[8px] font-black tracking-wider leading-none" style={{ color }}>{label}</span>
+          <div key={label} className="flex items-stretch gap-2">
+            {/* Fixed-width row label */}
+            <div className="flex flex-col justify-center items-start gap-0.5 w-[44px] flex-shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+              <span className="text-[7px] font-black tracking-wide leading-tight" style={{ color }}>{label}</span>
             </div>
-            {/* 4 equal-width pills */}
+            {/* 4 equal vertical pills */}
             <div className="flex gap-1 flex-1">
               {pillars.map(p => (
-                <span key={p.label}
-                  className="flex-1 text-center px-1 py-0.5 rounded text-[8px] font-bold border leading-tight"
+                <div key={p.sub}
+                  className="flex-1 flex flex-col items-center justify-center text-center px-0.5 py-1.5 rounded border gap-0.5"
                   style={{
-                    background: p.done ? `${color}18` : '#0D0D10',
-                    borderColor: p.done ? `${color}44` : '#1E1E26',
-                    color: p.done ? color : '#686870',
+                    background:   p.done ? `${color}18` : '#0D0D10',
+                    borderColor:  p.done ? `${color}44` : '#1E1E26',
                   }}>
-                  {p.icon} {p.detail}
-                </span>
+                  <span className="text-sm leading-none">{p.icon}</span>
+                  <span className="text-[10px] font-black leading-none tabular-nums"
+                    style={{ color: p.done ? color : '#EDEDF0' }}>{p.value}</span>
+                  <span className="text-[7px] font-bold leading-none text-[#686870]">{p.sub}</span>
+                </div>
               ))}
             </div>
           </div>
