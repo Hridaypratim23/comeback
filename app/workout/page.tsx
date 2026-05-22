@@ -43,7 +43,7 @@ export default function WorkoutPage() {
   const secs = (timer % 60).toString().padStart(2, '0')
 
   return (
-    <div className="pb-4 space-y-4">
+    <div className="pb-28 space-y-4">
       <QuoteTicker />
 
       <div className="px-4 space-y-4">
