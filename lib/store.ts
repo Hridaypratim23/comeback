@@ -119,6 +119,7 @@ interface AppState {
   measurements: Measurement[]
   weeklyCheckins: WeeklyCheckin[]
   customMeals: CustomMealTemplate[]
+  pendingStepFixes?: Record<string, number>
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
@@ -490,6 +491,15 @@ export const useStore = create<AppState>()(
             mergedDayLogs[date] = local.meals.length >= rem.meals.length ? local : rem
           }
 
+          // Apply any server-mandated step corrections, overriding the merge result
+          const fixes = (remote as Record<string, unknown>).pendingStepFixes as Record<string, number> | undefined
+          if (fixes) {
+            for (const [date, steps] of Object.entries(fixes)) {
+              const existing = mergedDayLogs[date] ?? defaultDay(date)
+              mergedDayLogs[date] = { ...existing, steps }
+            }
+          }
+
           // Stats: take whichever has higher XP (more complete)
           const stats = (remote.stats?.totalXP ?? 0) > s.stats.totalXP
             ? remote.stats! : s.stats
@@ -502,6 +512,7 @@ export const useStore = create<AppState>()(
             measurements: mergeByDate(remote.measurements ?? [], s.measurements).slice(-90),
             weeklyCheckins: mergeByDate(remote.weeklyCheckins ?? [], s.weeklyCheckins).slice(-52),
             customMeals: s.customMeals.length > 0 ? s.customMeals : (remote.customMeals ?? []),
+            pendingStepFixes: undefined,
           }
         })
       },
