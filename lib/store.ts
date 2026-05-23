@@ -132,6 +132,7 @@ interface AppState {
   updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
+  setStepsForDate: (date: string, steps: number) => void
   addSteps: (steps: number) => void
   toggleHabit: (habitId: string) => void
   updateStats: (partial: Partial<UserStats>) => void
@@ -350,6 +351,14 @@ export const useStore = create<AppState>()(
           const day = s.dayLogs[d] ?? defaultDay(d)
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps } } }
         })
+      },
+
+      setStepsForDate: (date, steps) => {
+        set(s => {
+          const day = s.dayLogs[date] ?? defaultDay(date)
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, steps } } }
+        })
+        get().syncToSupabase()
       },
 
       addSteps: (steps) => {
