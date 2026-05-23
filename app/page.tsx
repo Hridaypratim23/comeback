@@ -387,7 +387,7 @@ export default function HomePage() {
 
   return (
     <div className="pb-4 space-y-4">
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 14px)' }}>
         {/* ── Streak Alert ── */}
         {showStreakAlert && (
           <div className="animate-pulse-red rounded-xl border-2 border-[#FF2800] bg-[#FF280015] p-4">
@@ -436,8 +436,10 @@ export default function HomePage() {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
-            <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
-            <p className="text-[10px] font-bold italic text-[#686870] mt-1 tracking-wide">Achieve your prime again</p>
+            <div className="mt-0.5">
+              <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none red-glow">COMEBACK</h1>
+              <p className="text-[11px] font-black italic text-[#FF2800] leading-none mt-0.5 tracking-[0.08em]" style={{ opacity: 0.7 }}>Achieve your prime again</p>
+            </div>
           </div>
           <button onClick={() => { if (tasksOpen) dismissHydrationForCurrentHour(); setTasksOpen(o => !o) }}
             className="relative mt-2 w-9 h-9 flex items-center justify-center rounded-full bg-[#111116] border border-[#1E1E26] cursor-pointer btn-press">
