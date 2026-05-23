@@ -355,15 +355,18 @@ export default function HomePage() {
     protein:       todayLog?.meals.reduce((s, m) => s + m.protein, 0) ?? 0,
     steps:         todaySteps,
     workoutDone:   todayLog?.workoutDone ?? false,
+    cardioLogged:  todayLog?.cardio != null,
     weekCardioDays,
     waterMl:       todayLog?.waterMl ?? 0,
     hour:          now.getHours(),
     weekWorkouts,
     weekCalAvg,
     targetWeight:  65,
+    targetBf:      15,
     calTarget:     TARGETS.calories,
     proteinTarget: TARGETS.protein,
     dayOfWeek:     now.getDay(),
+    streak:        stats.streak,
   })
 
   // Trigger celebration only the first time rings close today

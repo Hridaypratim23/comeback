@@ -1,10 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Insight } from '@/constants/insights'
 
+const TAG_LABEL: Record<Insight['tag'], string> = {
+  COACH:    'YOUR COACH',
+  FUEL:     'NUTRITION',
+  MOVE:     'TRAINING',
+  RECOVER:  'RECOVERY',
+  SCIENCE:  'SCIENCE',
+  PROGRESS: 'PROGRESS',
+}
+
 export default function InsightCard({ insights }: { insights: Insight[] }) {
-  const [idx, setIdx] = useState(0)
+  const [idx, setIdx]         = useState(0)
   const [visible, setVisible] = useState(true)
 
   const go = useCallback((dir: 1 | -1) => {
@@ -12,11 +22,11 @@ export default function InsightCard({ insights }: { insights: Insight[] }) {
     setTimeout(() => {
       setIdx(i => (i + dir + insights.length) % insights.length)
       setVisible(true)
-    }, 200)
+    }, 180)
   }, [insights.length])
 
   useEffect(() => {
-    const id = setInterval(() => go(1), 12000)
+    const id = setInterval(() => go(1), 14000)
     return () => clearInterval(id)
   }, [go])
 
@@ -26,59 +36,85 @@ export default function InsightCard({ insights }: { insights: Insight[] }) {
 
   return (
     <div
-      className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 cursor-pointer select-none"
-      onClick={() => go(1)}
+      className="rounded-xl overflow-hidden"
+      style={{ background: '#0D0D10', border: `1px solid ${insight.color}33` }}
     >
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-2.5">
+      {/* Top bar */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ background: `${insight.color}12`, borderBottom: `1px solid ${insight.color}22` }}
+      >
         <div className="flex items-center gap-2">
-          <span
-            className="text-[8px] font-black tracking-[0.25em] px-2 py-0.5 rounded-full"
-            style={{
-              color: insight.color,
-              background: `${insight.color}1A`,
-              border: `1px solid ${insight.color}44`,
-            }}
-          >
-            {insight.tag}
-          </span>
           <span className="text-base leading-none">{insight.icon}</span>
+          <span
+            className="text-[9px] font-black tracking-[0.3em]"
+            style={{ color: insight.color }}
+          >
+            {TAG_LABEL[insight.tag]}
+          </span>
         </div>
-        <span className="text-[9px] font-black text-[#2C2C38] tracking-widest">
+        <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">
           {idx + 1} / {insights.length}
         </span>
       </div>
 
       {/* Content */}
       <div
-        className="transition-opacity duration-200"
+        className="px-4 pt-3 pb-3 transition-opacity duration-180"
         style={{ opacity: visible ? 1 : 0 }}
       >
         <div
-          className="text-[11px] font-black tracking-wider mb-1.5 leading-snug"
+          className="text-[12px] font-black tracking-wide leading-snug mb-2"
           style={{ color: insight.color }}
         >
           {insight.title}
         </div>
-        <p className="text-[11px] text-[#686870] leading-relaxed">
+        <p className="text-[12px] text-[#9090A0] leading-relaxed">
           {insight.body}
         </p>
       </div>
 
-      {/* Progress dots */}
-      <div className="flex items-center gap-1 mt-3">
-        {insights.map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width:      i === idx ? 14 : 4,
-              height:     4,
-              background: i === idx ? insight.color : '#1E1E26',
-              flexShrink: 0,
-            }}
-          />
-        ))}
+      {/* Navigation */}
+      <div
+        className="flex items-center justify-between px-3 py-2"
+        style={{ borderTop: `1px solid ${insight.color}18` }}
+      >
+        <button
+          onClick={() => go(-1)}
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+          style={{ background: `${insight.color}15` }}
+        >
+          <ChevronLeft size={14} style={{ color: insight.color }} />
+        </button>
+
+        {/* Progress dots */}
+        <div className="flex items-center gap-1">
+          {insights.map((ins, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                if (i === idx) return
+                setVisible(false)
+                setTimeout(() => { setIdx(i); setVisible(true) }, 180)
+              }}
+              className="rounded-full transition-all duration-300 cursor-pointer"
+              style={{
+                width:      i === idx ? 16 : 5,
+                height:     5,
+                background: i === idx ? insight.color : '#2C2C38',
+                flexShrink: 0,
+              }}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={() => go(1)}
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+          style={{ background: `${insight.color}15` }}
+        >
+          <ChevronRight size={14} style={{ color: insight.color }} />
+        </button>
       </div>
     </div>
   )
