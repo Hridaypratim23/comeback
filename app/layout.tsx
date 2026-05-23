@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-[#070709] text-[#EDEDF0]">
         <AppInit />
-        <main className="max-w-lg mx-auto pb-20 min-h-dvh">
+        <main className="max-w-lg mx-auto pb-20 h-full overflow-y-auto overscroll-none">
           <PageTransition>{children}</PageTransition>
         </main>
         <NavBar />
