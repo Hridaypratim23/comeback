@@ -235,15 +235,17 @@ export default function ProgressPage() {
     const cal = d.meals.reduce((s, m) => s + m.calories, 0)
     return d.habits?.nojunk && (cal === 0 || cal <= maintenance)
   }).length
+  const weekCardioDays = weekLogs.filter(d => d.cardio != null).length
   const weekTotalSteps = weekLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
   const weekCalsBurned = Math.round((weekTotalSteps / 10000) * 500)
   const weekFastingHours = weekLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
-  const weeklyWorkoutPct = Math.min(weekWorkouts / 5, 1) * 25
-  const weeklyStepsPct = Math.min(weekStepDays / 5, 1) * 25
-  const weeklySleepPct = Math.min(weekSleepDays / 7, 1) * 25
-  const weeklyNutritionPct = Math.min(weekGoodNutritionDays / 6, 1) * 25
-  const weeklyScore = Math.round(weeklyWorkoutPct + weeklyStepsPct + weeklySleepPct + weeklyNutritionPct)
+  const weeklyWorkoutPct = Math.min(weekWorkouts / 5, 1) * 20
+  const weeklyStepsPct = Math.min(weekStepDays / 5, 1) * 20
+  const weeklySleepPct = Math.min(weekSleepDays / 7, 1) * 20
+  const weeklyNutritionPct = Math.min(weekGoodNutritionDays / 6, 1) * 20
+  const weeklyCardioPct = Math.min(weekCardioDays / 3, 1) * 20
+  const weeklyScore = Math.round(weeklyWorkoutPct + weeklyStepsPct + weeklySleepPct + weeklyNutritionPct + weeklyCardioPct)
 
   // ── Daily score (today) ───────────────────────────────────────────────────
   const todayLog = dayLogs[today]
@@ -355,12 +357,13 @@ export default function ProgressPage() {
           />
         </div>
         <div className="space-y-2.5">
-          <ScoreBar label="5 WORKOUTS" value={weeklyWorkoutPct} max={25} color="#FF2800" count={weekWorkouts} target={5} unit="days" />
-          <ScoreBar label="10K STEPS × 5 DAYS" value={weeklyStepsPct} max={25} color="#2196F3" count={weekStepDays} target={5} unit="days" />
-          <ScoreBar label="7H SLEEP × 7 DAYS" value={weeklySleepPct} max={25} color="#9B59B6" count={weekSleepDays} target={7} unit="days" />
-          <ScoreBar label="CLEAN EAT × 6 DAYS" value={weeklyNutritionPct} max={25} color="#1DB954" count={weekGoodNutritionDays} target={6} unit="days" />
+          <ScoreBar label="5 WORKOUTS" value={weeklyWorkoutPct} max={20} color="#FF2800" count={weekWorkouts} target={5} unit="days" />
+          <ScoreBar label="10K STEPS × 5 DAYS" value={weeklyStepsPct} max={20} color="#2196F3" count={weekStepDays} target={5} unit="days" />
+          <ScoreBar label="7H SLEEP × 7 DAYS" value={weeklySleepPct} max={20} color="#9B59B6" count={weekSleepDays} target={7} unit="days" />
+          <ScoreBar label="CLEAN EAT × 6 DAYS" value={weeklyNutritionPct} max={20} color="#1DB954" count={weekGoodNutritionDays} target={6} unit="days" />
+          <ScoreBar label="CARDIO × 3 DAYS" value={weeklyCardioPct} max={20} color="#FF5500" count={weekCardioDays} target={3} unit="days" />
         </div>
-        <div className="text-[9px] text-[#686870] mt-2">Clean day = no junk habit ✓ + calories ≤ maintenance</div>
+        <div className="text-[9px] text-[#686870] mt-2">Clean day = no junk ✓ + cal ≤ maintenance · Cardio = any session logged in LIFT tab</div>
       </div>
 
       {/* ── WEEK IN NUMBERS ─────────────────────────────────────────────────── */}
