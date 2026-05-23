@@ -480,9 +480,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Science Insight Card ── */}
-        <InsightCard insights={insights} />
-
         {/* ── Score Rings ── */}
         <ProgressRings
           dailyScore={dailyScore}
@@ -497,6 +494,9 @@ export default function HomePage() {
           weekSleepDays={weekSleepDays}
           weekGoodDays={weekGoodDays}
         />
+
+        {/* ── Coach Insights ── */}
+        <InsightCard insights={insights} />
 
         {/* ── Wellness Journal / Week Navigator ── */}
         <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
