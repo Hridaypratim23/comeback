@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
 import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft } from 'lucide-react'
@@ -10,9 +10,10 @@ import {
   buildDaySchedule,
   sendScheduleToSW,
 } from '@/lib/notifications'
-import { QUOTES, getQuoteByIndex } from '@/constants/quotes'
 import QuoteTicker from '@/components/QuoteTicker'
 import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
+import { generateInsights } from '@/constants/insights'
+import InsightCard from '@/components/InsightCard'
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
@@ -147,8 +148,6 @@ export default function HomePage() {
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
   const [now, setNow] = useState(new Date())
-  const [quoteIdx, setQuoteIdx] = useState(0)
-  const [quoteVisible, setQuoteVisible] = useState(true)
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
   const [tasksOpen, setTasksOpen] = useState(false)
@@ -173,7 +172,6 @@ export default function HomePage() {
     getOrCreateToday()
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
     const d = new Date()
-    setQuoteIdx((d.getHours() + d.getDate() * 3) % QUOTES.length)
     setSelectedDate(d.toLocaleDateString('en-CA'))
     // Prevent re-showing celebration if ring was already closed today
     if (localStorage.getItem('ring-celebrated') === d.toLocaleDateString('en-CA')) {
@@ -182,19 +180,6 @@ export default function HomePage() {
     const tick = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(tick)
   }, [getOrCreateToday])
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setQuoteVisible(false)
-      setTimeout(() => { setQuoteIdx(i => (i + 1) % QUOTES.length); setQuoteVisible(true) }, 420)
-    }, 7_000)
-    return () => clearInterval(id)
-  }, [])
-
-  const advanceQuote = useCallback(() => {
-    setQuoteVisible(false)
-    setTimeout(() => { setQuoteIdx(i => (i + 1) % QUOTES.length); setQuoteVisible(true) }, 420)
-  }, [])
 
   const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
 
@@ -349,12 +334,37 @@ export default function HomePage() {
     const cal = d.meals.reduce((s, m) => s + m.calories, 0)
     return d.habits?.nojunk && (cal === 0 || cal <= maintenance)
   }).length
+  const weekCardioDays = curWeekLogs.filter(d => d.cardio != null).length
   const weeklyScore = Math.round(
     Math.min(weekWorkouts / 5, 1) * 25 +
     Math.min(weekStepDays / 5, 1) * 25 +
     Math.min(weekSleepDays / 7, 1) * 25 +
     Math.min(weekGoodDays / 6, 1) * 25
   )
+
+  const weekCalLogs = curWeekLogs.filter(d => d.meals.length > 0)
+  const weekCalAvg  = weekCalLogs.length > 0
+    ? Math.round(weekCalLogs.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0) / weekCalLogs.length)
+    : null
+
+  const insights = generateInsights({
+    weight:        stats.weight,
+    bodyFat:       stats.bodyFat,
+    maintenance,
+    calories:      todayCal,
+    protein:       todayLog?.meals.reduce((s, m) => s + m.protein, 0) ?? 0,
+    steps:         todaySteps,
+    workoutDone:   todayLog?.workoutDone ?? false,
+    weekCardioDays,
+    waterMl:       todayLog?.waterMl ?? 0,
+    hour:          now.getHours(),
+    weekWorkouts,
+    weekCalAvg,
+    targetWeight:  65,
+    calTarget:     TARGETS.calories,
+    proteinTarget: TARGETS.protein,
+    dayOfWeek:     now.getDay(),
+  })
 
   // Trigger celebration only the first time rings close today
   if (prevDailyScoreRef.current < 100 && dailyScore >= 100 && !celebrating && !celebratedTodayRef.current) {
@@ -463,14 +473,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Quote Strip ── */}
-        <div className="flex items-center gap-3 cursor-pointer btn-press py-1" onClick={advanceQuote}>
-          <div className="w-[3px] self-stretch rounded-full flex-shrink-0" style={{ background: 'linear-gradient(180deg, #FF2800, #FF280044)' }} />
-          <p className={`flex-1 text-[13px] font-black uppercase text-[#686870] leading-snug ${quoteVisible ? 'quote-enter' : 'quote-exit'}`}
-            style={{ opacity: quoteVisible ? 1 : 0 }}>
-            {getQuoteByIndex(quoteIdx)}
-          </p>
-        </div>
+        {/* ── Science Insight Card ── */}
+        <InsightCard insights={insights} />
 
         {/* ── Score Rings ── */}
         <ProgressRings
