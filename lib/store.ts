@@ -577,5 +577,5 @@ export function getTodayLog() {
   return useStore.getState().getOrCreateToday()
 }
 
-export const TARGETS = { calories: 2100, protein: 160, carbs: 220, fat: 65, fibre: 30, waterMl: 3000, steps: 10000 }
+export const TARGETS = { calories: 1930, protein: 160, carbs: 220, fat: 65, fibre: 30, waterMl: 3000, steps: 10000 }
 export const XP_LEVEL = XP_PER_LEVEL
