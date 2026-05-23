@@ -387,8 +387,6 @@ export default function HomePage() {
 
   return (
     <div className="pb-4 space-y-4">
-      <QuoteTicker />
-
       <div className="px-4 space-y-4">
         {/* ── Streak Alert ── */}
         {showStreakAlert && (
@@ -439,9 +437,7 @@ export default function HomePage() {
           <div>
             <p className="text-[10px] font-black tracking-widest text-[#686870] uppercase">{dateStr} · {dayStr}</p>
             <h1 className="text-5xl font-black tracking-[-0.04em] text-[#FF2800] leading-none mt-0.5 red-glow">COMEBACK</h1>
-            <p className="text-[11px] font-bold italic text-[#686870] mt-1.5 tracking-wide">
-              Achieve your prime again
-            </p>
+            <p className="text-[10px] font-bold italic text-[#686870] mt-1 tracking-wide">Achieve your prime again</p>
           </div>
           <button onClick={() => { if (tasksOpen) dismissHydrationForCurrentHour(); setTasksOpen(o => !o) }}
             className="relative mt-2 w-9 h-9 flex items-center justify-center rounded-full bg-[#111116] border border-[#1E1E26] cursor-pointer btn-press">
@@ -452,6 +448,11 @@ export default function HomePage() {
               </span>
             )}
           </button>
+        </div>
+
+        {/* ── Ticker ── */}
+        <div className="-mx-4">
+          <QuoteTicker />
         </div>
 
         {/* ── Tasks Panel ── */}

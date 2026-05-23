@@ -32,77 +32,68 @@ export default function InsightCard({ insights }: { insights: Insight[] }) {
 
   if (!insights.length) return null
 
-  const insight = insights[idx % insights.length]
+  const insight  = insights[idx % insights.length]
   const progress = ((idx + 1) / insights.length) * 100
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="rounded-xl overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${insight.color}10 0%, #0D0D10 50%)`,
-        border: `1px solid ${insight.color}30`,
+        background: `linear-gradient(135deg, ${insight.color}0D 0%, #0D0D10 60%)`,
+        border: `1px solid ${insight.color}28`,
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <div className="flex items-center gap-2.5">
+      {/* Header row */}
+      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+        <div
+          className="w-6 h-6 rounded-lg flex items-center justify-center text-sm leading-none flex-shrink-0"
+          style={{ background: `${insight.color}1A` }}
+        >
+          {insight.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-[8px] font-black tracking-[0.28em]" style={{ color: `${insight.color}88` }}>
+            {TAG_LABEL[insight.tag]}
+          </span>
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-base leading-none flex-shrink-0"
-            style={{ background: `${insight.color}20` }}
+            className="text-[11px] font-black leading-tight truncate"
+            style={{ color: insight.color }}
           >
-            {insight.icon}
-          </div>
-          <div>
-            <div className="text-[8px] font-black tracking-[0.3em] mb-0.5" style={{ color: `${insight.color}99` }}>
-              {TAG_LABEL[insight.tag]}
-            </div>
-            <div className="text-[13px] font-black leading-tight text-[#EDEDF0]">
-              {insight.title}
-            </div>
+            {insight.title}
           </div>
         </div>
-        <span className="text-[9px] font-black text-[#2C2C38] tracking-widest flex-shrink-0 ml-2">
-          {idx + 1}/{insights.length}
-        </span>
+        <span className="text-[8px] font-black text-[#2C2C38] tracking-widest flex-shrink-0">{idx + 1}/{insights.length}</span>
       </div>
-
-      {/* Divider */}
-      <div className="mx-4" style={{ height: 1, background: `${insight.color}18` }} />
 
       {/* Body */}
       <div
-        className="px-4 pt-3 pb-4 transition-opacity duration-150"
+        className="px-3 pb-2 transition-opacity duration-150"
         style={{ opacity: visible ? 1 : 0 }}
       >
-        <p className="text-[12.5px] leading-[1.65] font-medium" style={{ color: '#8A8A9A' }}>
-          {insight.body}
-        </p>
+        <p className="text-[11px] leading-[1.6] text-[#7A7A8A]">{insight.body}</p>
       </div>
 
-      {/* Footer: progress bar + nav */}
-      <div className="px-4 pb-4 flex items-center gap-3">
+      {/* Footer */}
+      <div className="flex items-center gap-2 px-3 pb-3">
         <button
           onClick={() => go(-1)}
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-90 cursor-pointer"
-          style={{ background: `${insight.color}18`, border: `1px solid ${insight.color}25` }}
+          className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 cursor-pointer"
+          style={{ background: `${insight.color}15` }}
         >
-          <ChevronLeft size={15} style={{ color: insight.color }} />
+          <ChevronLeft size={12} style={{ color: insight.color }} />
         </button>
-
-        {/* Thin progress bar */}
-        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: `${insight.color}18` }}>
+        <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: `${insight.color}18` }}>
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{ width: `${progress}%`, background: insight.color }}
           />
         </div>
-
         <button
           onClick={() => go(1)}
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-90 cursor-pointer"
-          style={{ background: `${insight.color}18`, border: `1px solid ${insight.color}25` }}
+          className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 cursor-pointer"
+          style={{ background: `${insight.color}15` }}
         >
-          <ChevronRight size={15} style={{ color: insight.color }} />
+          <ChevronRight size={12} style={{ color: insight.color }} />
         </button>
       </div>
     </div>
