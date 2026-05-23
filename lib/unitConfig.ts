@@ -98,8 +98,23 @@ const GRAMS_CONFIG: UnitConfig = {
   min: 50, max: 500, step: 50, defaultQty: 100, isGrams: true,
 }
 
+const SNACK_GRAMS_CONFIG: UnitConfig = {
+  unit: 'g', singular: 'g', plural: 'g',
+  min: 10, max: 100, step: 10, defaultQty: 30, isGrams: true,
+}
+
+const SNACK_GRAM_KEYWORDS = [
+  'peanut', 'chana', 'channa', 'chickpea', 'almond', 'cashew',
+  'walnut', 'pistachio', 'makhana', 'fox nut', 'mixed nut',
+]
+const SNACK_EXCLUDES = ['butter', 'paste', 'oil']
+
 export function getUnitConfig(foodName: string): UnitConfig {
   const lower = foodName.toLowerCase()
+  const isSnackGrams =
+    SNACK_GRAM_KEYWORDS.some(kw => lower.includes(kw)) &&
+    !SNACK_EXCLUDES.some(ex => lower.includes(ex))
+  if (isSnackGrams) return SNACK_GRAMS_CONFIG
   for (const rule of RULES) {
     const matched = rule.keywords.find(kw => lower.includes(kw))
     if (matched) {
