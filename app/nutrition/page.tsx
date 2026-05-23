@@ -360,7 +360,7 @@ export default function NutritionPage() {
   ]
 
   return (
-    <div className="px-4 pt-12 pb-4 space-y-4">
+    <div className="px-4 pt-12 pb-28 space-y-4">
       {/* Header */}
       <div>
         <p className="text-[10px] font-black tracking-[0.35em] text-[#686870]">DAILY FUEL</p>
@@ -451,7 +451,7 @@ export default function NutritionPage() {
           </button>
           {mealsOpen && (
             <div className="divide-y divide-[#1E1E26]">
-              {meals.map(m => (
+              {[...meals].sort((a, b) => a.name.localeCompare(b.name)).map(m => (
                 <div key={m.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>

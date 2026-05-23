@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="bg-[#070709]">
+    <html lang="en" className="bg-[#070709] h-dvh overflow-hidden">
       <head>
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
       </head>
-      <body className="bg-[#070709] text-[#EDEDF0]">
+      <body className="bg-[#070709] text-[#EDEDF0] h-full overflow-hidden">
         <AppInit />
         <main className="max-w-lg mx-auto pb-20 h-full overflow-y-auto overscroll-none">
           <PageTransition>{children}</PageTransition>
