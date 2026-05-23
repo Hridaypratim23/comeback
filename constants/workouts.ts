@@ -63,6 +63,18 @@ export const WORKOUT_PLANS: Workout[] = [
     ],
   },
   {
+    id: 'legs-b', label: 'Legs B', muscles: 'Hamstrings · Glutes · Quads · Calves', color: '#9B59B6',
+    exercises: [
+      { id: 'rdl2', name: 'Romanian Deadlift', sets: 4, repsRange: '6–8', notes: 'Load the hamstrings, soft knee bend' },
+      { id: 'hacksquat', name: 'Hack Squat', sets: 3, repsRange: '8–10', notes: 'Toes out, full depth' },
+      { id: 'bss', name: 'Bulgarian Split Squat', sets: 3, repsRange: '10–12', notes: 'Rear foot elevated, drive through front heel' },
+      { id: 'legext', name: 'Leg Extension', sets: 3, repsRange: '15–20', notes: 'Full extension, 1s squeeze at top' },
+      { id: 'seatedcurl', name: 'Seated Leg Curl', sets: 3, repsRange: '12–15', notes: 'More stretch than lying curl' },
+      { id: 'seatedcalf', name: 'Seated Calf Raise', sets: 4, repsRange: '15–20', notes: 'Slow eccentric, full stretch at bottom' },
+    ],
+    finisher: '100 walking lunges — 50 each leg, no rest',
+  },
+  {
     id: 'pull-b', label: 'Pull B', muscles: 'Back · Biceps · Rear Delts', color: '#D4A017',
     exercises: [
       { id: 'pullup2', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
@@ -108,7 +120,7 @@ export const MOTIVATION: Record<string, string> = {
   WED: 'Leg day. Built different.',
   THU: 'Second push. More weight than Monday.',
   FRI: 'Pull B. Finish the week strong.',
-  SAT: 'Rest. Eat. Sleep. Recover.',
+  SAT: 'Legs B. Hamstrings and glutes. Finish the week.',
   SUN: 'Prep tomorrow. Own next week.',
 }
 
