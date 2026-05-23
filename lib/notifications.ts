@@ -12,6 +12,10 @@ export interface ScheduledNotification {
 function todayAt(hour: number, minute = 0): number {
   const d = new Date()
   d.setHours(hour, minute, 0, 0)
+  // Roll to tomorrow if this time slot has already passed today
+  if (d.getTime() <= Date.now()) {
+    d.setDate(d.getDate() + 1)
+  }
   return d.getTime()
 }
 
