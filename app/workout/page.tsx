@@ -2,17 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useStore } from '@/lib/store'
-import { WORKOUT_PLANS, REST_WORKOUT, getWorkoutById } from '@/constants/workouts'
+import { WORKOUT_PLANS, getWorkoutById } from '@/constants/workouts'
 import { getQuoteOfHour } from '@/constants/quotes'
 import { Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import QuoteTicker from '@/components/QuoteTicker'
 
 export default function WorkoutPage() {
-  const { dayLogs, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout } = useStore()
+  const { dayLogs, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showFinisher, setShowFinisher] = useState(false)
+  const [cardioType, setCardioType] = useState<'incline_walk' | 'cross_trainer'>('incline_walk')
+  const [cardioMins, setCardioMins] = useState('')
+  const [cardioKcal, setCardioKcal] = useState('')
   const timerRef = useRef(0)
   timerRef.current = timer
   const startedAtRef = useRef<number | null>(null)
@@ -24,14 +27,12 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     if (!timerRunning) return
-    // Anchor the wall-clock start so paused time is excluded
     startedAtRef.current = Date.now() - timerRef.current * 1000
     const tick = () => {
       if (startedAtRef.current !== null)
         setTimer(Math.floor((Date.now() - startedAtRef.current) / 1000))
     }
     const id = setInterval(tick, 1000)
-    // Snap display immediately when screen unlocks — zero background work
     document.addEventListener('visibilitychange', tick)
     return () => {
       clearInterval(id)
@@ -52,9 +53,23 @@ export default function WorkoutPage() {
   const progress = totalCount > 0 ? (doneCount / totalCount) * 100 : 0
   const workoutDone = dayLog?.workoutDone ?? false
   const notes = dayLog?.workoutNotes ?? ''
+  const savedCardio = dayLog?.cardio
 
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
   const secs = (timer % 60).toString().padStart(2, '0')
+
+  const saveCardio = () => {
+    const m = parseInt(cardioMins)
+    const k = parseInt(cardioKcal)
+    if (!m || !k || m <= 0 || k <= 0) return
+    logCardio({ type: cardioType, minutes: m, caloriesBurned: k })
+  }
+
+  const clearCardio = () => {
+    logCardio(null)
+    setCardioMins('')
+    setCardioKcal('')
+  }
 
   return (
     <div className="pb-28 space-y-4">
@@ -71,7 +86,6 @@ export default function WorkoutPage() {
               <p className="text-[10px] italic text-[#2C2C38] mt-2">&ldquo;{getQuoteOfHour()}&rdquo;</p>
             </div>
 
-            {/* 5-plan grid */}
             <div className="space-y-2">
               {WORKOUT_PLANS.map(plan => (
                 <button
@@ -107,7 +121,6 @@ export default function WorkoutPage() {
                 </button>
               ))}
 
-              {/* Rest day option */}
               <button
                 onClick={() => selectWorkout('rest')}
                 className="w-full text-left rounded-xl border border-[#1E1E26] bg-[#0D0D10] p-4 cursor-pointer btn-press active:scale-[0.98] transition-all"
@@ -136,7 +149,6 @@ export default function WorkoutPage() {
                 <p className="text-[10px] italic text-[#2C2C38] mt-1">&ldquo;{getQuoteOfHour()}&rdquo;</p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                {/* Timer */}
                 <button
                   onClick={() => setTimerRunning(r => !r)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer
@@ -146,7 +158,6 @@ export default function WorkoutPage() {
                     {mins}:{secs}
                   </span>
                 </button>
-                {/* Change workout (only if not done) */}
                 {!workoutDone && (
                   <button
                     onClick={() => selectWorkout('')}
@@ -219,6 +230,85 @@ export default function WorkoutPage() {
                       </button>
                     )
                   })}
+                </div>
+
+                {/* ── Cardio (optional) ── */}
+                <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-[#1E1E26] flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">CARDIO</span>
+                      <span className="text-[10px] font-black tracking-[0.3em] text-[#2C2C38]"> · OPTIONAL</span>
+                    </div>
+                    {savedCardio && (
+                      <button onClick={clearCardio}
+                        className="text-[9px] font-black text-[#686870] cursor-pointer active:opacity-60 tracking-widest">
+                        CLEAR
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {/* Type selector */}
+                    <div className="flex gap-2">
+                      {(['incline_walk', 'cross_trainer'] as const).map(type => (
+                        <button key={type} onClick={() => setCardioType(type)}
+                          className={`flex-1 py-2.5 rounded-xl border text-[10px] font-black tracking-wider cursor-pointer transition-all btn-press
+                            ${cardioType === type
+                              ? 'border-[#FF2800] text-[#FF5500]'
+                              : 'bg-[#0D0D10] border-[#1E1E26] text-[#686870]'}`}
+                          style={cardioType === type ? { background: '#FF280018' } : {}}>
+                          {type === 'incline_walk' ? '⛰ INCLINE WALK' : '🔄 CROSS TRAINER'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Minutes + Calories inputs */}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1.5">MINUTES</div>
+                        <input
+                          type="number" inputMode="numeric"
+                          value={cardioMins}
+                          onChange={e => setCardioMins(e.target.value)}
+                          placeholder={savedCardio ? String(savedCardio.minutes) : '30'}
+                          className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1.5">KCAL BURNED</div>
+                        <input
+                          type="number" inputMode="numeric"
+                          value={cardioKcal}
+                          onChange={e => setCardioKcal(e.target.value)}
+                          placeholder={savedCardio ? String(savedCardio.caloriesBurned) : '200'}
+                          className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={saveCardio}
+                      disabled={!cardioMins || !cardioKcal}
+                      className="w-full py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all cursor-pointer btn-press disabled:opacity-30 disabled:cursor-not-allowed bg-[#FF280018] border border-[#FF280044] text-[#FF5500]">
+                      SAVE CARDIO
+                    </button>
+
+                    {/* Saved cardio summary */}
+                    {savedCardio && (
+                      <div className="flex items-center gap-2.5 py-2.5 px-3 bg-[#1DB95411] border border-[#1DB95433] rounded-xl">
+                        <span className="text-lg leading-none">
+                          {savedCardio.type === 'incline_walk' ? '⛰' : '🔄'}
+                        </span>
+                        <div>
+                          <div className="text-[11px] font-black text-[#1DB954] tracking-wider">
+                            {savedCardio.type === 'incline_walk' ? 'INCLINE WALK' : 'CROSS TRAINER'} LOGGED ✓
+                          </div>
+                          <div className="text-[10px] text-[#686870] mt-0.5">
+                            {savedCardio.minutes} min · {savedCardio.caloriesBurned} kcal burned
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Finisher */}

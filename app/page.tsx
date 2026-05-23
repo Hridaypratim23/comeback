@@ -320,6 +320,12 @@ export default function HomePage() {
   const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
   const todaySteps = todayLog?.steps ?? 0
 
+  // Calories burned: lifting (350 fixed if done) + cardio (manual) + steps (weight-based)
+  const liftingKcal  = todayLog?.workoutDone ? 350 : 0
+  const cardioKcal   = todayLog?.cardio?.caloriesBurned ?? 0
+  const stepsKcal    = Math.round(todaySteps * stats.weight * 0.00057)
+  const totalBurned  = liftingKcal + cardioKcal + stepsKcal
+
   const dailyWorkout = todayLog?.workoutDone ? 25 : 0
   const dailySteps   = Math.min(todaySteps / 10000, 1) * 25
   const dailySleep   = todayLog?.habits?.sleep ? 25 : 0
@@ -723,16 +729,16 @@ export default function HomePage() {
                         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${stepsPct}%`, background: 'linear-gradient(90deg, #1A6BB5, #2196F3)' }} />
                       </div>
                     </div>
-                    <Link href="/progress" className="cursor-pointer">
-                      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(212,160,23,0.4)' }}>
+                    <Link href="/workout" className="cursor-pointer">
+                      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(29,185,84,0.4)' }}>
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Trophy size={13} className="text-[#D4A017]" />
-                          <span className="text-[9px] font-black tracking-widest text-[#686870]">WORKOUTS</span>
+                          <span className="text-sm leading-none">🔥</span>
+                          <span className="text-[9px] font-black tracking-widest text-[#686870]">BURNED</span>
                         </div>
-                        <div className="text-2xl font-black text-[#EDEDF0] leading-none">{stats.workoutsCompleted}</div>
-                        <div className="text-[10px] text-[#686870] mt-0.5">total</div>
+                        <div className={`text-2xl font-black leading-none ${totalBurned > 0 ? 'text-[#1DB954]' : 'text-[#EDEDF0]'}`}>{totalBurned}</div>
+                        <div className="text-[10px] text-[#686870] mt-0.5">kcal</div>
                         <div className="mt-2 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min((stats.workoutsCompleted / 100) * 100, 100)}%`, background: 'linear-gradient(90deg, #B08A00, #D4A017)' }} />
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min((totalBurned / 1000) * 100, 100)}%`, background: 'linear-gradient(90deg, #0D7A3A, #1DB954)' }} />
                         </div>
                       </div>
                     </Link>

@@ -14,6 +14,12 @@ export interface ExerciseLog {
   sets: SetLog[]
 }
 
+export interface CardioLog {
+  type: 'incline_walk' | 'cross_trainer'
+  minutes: number
+  caloriesBurned: number
+}
+
 export interface MealEntry {
   id: string
   name: string
@@ -32,6 +38,7 @@ export interface DayLog {
   exerciseLogs: ExerciseLog[]
   checkedExercises: string[]
   workoutNotes: string
+  cardio?: CardioLog
   meals: MealEntry[]
   waterMl: number
   steps: number
@@ -119,6 +126,7 @@ interface AppState {
   selectWorkout: (workoutId: string) => void
   toggleExerciseCheck: (exerciseId: string) => void
   setWorkoutNotes: (notes: string) => void
+  logCardio: (cardio: CardioLog | null) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
   removeMeal: (id: string) => void
   updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
@@ -387,6 +395,14 @@ export const useStore = create<AppState>()(
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, workoutNotes: notes } } }
+        })
+      },
+
+      logCardio: (cardio) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, cardio: cardio ?? undefined } } }
         })
       },
 
