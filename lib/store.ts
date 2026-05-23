@@ -522,6 +522,7 @@ export const useStore = create<AppState>()(
         set(s => ({
           measurements: [...s.measurements.filter(x => x.date !== d), { ...m, date: d }].slice(-90),
         }))
+        get().syncToSupabase()
       },
 
       setFastingHours: (hours) => {
@@ -553,6 +554,7 @@ export const useStore = create<AppState>()(
             stats: { ...s.stats, totalXP, level },
           }
         })
+        get().syncToSupabase()
       },
     }),
     {
