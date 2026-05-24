@@ -27,8 +27,20 @@ export async function GET() {
   const istNow = new Date(now.getTime() + istOffset)
   const yesterday = localDateStr(new Date(istNow.getTime() - 86400000))
 
-  // Set pendingStepFixes — mergeRemoteState applies these unconditionally, overriding local merge
-  const patched = { ...state, pendingStepFixes: { [yesterday]: 10001 } }
+  // Patch both pendingStepFixes (picked up on next merge) AND dayLogs directly
+  // so the fix survives even if pendingStepFixes was already consumed
+  const existingDayLogs = (state.dayLogs as Record<string, unknown> | undefined) ?? {}
+  const existingDay = (existingDayLogs[yesterday] as Record<string, unknown> | undefined) ?? {
+    date: yesterday, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false, fastingHours: 0,
+  }
+  const patched = {
+    ...state,
+    pendingStepFixes: { [yesterday]: 10001 },
+    dayLogs: {
+      ...existingDayLogs,
+      [yesterday]: { ...existingDay, steps: 10001 },
+    },
+  }
 
   const { error: writeError } = await db
     .from('app_state')

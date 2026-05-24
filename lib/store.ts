@@ -482,13 +482,18 @@ export const useStore = create<AppState>()(
 
       mergeRemoteState: (remote) => {
         set(s => {
-          // Merge dayLogs: union, preferring whichever has more meals/data per day
+          // Merge dayLogs: meals from whichever has more; numeric activity fields take max
           const mergedDayLogs: Record<string, DayLog> = { ...remote.dayLogs }
           for (const [date, local] of Object.entries(s.dayLogs)) {
             const rem = mergedDayLogs[date]
             if (!rem) { mergedDayLogs[date] = local; continue }
-            // Keep whichever has more meals logged
-            mergedDayLogs[date] = local.meals.length >= rem.meals.length ? local : rem
+            const base = local.meals.length >= rem.meals.length ? local : rem
+            mergedDayLogs[date] = {
+              ...base,
+              steps:        Math.max(local.steps ?? 0,        rem.steps ?? 0),
+              waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
+              fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
+            }
           }
 
           // Apply any server-mandated step corrections, overriding the merge result
