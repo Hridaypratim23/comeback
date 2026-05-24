@@ -91,6 +91,12 @@ const RULES: Rule[] = [
     keywords: ['samosa', 'vada', 'pakora', 'pakoda'],
     config: { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 2 },
   },
+  {
+    keywords: ['gulab jamun', 'gulabjamun', 'kalakand', 'barfi', 'burfi', 'ladoo', 'laddu',
+               'rasgulla', 'rasmalai', 'rasmali', 'peda', 'jalebi', 'kaju katli',
+               'mysore pak', 'motichoor', 'besan ladoo', 'coconut ladoo'],
+    config: { unit: 'piece', singular: 'piece', plural: 'pieces', min: 1, max: 8, step: 1, defaultQty: 1 },
+  },
 ]
 
 const GRAMS_CONFIG: UnitConfig = {

@@ -84,7 +84,12 @@ export default function NutritionPage() {
   const [loggedMealEdit, setLoggedMealEdit] = useState<MealEntry | null>(null)
   const [mealQtyFactor, setMealQtyFactor] = useState(1)
   const [mealEditMode, setMealEditMode] = useState<'qty' | 'values'>('qty')
+  const [mealEditIsSmartQty, setMealEditIsSmartQty] = useState(false)
   const [mealEditForm, setMealEditForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' })
+
+  // extra calories logger
+  const [showExtraModal, setShowExtraModal] = useState(false)
+  const [extraForm, setExtraForm] = useState({ calories: '', protein: '', carbs: '', fat: '' })
 
   useEffect(() => {
     setMounted(true)
@@ -95,7 +100,7 @@ export default function NutritionPage() {
     if (mounted && customMeals.length === 0) setTab('quick-add')
   }, [mounted, customMeals.length])
 
-  const anyModalOpen = !!(loggedMealDelete || loggedMealEdit || deletePending || servingMeal || showServingDialog)
+  const anyModalOpen = !!(loggedMealDelete || loggedMealEdit || deletePending || servingMeal || showServingDialog || showExtraModal)
   useEffect(() => {
     if (!mounted) return
     if (anyModalOpen) {
@@ -461,8 +466,18 @@ export default function NutritionPage() {
                     </div>
                   </div>
                   <button onClick={() => {
+                    const bn = m.name.replace(/\s*\([^)]*\)\s*$/, '').trim()
+                    const tmpl = customMeals.find(cm => cm.name.toLowerCase() === bn.toLowerCase())
+                    const isSmart = !!(tmpl?.unit && tmpl.calories > 0)
+                    const scfg = isSmart ? getUnitConfig(tmpl!.name) : null
+                    let initQty = 1
+                    if (isSmart && tmpl && scfg) {
+                      const raw = scfg.isGrams ? (m.calories / tmpl.calories) * 100 : (m.calories / tmpl.calories)
+                      initQty = Math.max(scfg.min, Math.min(scfg.max, Math.round(raw / scfg.step) * scfg.step))
+                    }
                     setLoggedMealEdit(m)
-                    setMealQtyFactor(1)
+                    setMealQtyFactor(initQty)
+                    setMealEditIsSmartQty(isSmart)
                     setMealEditMode('qty')
                     setMealEditForm({ name: m.name, calories: String(m.calories), protein: String(m.protein), carbs: String(m.carbs), fat: String(m.fat), fibre: String(m.fibre ?? 0) })
                   }}
@@ -479,6 +494,17 @@ export default function NutritionPage() {
           )}
         </div>
       )}
+
+      {/* Extra Calories Card */}
+      <button
+        onClick={() => setShowExtraModal(true)}
+        className="w-full flex items-center justify-between bg-[#111116] border border-[#1E1E26] rounded-xl px-4 py-3 cursor-pointer active:bg-[#17171D] transition-colors text-left">
+        <div>
+          <div className="text-[10px] font-black tracking-[0.25em] text-[#686870]">LOG EXTRA CALORIES</div>
+          <div className="text-[9px] text-[#2C2C38] mt-0.5">No name required — calories &amp; macros only</div>
+        </div>
+        <Plus size={16} className="text-[#FF5500] flex-shrink-0" />
+      </button>
 
       {/* Tab Bar */}
       <div className="flex bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-1 gap-1">
@@ -902,88 +928,108 @@ export default function NutritionPage() {
         document.body
       )}
 
-      {/* ── Edit logged meal (centered) ── */}
+      {/* ── Edit logged meal (bottom sheet) ── */}
       {loggedMealEdit && (() => {
         const m = loggedMealEdit
-        const scaledCal   = Math.round(m.calories * mealQtyFactor)
-        const scaledPro   = Math.round(m.protein  * mealQtyFactor)
-        const scaledCarb  = Math.round(m.carbs    * mealQtyFactor)
-        const scaledFat   = Math.round(m.fat      * mealQtyFactor)
-        const scaledFibre = Math.round((m.fibre ?? 0) * mealQtyFactor)
-        const qtyChanged  = Math.abs(mealQtyFactor - 1) > 0.01
-        const vCal   = parseFloat(mealEditForm.calories) || 0
-        const vPro   = parseFloat(mealEditForm.protein)  || 0
-        const vCarb  = parseFloat(mealEditForm.carbs)    || 0
-        const vFat   = parseFloat(mealEditForm.fat)      || 0
-        const vFibre = parseFloat(mealEditForm.fibre)    || 0
-        const valuesChanged = mealEditForm.name.trim() !== m.name || vCal !== m.calories || vPro !== m.protein || vCarb !== m.carbs || vFat !== m.fat
-        const canSave = mealEditMode === 'qty' ? qtyChanged : valuesChanged
+        const baseName = m.name.replace(/\s*\([^)]*\)\s*$/, '').trim()
+        const template = mealEditIsSmartQty
+          ? (customMeals.find(cm => cm.name.toLowerCase() === baseName.toLowerCase()) ?? null)
+          : null
+        const smartCfg = template ? getUnitConfig(template.name) : null
 
-        function factorLabel(f: number): string {
-          const whole = Math.floor(f)
-          const frac = f - whole
-          const fracStr = frac < 0.01 ? '' : frac < 0.3 ? '¼' : frac < 0.6 ? '½' : '¾'
-          return whole === 0 ? `${fracStr}×` : `${whole}${fracStr}×`
+        // Compute preview macros
+        let newCal: number, newPro: number, newCarb: number, newFat: number, newFibre: number
+        if (mealEditMode === 'values') {
+          newCal   = parseFloat(mealEditForm.calories) || 0
+          newPro   = parseFloat(mealEditForm.protein)  || 0
+          newCarb  = parseFloat(mealEditForm.carbs)    || 0
+          newFat   = parseFloat(mealEditForm.fat)       || 0
+          newFibre = parseFloat(mealEditForm.fibre)    || 0
+        } else if (mealEditIsSmartQty && template && smartCfg) {
+          const ratio = scaleRatio(mealQtyFactor, smartCfg)
+          newCal   = Math.round(template.calories        * ratio)
+          newPro   = Math.round(template.protein         * ratio)
+          newCarb  = Math.round(template.carbs           * ratio)
+          newFat   = Math.round(template.fat             * ratio)
+          newFibre = Math.round((template.fibre ?? 0)    * ratio)
+        } else {
+          newCal   = Math.round(m.calories     * mealQtyFactor)
+          newPro   = Math.round(m.protein      * mealQtyFactor)
+          newCarb  = Math.round(m.carbs        * mealQtyFactor)
+          newFat   = Math.round(m.fat          * mealQtyFactor)
+          newFibre = Math.round((m.fibre ?? 0) * mealQtyFactor)
         }
 
+        const calDelta  = newCal - m.calories
+        const isChanged = newCal !== m.calories || newPro !== m.protein || newCarb !== m.carbs || newFat !== m.fat
+
+        const sliderMin   = mealEditIsSmartQty && smartCfg ? smartCfg.min  : 0.25
+        const sliderMax   = mealEditIsSmartQty && smartCfg ? smartCfg.max  : 3
+        const sliderStep  = mealEditIsSmartQty && smartCfg ? smartCfg.step : 0.25
+        const qtyLabel    = mealEditIsSmartQty && smartCfg
+          ? formatQty(mealQtyFactor, smartCfg)
+          : `${mealQtyFactor}×`
+        const minLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.min, smartCfg) : '¼×'
+        const maxLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.max, smartCfg) : '3×'
+
         return createPortal(
-          <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setLoggedMealEdit(null)} />
-          <div style={{ position: 'fixed', zIndex: 201, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'calc(100vw - 2rem)', maxWidth: '24rem', maxHeight: '85vh', overflowY: 'auto' }}
-              className="bg-[#111116] border border-[#2C2C38] rounded-2xl"
-              onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/70 z-[200] flex items-end" onClick={() => setLoggedMealEdit(null)}>
+            <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl"
+                 onClick={e => e.stopPropagation()}>
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-[#2C2C38]" />
+              </div>
 
               {/* Header */}
-              <div className="px-5 pt-5 pb-3 border-b border-[#1E1E26]">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">EDIT MEAL</div>
-                  <div className="text-[10px] text-[#686870]">{m.time}</div>
+              <div className="px-5 pt-1 pb-3 border-b border-[#1E1E26]">
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="text-[9px] font-black tracking-[0.3em] text-[#686870]">EDIT ENTRY</div>
+                  <div className="text-[9px] text-[#2C2C38]">{m.time}</div>
                 </div>
-                {mealEditMode === 'qty'
-                  ? <div className="text-sm font-black text-[#EDEDF0] truncate">{m.name}</div>
-                  : <input value={mealEditForm.name} onChange={e => setMealEditForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full mt-1 bg-[#0D0D10] border border-[#2C2C38] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none" />
-                }
+                <div className="text-base font-black text-[#EDEDF0]">{baseName}</div>
               </div>
 
-              {/* Mode toggle */}
-              <div className="flex mx-5 mt-3 bg-[#0D0D10] rounded-lg p-0.5 gap-0.5">
-                {(['qty', 'values'] as const).map(mode => (
-                  <button key={mode} onClick={() => setMealEditMode(mode)}
-                    className={`flex-1 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all cursor-pointer
-                      ${mealEditMode === mode ? 'bg-[#1E1E26] text-[#EDEDF0]' : 'text-[#686870]'}`}>
-                    {mode === 'qty' ? 'QUANTITY' : 'EDIT VALUES'}
-                  </button>
-                ))}
-              </div>
-
-              <div className="px-5 pt-3 pb-3">
+              <div className="px-5 pt-4 pb-2">
                 {mealEditMode === 'qty' ? (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-black tracking-widest text-[#686870]">SCALE</span>
-                      <span className="text-lg font-black text-[#FF2800]">{factorLabel(mealQtyFactor)}</span>
-                    </div>
-                    <input type="range" min={0.25} max={3} step={0.25} value={mealQtyFactor}
-                      onChange={e => setMealQtyFactor(Number(e.target.value))}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]" />
-                    <div className="flex justify-between text-[8px] text-[#2C2C38] font-bold mt-1 px-0.5">
-                      <span>¼×</span><span>½×</span><span>¾×</span><span>1×</span><span>1½×</span><span>2×</span><span>2½×</span><span>3×</span>
-                    </div>
-                    <div className="mt-3 bg-[#0D0D10] rounded-xl p-3">
-                      <div className="text-xl font-black text-[#FF5500] leading-none mb-1">
-                        {scaledCal} <span className="text-sm text-[#686870] font-normal">cal</span>
-                        {qtyChanged && <span className="text-xs text-[#686870] font-normal ml-2 line-through">{m.calories}</span>}
+                  <div className="space-y-4">
+                    {/* Quantity / scale slider */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-[#686870]">{minLabel}</span>
+                        <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
+                        <span className="text-[10px] text-[#686870]">{maxLabel}</span>
                       </div>
-                      <div className="flex gap-3 text-[11px] font-black flex-wrap">
-                        <span style={{ color: '#FF2800' }}>{scaledPro}g P</span>
-                        <span style={{ color: '#FF5500' }}>{scaledCarb}g C</span>
-                        <span style={{ color: '#D4A017' }}>{scaledFat}g F</span>
-                        {(m.fibre ?? 0) > 0 && <span style={{ color: '#1DB954' }}>{scaledFibre}g Fi</span>}
+                      <input type="range" min={sliderMin} max={sliderMax} step={sliderStep}
+                        value={mealQtyFactor}
+                        onChange={e => setMealQtyFactor(Number(e.target.value))}
+                        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]" />
+                    </div>
+
+                    {/* Before → After */}
+                    <div className="flex gap-3">
+                      <div className="flex-1 bg-[#0D0D10] rounded-xl p-3">
+                        <div className="text-[8px] font-black tracking-widest text-[#2C2C38] mb-1">NOW</div>
+                        <div className="text-xl font-black text-[#686870] leading-none">
+                          {m.calories}<span className="text-[10px] font-normal ml-0.5">kcal</span>
+                        </div>
+                        <div className="text-[9px] text-[#686870] mt-1">{m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
+                      </div>
+                      <div className="flex-1 bg-[#0D0D10] border border-[#FF280028] rounded-xl p-3">
+                        <div className="text-[8px] font-black tracking-widest text-[#FF2800] mb-1">AFTER SAVE</div>
+                        <div className="text-xl font-black text-[#FF5500] leading-none">
+                          {newCal}<span className="text-[10px] font-normal ml-0.5">kcal</span>
+                        </div>
+                        <div className="text-[9px] text-[#686870] mt-1">{newPro}g P · {newCarb}g C · {newFat}g F</div>
                       </div>
                     </div>
-                  </>
+
+                    {calDelta !== 0 && (
+                      <div className={`text-center text-sm font-black tracking-widest ${calDelta > 0 ? 'text-[#FF5500]' : 'text-[#1DB954]'}`}>
+                        {calDelta > 0 ? '+' : ''}{calDelta} kcal
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {[
@@ -1005,31 +1051,108 @@ export default function NutritionPage() {
                 )}
               </div>
 
-              <div className="flex gap-2 px-5 pb-5">
-                <button onClick={() => setLoggedMealEdit(null)}
-                  className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
-                  GO BACK
+              <div className="px-5 pt-2 pb-7 space-y-3">
+                <button onClick={() => setMealEditMode(v => v === 'qty' ? 'values' : 'qty')}
+                  className="w-full text-[9px] font-black tracking-[0.2em] text-[#2C2C38] cursor-pointer py-1 text-center">
+                  {mealEditMode === 'qty' ? '· EDIT VALUES MANUALLY ·' : '· ADJUST QUANTITY ·'}
                 </button>
-                {canSave && (
-                  <button onClick={() => {
-                    if (mealEditMode === 'qty') {
-                      updateMeal(m.id, { calories: scaledCal, protein: scaledPro, carbs: scaledCarb, fat: scaledFat, fibre: scaledFibre,
-                        name: m.name.replace(/\s*\(×[\d.]+\)$/, '') + (qtyChanged ? ` (×${mealQtyFactor})` : '') })
-                    } else {
-                      updateMeal(m.id, { name: mealEditForm.name.trim() || m.name, calories: vCal, protein: vPro, carbs: vCarb, fat: vFat, fibre: vFibre })
-                    }
-                    setLoggedMealEdit(null); haptic()
-                  }}
-                    className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                <div className="flex gap-3">
+                  <button onClick={() => setLoggedMealEdit(null)}
+                    className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                    CANCEL
+                  </button>
+                  <button
+                    disabled={!isChanged}
+                    onClick={() => {
+                      if (mealEditMode === 'values') {
+                        updateMeal(m.id, { name: mealEditForm.name.trim() || m.name, calories: newCal, protein: newPro, carbs: newCarb, fat: newFat, fibre: newFibre })
+                      } else if (mealEditIsSmartQty && template && smartCfg) {
+                        updateMeal(m.id, {
+                          name: `${baseName} (${formatQty(mealQtyFactor, smartCfg)})`,
+                          calories: newCal, protein: newPro, carbs: newCarb, fat: newFat, fibre: newFibre,
+                        })
+                      } else {
+                        const suffix = Math.abs(mealQtyFactor - 1) > 0.01 ? ` (×${mealQtyFactor})` : ''
+                        updateMeal(m.id, { name: baseName + suffix, calories: newCal, protein: newPro, carbs: newCarb, fat: newFat, fibre: newFibre })
+                      }
+                      setLoggedMealEdit(null); haptic()
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-[#FF2800] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-30 disabled:cursor-not-allowed">
                     SAVE
                   </button>
-                )}
+                </div>
               </div>
             </div>
-          </>,
+          </div>,
           document.body
         )
       })()}
+
+      {/* ── Extra Calories Modal ── */}
+      {showExtraModal && createPortal(
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-end" onClick={() => setShowExtraModal(false)}>
+          <div className="w-full bg-[#111116] border-t border-[#2C2C38] rounded-t-2xl p-5 space-y-4"
+               onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center -mt-2 mb-1">
+              <div className="w-10 h-1 rounded-full bg-[#2C2C38]" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">LOG EXTRA CALORIES</div>
+              <div className="text-[10px] text-[#2C2C38] mt-0.5">No food name needed — just log what you consumed.</div>
+            </div>
+
+            <div>
+              <div className="text-[9px] font-black tracking-wider mb-1.5" style={{ color: '#FF5500' }}>CALORIES (required)</div>
+              <input type="number" inputMode="decimal" placeholder="e.g. 300"
+                value={extraForm.calories}
+                onChange={e => setExtraForm(f => ({ ...f, calories: e.target.value }))}
+                className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF5500] rounded-lg px-3 py-3 text-xl font-black text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center transition-colors" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { key: 'protein', label: 'PROTEIN g', color: '#FF2800' },
+                { key: 'carbs',   label: 'CARBS g',   color: '#FF5500' },
+                { key: 'fat',     label: 'FAT g',      color: '#D4A017' },
+              ] as const).map(({ key, label, color }) => (
+                <div key={key}>
+                  <div className="text-[9px] font-black tracking-wider mb-1" style={{ color }}>{label}</div>
+                  <input type="number" inputMode="decimal" placeholder="0"
+                    value={extraForm[key]}
+                    onChange={e => setExtraForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center" />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pb-1">
+              <button onClick={() => { setShowExtraModal(false); setExtraForm({ calories: '', protein: '', carbs: '', fat: '' }) }}
+                className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
+                CANCEL
+              </button>
+              <button
+                disabled={!extraForm.calories || parseFloat(extraForm.calories) <= 0}
+                onClick={() => {
+                  addMeal({
+                    name: 'Extra',
+                    calories: parseFloat(extraForm.calories) || 0,
+                    protein:  parseFloat(extraForm.protein)  || 0,
+                    carbs:    parseFloat(extraForm.carbs)    || 0,
+                    fat:      parseFloat(extraForm.fat)       || 0,
+                    fibre:    0,
+                  })
+                  setShowExtraModal(false)
+                  setExtraForm({ calories: '', protein: '', carbs: '', fat: '' })
+                  haptic()
+                }}
+                className="flex-1 py-3 rounded-xl bg-[#FF5500] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-30 disabled:cursor-not-allowed">
+                LOG
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Delete confirmation modal ── */}
       {deletePending && createPortal(
