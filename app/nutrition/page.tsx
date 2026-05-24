@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, CustomMealTemplate, MealEntry } from '@/lib/store'
 import { QUICK_MEALS } from '@/constants/workouts'
@@ -116,35 +116,6 @@ export default function NutritionPage() {
     }
   }, [anyModalOpen, mounted])
 
-  // Hooks must be called before any early return
-  const recentMealNames = useMemo(() => {
-    const names = new Set<string>()
-    const now = new Date()
-    for (let i = 1; i <= 7; i++) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - i)
-      const dk = d.toLocaleDateString('en-CA')
-      dayLogs[dk]?.meals.forEach(m => {
-        names.add(m.name.replace(/\s*\(.*?\)\s*$/, '').trim().toLowerCase())
-      })
-    }
-    return names
-  }, [dayLogs])
-
-  const allHistoricalMeals = useMemo(() => {
-    const today = new Date().toLocaleDateString('en-CA')
-    const seen = new Map<string, { meal: typeof dayLogs[string]['meals'][0]; date: string }>()
-    const sortedDates = Object.keys(dayLogs).sort().reverse()
-    for (const dk of sortedDates) {
-      if (dk === today) continue
-      for (const m of dayLogs[dk]?.meals ?? []) {
-        const key = m.name.replace(/\s*\(.*?\)\s*$/, '').trim().toLowerCase()
-        if (!seen.has(key)) seen.set(key, { meal: m, date: dk })
-      }
-    }
-    return Array.from(seen.values()).sort((a, b) => b.date.localeCompare(a.date))
-  }, [dayLogs])
-
   const barcodeFileRef = useRef<HTMLInputElement>(null)
 
   if (!mounted) return null
@@ -172,19 +143,10 @@ export default function NutritionPage() {
 
   const filteredQuick = QUICK_MEALS
     .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      const ar = recentMealNames.has(a.name.toLowerCase()) ? 0 : 1
-      const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
-      return ar !== br ? ar - br : a.name.localeCompare(b.name)
-    })
-  const filteredHistory = allHistoricalMeals.filter(({ meal: m }) => m.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
   const filteredCustom = customMeals
     .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      const ar = recentMealNames.has(a.name.toLowerCase()) ? 0 : 1
-      const br = recentMealNames.has(b.name.toLowerCase()) ? 0 : 1
-      return ar !== br ? ar - br : a.name.localeCompare(b.name)
-    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const submitCreate = () => {
     const name = form.name.trim()
@@ -531,32 +493,6 @@ export default function NutritionPage() {
               <X size={13} className="text-[#686870]" />
             </button>
           )}
-        </div>
-      )}
-
-      {/* MY MEALS tab — all historical meals */}
-      {tab === 'my-meals' && filteredHistory.length > 0 && (
-        <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-[#1E1E26] flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MEAL HISTORY</span>
-            <span className="text-[8px] text-[#2C2C38] font-bold tracking-widest">{filteredHistory.length} MEALS</span>
-          </div>
-          <div className="divide-y divide-[#1E1E26]">
-            {filteredHistory.map(({ meal: m }) => (
-              <button key={m.id}
-                onClick={() => {
-                  addMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, fibre: m.fibre ?? 0 })
-                  haptic()
-                }}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#17171D] transition-colors cursor-pointer text-left">
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-[#EDEDF0] truncate">{m.name}</div>
-                  <div className="text-[10px] text-[#686870]">{m.calories} cal · {m.protein}g P · {m.carbs}g C · {m.fat}g F</div>
-                </div>
-                <Plus size={15} className="text-[#686870] flex-shrink-0 ml-2" />
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
