@@ -85,6 +85,7 @@ export default function NutritionPage() {
   const [mealQtyFactor, setMealQtyFactor] = useState(1)
   const [mealEditMode, setMealEditMode] = useState<'qty' | 'values'>('qty')
   const [mealEditIsSmartQty, setMealEditIsSmartQty] = useState(false)
+  const [mealEditInferredGrams, setMealEditInferredGrams] = useState<number | null>(null)
   const [mealEditForm, setMealEditForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', fibre: '' })
 
   // extra calories logger
@@ -437,8 +438,11 @@ export default function NutritionPage() {
                       const raw = scfg.isGrams ? (m.calories / tmpl.calories) * 100 : (m.calories / tmpl.calories)
                       initQty = Math.max(scfg.min, Math.min(scfg.max, Math.round(raw / scfg.step) * scfg.step))
                     }
+                    const gramsMatch = m.name.match(/\((\d+)g\)$/)
+                    const ig = !isSmart && gramsMatch ? parseInt(gramsMatch[1]) : null
+                    setMealEditInferredGrams(ig)
                     setLoggedMealEdit(m)
-                    setMealQtyFactor(initQty)
+                    setMealQtyFactor(ig !== null ? ig : initQty)
                     setMealEditIsSmartQty(isSmart)
                     setMealEditMode('qty')
                     setMealEditForm({ name: m.name, calories: String(m.calories), protein: String(m.protein), carbs: String(m.carbs), fat: String(m.fat), fibre: String(m.fibre ?? 0) })
@@ -888,6 +892,13 @@ export default function NutritionPage() {
           newCarb  = Math.round(template.carbs           * ratio)
           newFat   = Math.round(template.fat             * ratio)
           newFibre = Math.round((template.fibre ?? 0)    * ratio)
+        } else if (mealEditInferredGrams !== null && mealEditInferredGrams > 0) {
+          const ratio = mealQtyFactor / mealEditInferredGrams
+          newCal   = Math.round(m.calories     * ratio)
+          newPro   = Math.round(m.protein      * ratio)
+          newCarb  = Math.round(m.carbs        * ratio)
+          newFat   = Math.round(m.fat          * ratio)
+          newFibre = Math.round((m.fibre ?? 0) * ratio)
         } else {
           newCal   = Math.round(m.calories     * mealQtyFactor)
           newPro   = Math.round(m.protein      * mealQtyFactor)
@@ -899,14 +910,14 @@ export default function NutritionPage() {
         const calDelta  = newCal - m.calories
         const isChanged = newCal !== m.calories || newPro !== m.protein || newCarb !== m.carbs || newFat !== m.fat
 
-        const sliderMin   = mealEditIsSmartQty && smartCfg ? smartCfg.min  : 0.25
-        const sliderMax   = mealEditIsSmartQty && smartCfg ? smartCfg.max  : 3
-        const sliderStep  = mealEditIsSmartQty && smartCfg ? smartCfg.step : 0.25
+        const sliderMin   = mealEditIsSmartQty && smartCfg ? smartCfg.min  : mealEditInferredGrams !== null ? 50   : 0.25
+        const sliderMax   = mealEditIsSmartQty && smartCfg ? smartCfg.max  : mealEditInferredGrams !== null ? 1000 : 3
+        const sliderStep  = mealEditIsSmartQty && smartCfg ? smartCfg.step : mealEditInferredGrams !== null ? 50   : 0.25
         const qtyLabel    = mealEditIsSmartQty && smartCfg
           ? formatQty(mealQtyFactor, smartCfg)
-          : `${mealQtyFactor}×`
-        const minLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.min, smartCfg) : '¼×'
-        const maxLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.max, smartCfg) : '3×'
+          : mealEditInferredGrams !== null ? `${mealQtyFactor}g` : `${mealQtyFactor}×`
+        const minLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.min, smartCfg) : mealEditInferredGrams !== null ? '50g'   : '¼×'
+        const maxLabel    = mealEditIsSmartQty && smartCfg ? formatQty(smartCfg.max, smartCfg) : mealEditInferredGrams !== null ? '1000g' : '3×'
 
         return createPortal(
           <div className="fixed inset-0 bg-black/70 z-[200] flex items-end" onClick={() => setLoggedMealEdit(null)}>
@@ -1005,6 +1016,11 @@ export default function NutritionPage() {
                       } else if (mealEditIsSmartQty && template && smartCfg) {
                         updateMeal(m.id, {
                           name: `${baseName} (${formatQty(mealQtyFactor, smartCfg)})`,
+                          calories: newCal, protein: newPro, carbs: newCarb, fat: newFat, fibre: newFibre,
+                        })
+                      } else if (mealEditInferredGrams !== null) {
+                        updateMeal(m.id, {
+                          name: `${baseName} (${mealQtyFactor}g)`,
                           calories: newCal, protein: newPro, carbs: newCarb, fat: newFat, fibre: newFibre,
                         })
                       } else {
