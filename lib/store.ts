@@ -39,6 +39,7 @@ export interface DayLog {
   checkedExercises: string[]
   workoutNotes: string
   cardio?: CardioLog
+  intimacyMinutes?: number
   meals: MealEntry[]
   waterMl: number
   steps: number
@@ -128,6 +129,7 @@ interface AppState {
   toggleExerciseCheck: (exerciseId: string) => void
   setWorkoutNotes: (notes: string) => void
   logCardio: (cardio: CardioLog | null) => void
+  logIntimacy: (minutes: number | null) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
   removeMeal: (id: string) => void
   updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
@@ -414,6 +416,15 @@ export const useStore = create<AppState>()(
           const day = s.dayLogs[d] ?? defaultDay(d)
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, cardio: cardio ?? undefined } } }
         })
+      },
+
+      logIntimacy: (minutes) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, intimacyMinutes: minutes ?? undefined } } }
+        })
+        get().syncToSupabase()
       },
 
       toggleHabit: (habitId) => {

@@ -140,7 +140,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio } = useStore()
+  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
@@ -149,6 +149,8 @@ export default function HomePage() {
   const [cardioType, setCardioType] = useState<'incline_walk' | 'cross_trainer'>('incline_walk')
   const [cardioMinsInput, setCardioMinsInput] = useState('')
   const [cardioKcalInput, setCardioKcalInput] = useState('')
+  const [intimacyExpanded, setIntimacyExpanded] = useState(false)
+  const [intimacyMinsInput, setIntimacyMinsInput] = useState('')
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false)
   const [now, setNow] = useState(new Date())
@@ -309,11 +311,12 @@ export default function HomePage() {
   const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
   const todaySteps = todayLog?.steps ?? 0
 
-  // Calories burned: lifting (350 fixed if done) + cardio (manual) + steps (weight-based)
-  const liftingKcal  = todayLog?.workoutDone ? 350 : 0
-  const cardioKcal   = todayLog?.cardio?.caloriesBurned ?? 0
-  const stepsKcal    = Math.round(todaySteps * stats.weight * 0.00057)
-  const totalBurned  = liftingKcal + cardioKcal + stepsKcal
+  // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min)
+  const liftingKcal   = todayLog?.workoutDone ? 350 : 0
+  const cardioKcal    = todayLog?.cardio?.caloriesBurned ?? 0
+  const stepsKcal     = Math.round(todaySteps * stats.weight * 0.00057)
+  const intimacyKcal  = Math.round((todayLog?.intimacyMinutes ?? 0) * 4)
+  const totalBurned   = liftingKcal + cardioKcal + stepsKcal + intimacyKcal
 
   const dailyWorkout = todayLog?.workoutDone ? 25 : 0
   const dailySteps   = Math.min(todaySteps / 10000, 1) * 25
@@ -858,6 +861,74 @@ export default function HomePage() {
                                   onClick={() => { setFastingHours(ifHours); setIfExpanded(false) }}
                                   className="flex-1 py-2 rounded-lg bg-[#1DB954] text-[#070709] text-[10px] font-black tracking-widest cursor-pointer btn-press">
                                   SAVE {ifHours}H
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
+
+                    {/* Intimacy */}
+                    {(() => {
+                      const mins      = todayLog?.intimacyMinutes ?? null
+                      const isActive  = mins !== null && mins > 0
+                      const kcal      = isActive ? Math.round(mins! * 4) : 0
+                      return (
+                        <div className={`rounded-lg border transition-all ${isActive ? 'bg-[#FF280011] border-[#FF280033]' : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
+                          <button
+                            onClick={() => { if (!isActive) setIntimacyExpanded(e => !e) }}
+                            className="w-full flex items-center gap-3 p-3 cursor-pointer btn-press text-left"
+                          >
+                            <span className="text-xl leading-none">❤️‍🔥</span>
+                            <div className="flex-1">
+                              <div className={`text-xs font-black tracking-wider ${isActive ? 'text-[#FF2800]' : 'text-[#EDEDF0]'}`}>
+                                {isActive ? `INTIMACY · ${mins}MIN · ${kcal}KCAL` : 'INTIMACY'}
+                              </div>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all
+                              ${isActive ? 'bg-[#FF2800] border-[#FF2800] text-white' : 'border-[#2C2C38]'}`}>
+                              {isActive && <span className="text-[10px] font-black">✓</span>}
+                            </div>
+                          </button>
+                          {isActive && (
+                            <div className="px-3 pb-3">
+                              <button
+                                onClick={() => logIntimacy(null)}
+                                className="w-full py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer btn-press">
+                                CLEAR
+                              </button>
+                            </div>
+                          )}
+                          {!isActive && intimacyExpanded && (
+                            <div className="px-3 pb-3 space-y-3">
+                              <div>
+                                <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">DURATION (minutes)</div>
+                                <input
+                                  type="number" inputMode="numeric" placeholder="15"
+                                  value={intimacyMinsInput} onChange={e => setIntimacyMinsInput(e.target.value)}
+                                  className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] outline-none"
+                                />
+                                {intimacyMinsInput && parseInt(intimacyMinsInput) > 0 && (
+                                  <div className="text-[10px] text-[#FF2800] font-black mt-1">
+                                    ≈ {Math.round(parseInt(intimacyMinsInput) * 4)} kcal burned
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => { setIntimacyExpanded(false); setIntimacyMinsInput('') }}
+                                  className="flex-1 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer btn-press">
+                                  CANCEL
+                                </button>
+                                <button
+                                  disabled={!intimacyMinsInput || parseInt(intimacyMinsInput) <= 0}
+                                  onClick={() => {
+                                    logIntimacy(parseInt(intimacyMinsInput))
+                                    setIntimacyExpanded(false); setIntimacyMinsInput('')
+                                  }}
+                                  className="flex-1 py-2 rounded-lg bg-[#FF2800] text-white text-[10px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-40">
+                                  LOG
                                 </button>
                               </div>
                             </div>
