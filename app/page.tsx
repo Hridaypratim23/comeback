@@ -685,7 +685,7 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center gap-1">
                         {todayLog?.workoutDone ? (
-                          <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">{selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓'}</span>
+                          <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">{workout.id === 'rest' ? 'REST ✓' : 'DONE ✓'}</span>
                         ) : (
                           <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-black tracking-widest cursor-pointer"
                             style={{ background: workout.color, color: '#fff' }}>
