@@ -86,7 +86,7 @@ input[type], input:not([type]), textarea, select {
   100% { transform: translateX(-50%); }
 }
 
-.animate-ticker             { animation: ticker 50s linear infinite; }
+.animate-ticker             { animation: ticker 22s linear infinite; }
 .animate-ticker:hover       { animation-play-state: paused; }
 
 /* ── Pulse red ────────────────────────────────────────── */
