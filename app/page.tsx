@@ -336,7 +336,7 @@ export default function HomePage() {
   }).filter(dk => dk <= todayKey)
   const curWeekLogs = curWeekKeys.map(dk => dayLogs[dk]).filter(Boolean)
 
-  const weekWorkouts = curWeekLogs.filter(d => d.workoutDone).length
+  const weekWorkouts = curWeekLogs.filter(d => d.workoutDone && d.selectedWorkoutId !== 'rest').length
   const weekStepDays = curWeekLogs.filter(d => d.steps >= 10000).length
   const weekSleepDays = curWeekLogs.filter(d => d.habits?.sleep).length
   const weekGoodDays  = curWeekLogs.filter(d => {
@@ -669,7 +669,7 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center gap-1">
                         {todayLog?.workoutDone ? (
-                          <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">DONE ✓</span>
+                          <span className="px-3 py-1 rounded text-[10px] font-black tracking-wider bg-[#0D7A3A] text-[#1DB954]">{selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓'}</span>
                         ) : (
                           <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-black tracking-widest cursor-pointer"
                             style={{ background: workout.color, color: '#fff' }}>

@@ -228,7 +228,7 @@ export default function ProgressPage() {
 
   const weekLogs = weekDayKeys.map(dk => dayLogs[dk]).filter(Boolean)
 
-  const weekWorkouts = weekLogs.filter(d => d.workoutDone).length
+  const weekWorkouts = weekLogs.filter(d => d.workoutDone && d.selectedWorkoutId !== 'rest').length
   const weekStepDays = weekLogs.filter(d => d.steps >= 10000).length
   const weekSleepDays = weekLogs.filter(d => d.habits?.sleep).length
   const weekGoodNutritionDays = weekLogs.filter(d => {
@@ -283,7 +283,7 @@ export default function ProgressPage() {
   const monthPrefix = today.slice(0, 7)
   const monthName = nowDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()
   const monthDayLogs = Object.values(dayLogs).filter(d => d.date.startsWith(monthPrefix))
-  const workoutsThisMonth = monthDayLogs.filter(d => d.workoutDone).length
+  const workoutsThisMonth = monthDayLogs.filter(d => d.workoutDone && d.selectedWorkoutId !== 'rest').length
   const calDays = monthDayLogs.filter(d => d.meals.length > 0)
   const avgCal = calDays.length > 0
     ? Math.round(calDays.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0) / calDays.length)
@@ -487,7 +487,7 @@ export default function ProgressPage() {
 
         {/* Summary row */}
         <div className="flex justify-between text-[9px] text-[#686870] mt-3 pt-3 border-t border-[#1E1E26]">
-          <span>🏋️ <span className="font-black text-[#FF2800]">{last7.filter(d => d.workoutDone).length}</span>/7 workouts</span>
+          <span>🏋️ <span className="font-black text-[#FF2800]">{last7.filter(d => d.workoutDone && d.dk && dayLogs[d.dk]?.selectedWorkoutId !== 'rest').length}</span>/7 workouts</span>
           <span>👟 <span className="font-black text-[#2196F3]">{last7.filter(d => d.steps >= 10000).length}</span>/7 days 10K+</span>
           <span>Total <span className="font-black text-[#EDEDF0]">{last7.reduce((s, d) => s + d.steps, 0).toLocaleString()}</span> steps</span>
         </div>
