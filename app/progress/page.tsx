@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore, TARGETS } from '@/lib/store'
-import { Edit3, Check, X } from 'lucide-react'
+import { Edit3, Check, X, Share2, Image, FileText } from 'lucide-react'
 import type { Measurement } from '@/lib/store'
+import { shareAsImage, saveAsPDF } from '@/lib/exportReport'
 
 
 function StatEditor({
@@ -200,6 +201,20 @@ export default function ProgressPage() {
 
   const [ciWeight, setCiWeight] = useState('')
   const [ciSaved, setCiSaved] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+  const [exporting, setExporting] = useState<'image' | 'pdf' | null>(null)
+  const reportRef = useRef<HTMLDivElement>(null)
+
+  const handleShareImage = async () => {
+    if (!reportRef.current) return
+    setExporting('image')
+    try { await shareAsImage(reportRef.current) } finally { setExporting(null); setShowShareMenu(false) }
+  }
+  const handleSavePDF = async () => {
+    if (!reportRef.current) return
+    setExporting('pdf')
+    try { await saveAsPDF(reportRef.current) } finally { setExporting(null); setShowShareMenu(false) }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -319,10 +334,62 @@ export default function ProgressPage() {
   return (
     <div className="px-4 pt-12 pb-4 space-y-4">
       {/* Header */}
-      <div>
-        <p className="text-[10px] font-black tracking-[0.35em] text-[#686870]">YOUR JOURNEY</p>
-        <h1 className="text-3xl font-black text-[#EDEDF0] leading-none mt-0.5">GAINS</h1>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] font-black tracking-[0.35em] text-[#686870]">YOUR JOURNEY</p>
+          <h1 className="text-3xl font-black text-[#EDEDF0] leading-none mt-0.5">GAINS</h1>
+        </div>
+        <button
+          onClick={() => setShowShareMenu(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111116] border border-[#1E1E26] text-[9px] font-black tracking-widest text-[#686870] hover:text-[#FF2800] hover:border-[#FF2800] transition-colors cursor-pointer"
+        >
+          <Share2 size={11} />
+          SHARE
+        </button>
       </div>
+
+      {/* ── Share menu ───────────────────────────────────────────────────────── */}
+      {showShareMenu && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowShareMenu(false)}>
+          <div
+            className="w-full bg-[#111116] border-t border-[#1E1E26] rounded-t-2xl p-5 pb-10 max-w-lg mx-auto space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">EXPORT PROGRESS</span>
+              <button onClick={() => setShowShareMenu(false)} className="w-7 h-7 rounded-full bg-[#1E1E26] flex items-center justify-center cursor-pointer">
+                <X size={12} className="text-[#686870]" />
+              </button>
+            </div>
+            <button
+              onClick={handleShareImage}
+              disabled={exporting !== null}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#0D0D10] border border-[#1E1E26] cursor-pointer hover:border-[#2196F3] transition-colors disabled:opacity-50"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#2196F322] flex items-center justify-center shrink-0">
+                <Image size={16} className="text-[#2196F3]" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-black text-[#EDEDF0]">{exporting === 'image' ? 'CAPTURING…' : 'SAVE AS IMAGE'}</div>
+                <div className="text-[9px] text-[#686870] mt-0.5">PNG · Share on WhatsApp, Instagram, iMessage</div>
+              </div>
+            </button>
+            <button
+              onClick={handleSavePDF}
+              disabled={exporting !== null}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#0D0D10] border border-[#1E1E26] cursor-pointer hover:border-[#FF2800] transition-colors disabled:opacity-50"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#FF280022] flex items-center justify-center shrink-0">
+                <FileText size={16} className="text-[#FF2800]" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-black text-[#EDEDF0]">{exporting === 'pdf' ? 'GENERATING…' : 'SAVE AS PDF'}</div>
+                <div className="text-[9px] text-[#686870] mt-0.5">PDF · Email, Slack, Google Drive</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── DAILY SCORE ─────────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl overflow-hidden">
@@ -867,6 +934,160 @@ export default function ProgressPage() {
             </div>
           )
         })()}
+      </div>
+
+      {/* ── Hidden report card (captured by html-to-image for share/export) ── */}
+      <div
+        ref={reportRef}
+        aria-hidden="true"
+        style={{
+          position: 'fixed', left: '-9999px', top: 0,
+          width: 390, background: '#070709',
+          color: '#EDEDF0',
+          fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+          padding: '28px 20px 32px', boxSizing: 'border-box',
+          pointerEvents: 'none',
+        }}
+      >
+        {/* Brand header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.35em', color: '#686870' }}>YOUR JOURNEY</div>
+            <div style={{ fontSize: 30, fontWeight: 900, color: '#EDEDF0', lineHeight: 1, marginTop: 2 }}>COMEBACK</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#686870' }}>
+              {new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+            </div>
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', color: '#FF2800', marginTop: 3 }}>PROGRESS REPORT</div>
+          </div>
+        </div>
+
+        {/* Red rule */}
+        <div style={{ height: 2, background: 'linear-gradient(90deg,#FF2800,transparent)', marginBottom: 20, borderRadius: 1 }} />
+
+        {/* Dual score rings */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+          {([
+            { label: 'TODAY', score: dailyScore, color: dailyScoreColor },
+            { label: 'THIS WEEK', score: weeklyScore, color: weekScoreColor },
+          ] as { label: string; score: number; color: string }[]).map(({ label, score, color }) => (
+            <div key={label} style={{ flex: 1, background: '#111116', borderRadius: 14, padding: '14px 12px', border: '1px solid #1E1E26', textAlign: 'center' }}>
+              <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#686870', marginBottom: 10 }}>{label}</div>
+              <div style={{ position: 'relative', display: 'inline-block', width: 76, height: 76 }}>
+                <svg viewBox="0 0 76 76" width="76" height="76">
+                  <circle cx="38" cy="38" r="31" fill="none" stroke="#1E1E26" strokeWidth="6.5" />
+                  <circle cx="38" cy="38" r="31" fill="none"
+                    stroke={color} strokeWidth="6.5" strokeLinecap="round"
+                    strokeDasharray={`${(score / 100) * 194.8} 194.8`}
+                    transform="rotate(-90 38 38)"
+                  />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{score}</span>
+                  <span style={{ fontSize: 8, color: '#686870' }}>/ 100</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Weekly habit dot matrix */}
+        {(() => {
+          const dayLabels = ['M','T','W','T','F','S','S']
+          const allDays = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(weekStartDate)
+            d.setDate(weekStartDate.getDate() + i)
+            const dk = d.toLocaleDateString('en-CA')
+            const log = dayLogs[dk]
+            const isFuture = dk > today
+            return {
+              dk, label: dayLabels[i], isFuture, isToday: dk === today,
+              workout: !isFuture && !!(log?.workoutDone && log.selectedWorkoutId !== 'rest'),
+              steps:   !isFuture && (log?.steps ?? 0) >= 10000,
+              sleep:   !isFuture && !!(log?.habits?.sleep),
+              hasLog:  !isFuture && !!log,
+            }
+          })
+          return (
+            <div style={{ background: '#111116', borderRadius: 12, padding: '12px 14px', border: '1px solid #1E1E26', marginBottom: 14 }}>
+              <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#686870', marginBottom: 10 }}>WEEKLY HABITS</div>
+              <div style={{ display: 'flex', marginBottom: 8 }}>
+                <div style={{ width: 26 }} />
+                {allDays.map(({ label, isToday }, i) => (
+                  <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, fontWeight: 900, color: isToday ? '#FF2800' : '#686870' }}>{label}</div>
+                ))}
+              </div>
+              {([
+                { key: 'workout' as const, icon: '🏋️', color: '#FF2800' },
+                { key: 'steps'   as const, icon: '👟', color: '#2196F3' },
+                { key: 'sleep'   as const, icon: '💤', color: '#9B59B6' },
+              ]).map(({ key, icon, color }) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+                  <div style={{ width: 26, fontSize: 12 }}>{icon}</div>
+                  {allDays.map(({ dk, isFuture, workout, steps, sleep, hasLog }) => {
+                    const done = key === 'workout' ? workout : key === 'steps' ? steps : sleep
+                    return (
+                      <div key={dk} style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                        <div style={{
+                          width: 9, height: 9, borderRadius: '50%',
+                          backgroundColor: isFuture ? '#1E1E26' : (hasLog && done) ? color : '#1E1E26',
+                          boxShadow: (!isFuture && hasLog && done) ? `0 0 5px ${color}99` : 'none',
+                        }} />
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* Week in numbers — 2×2 stat cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          {([
+            { icon: '🏋️', label: 'WORKOUTS',    value: `${weekWorkouts}/5`,  sub: 'sessions this week',        color: '#FF2800' },
+            { icon: '🔥', label: 'CALS BURNED', value: weekCalsBurned >= 1000 ? `${(weekCalsBurned/1000).toFixed(1)}K` : `${weekCalsBurned}`, sub: 'lift + steps + cardio', color: '#FF5500' },
+            { icon: '👟', label: 'TOTAL STEPS', value: weekTotalSteps >= 1000 ? `${(weekTotalSteps/1000).toFixed(1)}K` : `${weekTotalSteps}`, sub: `${weekStepDays}/5 hit 10K`, color: '#2196F3' },
+            { icon: '⏱️', label: 'FASTING',     value: weekFastingHours > 0 ? `${weekFastingHours}h` : '—', sub: weekFastingHours > 0 ? 'this week' : 'not logged', color: '#1DB954' },
+          ] as { icon: string; label: string; value: string; sub: string; color: string }[]).map(({ icon, label, value, sub, color }) => (
+            <div key={label} style={{ background: '#111116', borderRadius: 12, padding: '12px 12px 12px 14px', borderLeft: `3px solid ${color}` }}>
+              <div style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: '0.25em', color: '#686870', marginBottom: 5 }}>{icon} {label}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#EDEDF0', lineHeight: 1, marginBottom: 3 }}>{value}</div>
+              <div style={{ fontSize: 8, color: '#686870' }}>{sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: '#1E1E26', marginBottom: 14 }} />
+
+        {/* Month in numbers */}
+        <div style={{ background: '#111116', borderRadius: 12, padding: '12px 14px', border: '1px solid #1E1E26', marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#686870' }}>MONTH IN NUMBERS</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: '#2C2C38', letterSpacing: '0.15em' }}>{monthName}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+            {([
+              { label: 'WORKOUTS',  value: `${workoutsThisMonth}`,                                                     color: '#FF2800' },
+              { label: 'AVG CALS',  value: avgCal !== null ? `${avgCal}` : '—',                                        color: '#FF5500' },
+              { label: 'AVG WATER', value: avgWater !== null ? `${(avgWater/1000).toFixed(1)}L` : '—',                  color: '#2196F3' },
+              { label: 'WEIGHT Δ',  value: weightChange === null ? '—' : `${weightChange > 0 ? '+' : ''}${weightChange}kg`, color: weightChange !== null && weightChange > 0 ? '#FF2800' : '#1DB954' },
+            ] as { label: string; value: string; color: string }[]).map(({ label, value, color }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color, lineHeight: 1, marginBottom: 4 }}>{value}</div>
+                <div style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.18em', color: '#686870' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid #1E1E26', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.25em', color: '#2C2C38' }}>COMEBACK • TRAIN. EAT. RISE.</div>
+          <div style={{ fontSize: 7, fontWeight: 700, color: '#686870' }}>comeback-one-delta.vercel.app</div>
+        </div>
       </div>
     </div>
   )
