@@ -173,15 +173,15 @@ function StatCard({ icon, label, value, sub, color }: {
   icon: string; label: string; value: string; sub: string; color: string
 }) {
   return (
-    <div className="bg-[#0D0D10] rounded-xl p-3.5 border border-[#1E1E26]"
-      style={{ borderTopWidth: 2, borderTopColor: color }}>
-      <div className="flex items-center gap-1.5 mb-3">
-        <div className="w-6 h-6 rounded-md flex items-center justify-center text-sm leading-none"
-          style={{ backgroundColor: `${color}20` }}>{icon}</div>
-        <span className="text-[8px] font-black tracking-widest text-[#686870]">{label}</span>
+    <div className="bg-[#0D0D10] rounded-xl overflow-hidden" style={{ borderLeft: `3px solid ${color}` }}>
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-sm leading-none">{icon}</span>
+          <span className="text-[8px] font-black tracking-widest text-[#686870]">{label}</span>
+        </div>
+        <div className="text-[24px] font-black leading-none text-[#EDEDF0] mb-1">{value}</div>
+        <div className="text-[9px] text-[#686870]">{sub}</div>
       </div>
-      <div className="text-[22px] font-black leading-none text-[#EDEDF0] mb-1">{value}</div>
-      <div className="text-[9px] text-[#686870]">{sub}</div>
     </div>
   )
 }
@@ -264,6 +264,8 @@ export default function ProgressPage() {
   const dailySleep = (todayLog?.habits?.sleep ? 25 : 0)
   const dailyCal = (todayCal > 0 && todayCal <= maintenance) ? 25 : 0
   const dailyScore = Math.round(dailyWorkout + dailySteps + dailySleep + dailyCal)
+  const dailyScoreColor = dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800'
+  const weekScoreColor  = weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800'
 
   // ── 7-day activity chart (actual dates) ──────────────────────────────────
   const last7 = Array.from({ length: 7 }, (_, i) => {
@@ -323,97 +325,195 @@ export default function ProgressPage() {
       </div>
 
       {/* ── DAILY SCORE ─────────────────────────────────────────────────────── */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">TODAY&apos;S SCORE</div>
-          <div className="text-2xl font-black text-[#FF2800]">{dailyScore}%</div>
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl overflow-hidden">
+        <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${dailyScoreColor} 60%, transparent)` }} />
+        <div className="p-4">
+          <p className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-4">TODAY&apos;S SCORE</p>
+
+          <div className="flex gap-4 items-center mb-4">
+            {/* Circular ring */}
+            <div className="relative shrink-0" style={{ width: 92, height: 92 }}>
+              <svg viewBox="0 0 92 92" width="92" height="92">
+                <circle cx="46" cy="46" r="38" fill="none" stroke="#1E1E26" strokeWidth="8" />
+                <circle cx="46" cy="46" r="38" fill="none"
+                  stroke={dailyScoreColor} strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={`${(dailyScore / 100) * 238.8} 238.8`}
+                  transform="rotate(-90 46 46)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[30px] font-black leading-none" style={{ color: dailyScoreColor }}>{dailyScore}</span>
+                <span className="text-[9px] font-bold text-[#686870]">/ 100</span>
+              </div>
+            </div>
+
+            {/* 2×2 pillar cards */}
+            <div className="flex-1 grid grid-cols-2 gap-2">
+              {([
+                { icon: '🏋️', label: 'WORKOUT', value: todayLog?.workoutDone ? 'DONE ✓' : '—', done: dailyWorkout >= 25, color: '#FF2800', pct: dailyWorkout / 25 },
+                { icon: '👟', label: 'STEPS', value: todaySteps > 0 ? `${(todaySteps / 1000).toFixed(1)}K` : '—', done: dailySteps >= 25, color: '#2196F3', pct: dailySteps / 25 },
+                { icon: '💤', label: 'SLEEP', value: todayLog?.habits?.sleep ? '7H ✓' : '—', done: dailySleep >= 25, color: '#9B59B6', pct: dailySleep / 25 },
+                { icon: '🍽️', label: 'CALS', value: todayCal > 0 ? `${todayCal}` : '—', done: dailyCal >= 25, color: '#1DB954', pct: dailyCal / 25 },
+              ] as { icon: string; label: string; value: string; done: boolean; color: string; pct: number }[]).map(({ icon, label, value, done, color, pct }) => (
+                <div key={label} className="bg-[#0D0D10] rounded-xl p-2.5 border border-[#1E1E26] overflow-hidden relative">
+                  <span className="text-[8px] font-black tracking-widest text-[#686870] block mb-1">{icon} {label}</span>
+                  <span className="text-sm font-black" style={{ color: done ? color : '#686870' }}>{value}</span>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#1E1E26]">
+                    <div className="h-full transition-all duration-700" style={{ width: `${Math.min(pct, 1) * 100}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[9px] text-[#2C2C38] font-bold">Maintenance: {maintenance} kcal · Target: {TARGETS.calories} kcal</p>
         </div>
-        {/* Master bar */}
-        <div className="h-3 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden mb-4">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${dailyScore}%`,
-              background: dailyScore >= 75 ? '#1DB954' : dailyScore >= 50 ? '#D4A017' : '#FF2800',
-            }}
-          />
-        </div>
-        <div className="space-y-2.5">
-          <ScoreBar label="WORKOUT" value={dailyWorkout} max={25} color="#FF2800" count={todayLog?.workoutDone ? 1 : 0} target={1} unit="done" />
-          <ScoreBar label="10K STEPS" value={dailySteps} max={25} color="#2196F3" count={todaySteps} target={10000} unit="steps" />
-          <ScoreBar label="7H SLEEP" value={dailySleep} max={25} color="#9B59B6" count={todayLog?.habits?.sleep ? 1 : 0} target={1} unit="done" />
-          <ScoreBar label={`CALORIC DEFICIT (<${maintenance} kcal)`} value={dailyCal} max={25} color="#1DB954" count={todayCal} target={maintenance} unit="kcal" />
-        </div>
-        <div className="text-[9px] text-[#686870] mt-2">Maintenance: {maintenance} kcal · Target: {TARGETS.calories} kcal</div>
       </div>
 
-      {/* ── WEEKLY SCORE ────────────────────────────────────────────────────── */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">THIS WEEK</div>
-          <div className="text-2xl font-black text-[#D4A017]">{weeklyScore}%</div>
+      {/* ── THIS WEEK ────────────────────────────────────────────────────── */}
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl overflow-hidden">
+        <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${weekScoreColor} 60%, transparent)` }} />
+        <div className="p-4">
+          {/* Header row with score */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">THIS WEEK</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-black leading-none" style={{ color: weekScoreColor }}>{weeklyScore}</span>
+              <span className="text-sm font-black text-[#686870]">/ 100</span>
+            </div>
+          </div>
+
+          {/* Master bar */}
+          <div className="h-2 bg-[#0D0D10] rounded-full overflow-hidden mb-4">
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${weeklyScore}%`, background: `linear-gradient(90deg, ${weekScoreColor}88, ${weekScoreColor})` }} />
+          </div>
+
+          {/* Weekly dot matrix */}
+          {(() => {
+            const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+            const allDays = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date(weekStartDate)
+              d.setDate(weekStartDate.getDate() + i)
+              const dk = d.toLocaleDateString('en-CA')
+              const log = dayLogs[dk]
+              const isFuture = dk > today
+              return {
+                dk, label: dayLabels[i], isFuture, isToday: dk === today,
+                workout: !isFuture && !!(log?.workoutDone && log.selectedWorkoutId !== 'rest'),
+                steps:   !isFuture && (log?.steps ?? 0) >= 10000,
+                sleep:   !isFuture && !!(log?.habits?.sleep),
+                hasLog:  !isFuture && !!log,
+              }
+            })
+            return (
+              <div className="bg-[#0D0D10] rounded-xl p-3 border border-[#1E1E26] mb-4">
+                <div className="flex mb-2.5">
+                  <div className="w-7" />
+                  {allDays.map(({ label, isToday }, i) => (
+                    <div key={i} className="flex-1 text-center">
+                      <span className={`text-[9px] font-black ${isToday ? 'text-[#FF2800]' : 'text-[#686870]'}`}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                {([
+                  { key: 'workout', icon: '🏋️', color: '#FF2800' },
+                  { key: 'steps',   icon: '👟', color: '#2196F3' },
+                  { key: 'sleep',   icon: '💤', color: '#9B59B6' },
+                ] as { key: 'workout' | 'steps' | 'sleep'; icon: string; color: string }[]).map(({ key, icon, color }) => (
+                  <div key={key} className="flex items-center mb-2 last:mb-0">
+                    <div className="w-7 text-xs leading-none">{icon}</div>
+                    {allDays.map(({ dk, isFuture, workout, steps, sleep, hasLog }) => {
+                      const done = key === 'workout' ? workout : key === 'steps' ? steps : sleep
+                      return (
+                        <div key={dk} className="flex-1 flex justify-center">
+                          {isFuture ? (
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1E1E26' }} />
+                          ) : hasLog ? (
+                            <div className="w-2.5 h-2.5 rounded-full transition-all"
+                              style={{ backgroundColor: done ? color : '#1E1E2699', boxShadow: done ? `0 0 6px ${color}66` : 'none' }} />
+                          ) : (
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#1E1E26' }} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          <div className="space-y-2.5">
+            <ScoreBar label="5 WORKOUTS" value={weeklyWorkoutPct} max={20} color="#FF2800" count={weekWorkouts} target={5} unit="days" />
+            <ScoreBar label="10K STEPS × 5 DAYS" value={weeklyStepsPct} max={20} color="#2196F3" count={weekStepDays} target={5} unit="days" />
+            <ScoreBar label="7H SLEEP × 7 DAYS" value={weeklySleepPct} max={20} color="#9B59B6" count={weekSleepDays} target={7} unit="days" />
+            <ScoreBar label="CLEAN EAT × 6 DAYS" value={weeklyNutritionPct} max={20} color="#1DB954" count={weekGoodNutritionDays} target={6} unit="days" />
+            <ScoreBar label="CARDIO × 3 DAYS" value={weeklyCardioPct} max={20} color="#FF5500" count={weekCardioDays} target={3} unit="days" />
+          </div>
+          <div className="text-[9px] text-[#686870] mt-3">Clean day = no junk ✓ + cal ≤ maintenance · Cardio = any session logged in LIFT tab</div>
         </div>
-        {/* Master bar */}
-        <div className="h-3 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden mb-4">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${weeklyScore}%`,
-              background: weeklyScore >= 75 ? '#1DB954' : weeklyScore >= 50 ? '#D4A017' : '#FF2800',
-            }}
-          />
-        </div>
-        <div className="space-y-2.5">
-          <ScoreBar label="5 WORKOUTS" value={weeklyWorkoutPct} max={20} color="#FF2800" count={weekWorkouts} target={5} unit="days" />
-          <ScoreBar label="10K STEPS × 5 DAYS" value={weeklyStepsPct} max={20} color="#2196F3" count={weekStepDays} target={5} unit="days" />
-          <ScoreBar label="7H SLEEP × 7 DAYS" value={weeklySleepPct} max={20} color="#9B59B6" count={weekSleepDays} target={7} unit="days" />
-          <ScoreBar label="CLEAN EAT × 6 DAYS" value={weeklyNutritionPct} max={20} color="#1DB954" count={weekGoodNutritionDays} target={6} unit="days" />
-          <ScoreBar label="CARDIO × 3 DAYS" value={weeklyCardioPct} max={20} color="#FF5500" count={weekCardioDays} target={3} unit="days" />
-        </div>
-        <div className="text-[9px] text-[#686870] mt-2">Clean day = no junk ✓ + cal ≤ maintenance · Cardio = any session logged in LIFT tab</div>
       </div>
 
       {/* ── WEEK IN NUMBERS ─────────────────────────────────────────────────── */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">WEEK IN NUMBERS</span>
           <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">RESETS MONDAY</span>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
-            value={weekTotalSteps.toLocaleString()}
-            sub={`${weekStepDays}/5 days hit 10K`} />
+          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
+            value={`${weekWorkouts}/5`}
+            sub="sessions this week" />
           <StatCard icon="🔥" label="CALS BURNED" color="#FF5500"
-            value={weekCalsBurned.toLocaleString()}
-            sub="from steps" />
+            value={weekCalsBurned >= 1000 ? `${(weekCalsBurned / 1000).toFixed(1)}K` : `${weekCalsBurned}`}
+            sub="lift + steps + cardio" />
+          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
+            value={weekTotalSteps >= 1000 ? `${(weekTotalSteps / 1000).toFixed(1)}K` : `${weekTotalSteps}`}
+            sub={`${weekStepDays}/5 days hit 10K`} />
           <StatCard icon="⏱️" label="FASTING" color="#1DB954"
             value={weekFastingHours > 0 ? `${weekFastingHours}h` : '—'}
             sub={weekFastingHours > 0 ? 'total this week' : 'log via habits'} />
-          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
-            value={`${weekWorkouts}/5`}
-            sub="sessions done" />
         </div>
       </div>
 
       {/* ── MONTH IN NUMBERS ────────────────────────────────────────────────── */}
-      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">MONTH IN NUMBERS</span>
           <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">{monthName}</span>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
-            value={monthTotalSteps.toLocaleString()}
-            sub={`avg ${avgSteps !== null ? avgSteps.toLocaleString() : '—'} / day`} />
+          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
+            value={`${workoutsThisMonth}`}
+            sub="sessions this month" />
           <StatCard icon="🔥" label="CALS BURNED" color="#FF5500"
-            value={monthCalsBurned.toLocaleString()}
-            sub="from steps" />
+            value={monthCalsBurned >= 1000 ? `${(monthCalsBurned / 1000).toFixed(1)}K` : `${monthCalsBurned}`}
+            sub="lift + steps + cardio" />
+          <StatCard icon="👟" label="TOTAL STEPS" color="#2196F3"
+            value={monthTotalSteps >= 10000 ? `${(monthTotalSteps / 1000).toFixed(1)}K` : `${monthTotalSteps}`}
+            sub={`avg ${avgSteps !== null ? `${(avgSteps / 1000).toFixed(1)}K` : '—'} / day`} />
           <StatCard icon="⏱️" label="FASTING" color="#1DB954"
             value={monthFastingHours > 0 ? `${monthFastingHours}h` : '—'}
             sub={monthFastingHours > 0 ? 'total this month' : 'log via habits'} />
-          <StatCard icon="🏋️" label="WORKOUTS" color="#FF2800"
-            value={`${workoutsThisMonth}`}
-            sub="sessions done" />
+        </div>
+
+        {/* Month highlights row */}
+        <div className="mt-3 pt-3 border-t border-[#1E1E26] grid grid-cols-3 gap-2">
+          <div className="text-center">
+            <div className="text-[9px] font-black tracking-widest text-[#686870] mb-0.5">AVG CALS</div>
+            <div className="text-sm font-black text-[#FF5500]">{avgCal !== null ? `${avgCal}` : '—'}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-[9px] font-black tracking-widest text-[#686870] mb-0.5">AVG WATER</div>
+            <div className="text-sm font-black text-[#2196F3]">{avgWater !== null ? `${(avgWater / 1000).toFixed(1)}L` : '—'}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-[9px] font-black tracking-widest text-[#686870] mb-0.5">WEIGHT Δ</div>
+            <div className="text-sm font-black" style={{ color: weightChange === null ? '#686870' : weightChange <= 0 ? '#1DB954' : '#FF2800' }}>
+              {weightChange === null ? '—' : `${weightChange > 0 ? '+' : ''}${weightChange}kg`}
+            </div>
+          </div>
         </div>
       </div>
 
