@@ -237,7 +237,14 @@ export default function ProgressPage() {
   }).length
   const weekCardioDays = weekLogs.filter(d => d.cardio != null).length
   const weekTotalSteps = weekLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
-  const weekCalsBurned = Math.round((weekTotalSteps / 10000) * 500)
+  const dayBurned = (d: typeof weekLogs[0]) => {
+    const isActualLift = !!(d.workoutDone && d.selectedWorkoutId && d.selectedWorkoutId !== 'rest')
+    return (isActualLift ? 350 : 0)
+      + (d.cardio?.caloriesBurned ?? 0)
+      + Math.round((d.steps ?? 0) * stats.weight * 0.00057)
+      + Math.round((d.intimacyMinutes ?? 0) * 4)
+  }
+  const weekCalsBurned = weekLogs.reduce((s, d) => s + dayBurned(d), 0)
   const weekFastingHours = weekLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
   const weeklyWorkoutPct = Math.min(weekWorkouts / 5, 1) * 20
@@ -296,7 +303,7 @@ export default function ProgressPage() {
   }
   const hasMonthData = workoutsThisMonth > 0 || avgCal !== null || avgWater !== null || avgSteps !== null
   const monthTotalSteps = monthDayLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
-  const monthCalsBurned = Math.round((monthTotalSteps / 10000) * 500)
+  const monthCalsBurned = monthDayLogs.reduce((s, d) => s + dayBurned(d), 0)
   const monthFastingHours = monthDayLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
   const weightChartData = bodyHistory.map(e => ({ date: e.date, value: e.weight }))
