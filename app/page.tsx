@@ -140,7 +140,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
@@ -356,27 +356,126 @@ export default function HomePage() {
     ? Math.round(weekCalLogs.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0) / weekCalLogs.length)
     : null
 
+  // ── Smart insights context ─────────────────────────────────────────────
+
+  // Today macros
+  const todayProtein = todayLog?.meals.reduce((s, m) => s + m.protein, 0) ?? 0
+  const todayCarbs   = todayLog?.meals.reduce((s, m) => s + m.carbs, 0) ?? 0
+  const todayFat     = todayLog?.meals.reduce((s, m) => s + m.fat, 0) ?? 0
+  // fibre not tracked in meals — default 0
+  const todayFibre   = 0
+
+  // Cardio detail
+  const cardioLog       = todayLog?.cardio ?? null
+  const insightCardioMinutes  = cardioLog?.minutes ?? 0
+  const insightCardioType     = cardioLog?.type ?? null
+
+  // Habits
+  const sleepDone       = !!(todayLog?.habits?.sleep)
+  const supplementsDone = !!(todayLog?.habits?.supplements)
+  const veggiesDone     = !!(todayLog?.habits?.veggies)
+  const noJunkDone      = !!(todayLog?.habits?.nojunk)
+
+  // Workout exercise progress
+  const todayWorkoutObj = selectedWorkoutId ? getWorkoutById(selectedWorkoutId) : null
+  const totalExercises  = todayWorkoutObj?.exercises.length ?? 0
+
+  // Count exercises checked off today
+  const checkedExercises = todayLog?.checkedExercises ?? []
+  const exercisesChecked = todayWorkoutObj
+    ? todayWorkoutObj.exercises.filter(ex => checkedExercises.includes(ex.id)).length
+    : 0
+
+  // Week supplement / veggie days
+  const weekSupplementDays = curWeekLogs.filter(d => d.habits?.supplements).length
+  const weekVeggieDays     = curWeekLogs.filter(d => d.habits?.veggies).length
+
+  // PRs
+  const benchOneRM    = prs['bench']?.oneRM   ?? prs['bench2']?.oneRM  ?? null
+  const squatOneRM    = prs['squat']?.oneRM   ?? null
+  const deadliftOneRM = prs['dl']?.oneRM      ?? null
+  const ohpOneRM      = prs['ohp']?.oneRM     ?? prs['ohp2']?.oneRM   ?? null
+
+  // Weight trend over last 14 days from bodyHistory
+  const latestWeight = bodyHistory.length > 0 ? bodyHistory[bodyHistory.length - 1].weight : stats.weight
+  let weightTrend14d: number | null = null
+  if (bodyHistory.length >= 2) {
+    const cutoff = new Date(now)
+    cutoff.setDate(cutoff.getDate() - 14)
+    const cutoffStr = cutoff.toLocaleDateString('en-CA')
+    const recent    = bodyHistory.filter(e => e.date >= cutoffStr)
+    if (recent.length >= 2) {
+      weightTrend14d = recent[recent.length - 1].weight - recent[0].weight
+    }
+  }
+
+  // Waist trend from measurements (last two entries with waist)
+  const sortedMeasurements = [...measurements].sort((a, b) => a.date.localeCompare(b.date))
+  const waistEntries = sortedMeasurements.filter(m => m.waist != null)
+  const latestWaist  = waistEntries.length > 0 ? (waistEntries[waistEntries.length - 1].waist ?? null) : null
+  let waistTrend: number | null = null
+  if (waistEntries.length >= 2) {
+    const prev = waistEntries[waistEntries.length - 2].waist!
+    const curr = waistEntries[waistEntries.length - 1].waist!
+    waistTrend = curr - prev
+  }
+
+  // Last weekly check-in rating
+  const sortedCheckins   = [...weeklyCheckins].sort((a, b) => a.date.localeCompare(b.date))
+  const lastCheckinRating = sortedCheckins.length > 0 ? sortedCheckins[sortedCheckins.length - 1].rating : null
+
   const insights = generateInsights({
     weight:        stats.weight,
     bodyFat:       stats.bodyFat,
     maintenance,
     calories:      todayCal,
-    protein:       todayLog?.meals.reduce((s, m) => s + m.protein, 0) ?? 0,
+    protein:       todayProtein,
+    carbs:         todayCarbs,
+    fat:           todayFat,
+    fibre:         todayFibre,
     steps:         todaySteps,
+    totalBurned,
     workoutDone:   todayLog?.workoutDone ?? false,
-    cardioLogged:  todayLog?.cardio != null,
-    weekCardioDays,
+    isRestDay:     todayLog?.selectedWorkoutId === 'rest',
+    cardioLogged:  cardioLog != null,
+    cardioMinutes: insightCardioMinutes,
+    cardioType:    insightCardioType,
+    fastingHours:  todayLog?.fastingHours ?? 0,
+    sleepDone,
+    supplementsDone,
+    veggiesDone,
+    noJunkDone,
+    todayWorkoutId:    todayLog?.selectedWorkoutId ?? null,
+    todayWorkoutLabel: todayWorkoutObj?.label ?? null,
+    exercisesChecked,
+    totalExercises,
     waterMl:       todayLog?.waterMl ?? 0,
     hour:          now.getHours(),
+    dayOfWeek:     now.getDay(),
     weekWorkouts,
     weekCalAvg,
+    weekCardioDays,
+    weekStepDays,
+    weekSleepDays,
+    weekSupplementDays,
+    weekVeggieDays,
+    weekGoodDays,
     targetWeight:  65,
     targetBf:      15,
     calTarget:     TARGETS.calories,
     proteinTarget: TARGETS.protein,
-    dayOfWeek:     now.getDay(),
     streak:        stats.streak,
-    isRestDay:     todayLog?.selectedWorkoutId === 'rest',
+    level:         stats.level,
+    totalWorkoutsCompleted: stats.workoutsCompleted,
+    benchOneRM,
+    squatOneRM,
+    deadliftOneRM,
+    ohpOneRM,
+    weightTrend14d,
+    latestWaist,
+    waistTrend,
+    latestWeight,
+    lastCheckinRating,
   })
 
   // Trigger celebration only the first time rings close today
