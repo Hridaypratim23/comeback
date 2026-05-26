@@ -5,9 +5,21 @@ function localDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const db = getSupabase()
   if (!db) return NextResponse.json({ ok: false, error: 'No Supabase connection' }, { status: 500 })
+
+  // Accept ?date=YYYY-MM-DD&steps=N  (both optional)
+  // Default: yesterday in IST, steps=0
+  const url = new URL(req.url)
+  const stepsParam = url.searchParams.get('steps')
+  const dateParam  = url.searchParams.get('date')
+
+  const now = new Date()
+  const istOffset = 5.5 * 60 * 60 * 1000
+  const istNow    = new Date(now.getTime() + istOffset)
+  const targetDate = dateParam ?? localDateStr(new Date(istNow.getTime() - 86400000))
+  const targetSteps = stepsParam !== null ? parseInt(stepsParam) : 0
 
   const { data, error } = await db
     .from('app_state')
@@ -20,25 +32,16 @@ export async function GET() {
   }
 
   const state = data.data as Record<string, unknown>
-
-  // Calculate yesterday in IST (UTC+5:30)
-  const now = new Date()
-  const istOffset = 5.5 * 60 * 60 * 1000
-  const istNow = new Date(now.getTime() + istOffset)
-  const yesterday = localDateStr(new Date(istNow.getTime() - 86400000))
-
-  // Patch both pendingStepFixes (picked up on next merge) AND dayLogs directly
-  // so the fix survives even if pendingStepFixes was already consumed
   const existingDayLogs = (state.dayLogs as Record<string, unknown> | undefined) ?? {}
-  const existingDay = (existingDayLogs[yesterday] as Record<string, unknown> | undefined) ?? {
-    date: yesterday, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false, fastingHours: 0,
+  const existingDay = (existingDayLogs[targetDate] as Record<string, unknown> | undefined) ?? {
+    date: targetDate, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false, fastingHours: 0,
   }
   const patched = {
     ...state,
-    pendingStepFixes: { [yesterday]: 10001 },
+    pendingStepFixes: { [targetDate]: targetSteps },
     dayLogs: {
       ...existingDayLogs,
-      [yesterday]: { ...existingDay, steps: 10001 },
+      [targetDate]: { ...existingDay, steps: targetSteps },
     },
   }
 
@@ -50,5 +53,5 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: writeError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, date: yesterday, correction: 10001 })
+  return NextResponse.json({ ok: true, date: targetDate, steps: targetSteps })
 }
