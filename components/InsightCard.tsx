@@ -13,6 +13,12 @@ const TAG_LABEL: Record<Insight['tag'], string> = {
   PROGRESS: 'PROGRESS',
 }
 
+// 50ms per character of combined title + body + action, min 5s, max 20s
+function readingMs(insight: Insight): number {
+  const chars = insight.title.length + insight.body.length + (insight.action?.length ?? 0)
+  return Math.max(5000, Math.min(20000, chars * 50 + 2000))
+}
+
 export default function InsightCard({ insights }: { insights: Insight[] }) {
   const [idx, setIdx]         = useState(0)
   const [visible, setVisible] = useState(true)
@@ -25,10 +31,12 @@ export default function InsightCard({ insights }: { insights: Insight[] }) {
     }, 160)
   }, [insights.length])
 
+  // Dynamic delay: restarts whenever the active card changes
   useEffect(() => {
-    const id = setInterval(() => go(1), 14000)
-    return () => clearInterval(id)
-  }, [go])
+    const ms = readingMs(insights[idx % insights.length])
+    const id = setTimeout(() => go(1), ms)
+    return () => clearTimeout(id)
+  }, [idx, go, insights])
 
   if (!insights.length) return null
 
