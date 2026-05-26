@@ -19,11 +19,11 @@ const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 interface ProgressRingsProps {
   dailyScore: number; weeklyScore: number
-  workoutDone: boolean; todaySteps: number; sleepDone: boolean; todayCal: number; calTarget: number
+  workoutDone: boolean; isRestDay: boolean; todaySteps: number; sleepDone: boolean; todayCal: number; calTarget: number
   weekWorkouts: number; weekStepDays: number; weekSleepDays: number; weekGoodDays: number
 }
 
-function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleepDone, todayCal, calTarget, weekWorkouts, weekStepDays, weekSleepDays, weekGoodDays }: ProgressRingsProps) {
+function ProgressRings({ dailyScore, weeklyScore, workoutDone, isRestDay, todaySteps, sleepDone, todayCal, calTarget, weekWorkouts, weekStepDays, weekSleepDays, weekGoodDays }: ProgressRingsProps) {
   const cx = 62, cy = 62, RING_W = 12
   const outerR = 50, innerR = 34
   const outerCirc = 2 * Math.PI * outerR
@@ -34,7 +34,7 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, todaySteps, sleep
   const K = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : String(n)
 
   const todayPillars = [
-    { icon: '🏋️', done: workoutDone,                          value: workoutDone ? 'DONE' : '–',     sub: 'workout' },
+    { icon: '🏋️', done: workoutDone,                          value: workoutDone ? (isRestDay ? 'REST' : 'DONE') : '–',     sub: 'workout' },
     { icon: '👟', done: todaySteps >= 10000,                  value: K(todaySteps),                   sub: '/ 10K'   },
     { icon: '😴', done: sleepDone,                            value: sleepDone ? 'DONE' : '–',        sub: 'sleep'   },
     { icon: '🔥', done: todayCal > 0 && todayCal <= calTarget, value: K(todayCal),                   sub: `/ ${K(calTarget)}` },
@@ -493,6 +493,7 @@ export default function HomePage() {
           dailyScore={dailyScore}
           weeklyScore={weeklyScore}
           workoutDone={todayLog?.workoutDone ?? false}
+          isRestDay={todayLog?.selectedWorkoutId === 'rest'}
           todaySteps={todaySteps}
           sleepDone={!!(todayLog?.habits?.sleep)}
           todayCal={todayCal}
