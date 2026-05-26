@@ -583,16 +583,32 @@ export default function HomePage() {
                 <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
                   <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUT</span>
                   <span className={`text-xs font-black ${dayLog.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
-                    {dayLog.workoutDone ? 'DONE ✓' : 'NOT LOGGED'}
+                    {dayLog.workoutDone
+                      ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓')
+                      : 'NOT LOGGED'}
                   </span>
                 </div>
-                {/* Calories */}
+                {/* Calories eaten */}
                 <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
                   <span className="text-[10px] font-black tracking-widest text-[#686870]">CALORIES</span>
                   <span className="text-xs font-black text-[#FF5500]">
                     {totalCal > 0 ? `${totalCal} kcal` : '—'}
                   </span>
                 </div>
+                {/* Calories burned */}
+                {(() => {
+                  const isActualLift = !!(dayLog.workoutDone && dayLog.selectedWorkoutId && dayLog.selectedWorkoutId !== 'rest')
+                  const burned = (isActualLift ? 350 : 0)
+                    + (dayLog.cardio?.caloriesBurned ?? 0)
+                    + Math.round((dayLog.steps ?? 0) * stats.weight * 0.00057)
+                    + Math.round((dayLog.intimacyMinutes ?? 0) * 4)
+                  return burned > 0 ? (
+                    <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
+                      <span className="text-[10px] font-black tracking-widest text-[#686870]">BURNED</span>
+                      <span className="text-xs font-black text-[#1DB954]">{burned} kcal</span>
+                    </div>
+                  ) : null
+                })()}
                 {/* Macros */}
                 {totalCal > 0 && (
                   <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
