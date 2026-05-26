@@ -5,6 +5,8 @@ export interface Insight {
   icon: string
   title: string
   body: string
+  action?: string
+  urgency?: 'high'
 }
 
 export interface InsightContext {
@@ -28,6 +30,7 @@ export interface InsightContext {
   dayOfWeek: number
   streak: number
   weeksSinceGoalSet?: number
+  isRestDay: boolean
 }
 
 const C: Record<Insight['tag'], string> = {
@@ -47,21 +50,24 @@ function weeksToGoal(fatToLose: number, dailyDeficit: number) {
   return Math.round(fatToLose * 7700 / (dailyDeficit * 7))
 }
 
+function seededInt(seed: number, max: number): number {
+  const x = Math.sin(seed + 1) * 10000
+  return Math.abs(Math.floor((x - Math.floor(x)) * max)) % max
+}
+
 export function generateInsights(ctx: InsightContext): Insight[] {
   const {
     weight, bodyFat, maintenance,
     calories, protein, steps, workoutDone, weekCardioDays, waterMl, hour,
     weekWorkouts, weekCalAvg, targetWeight, calTarget, proteinTarget,
-    dayOfWeek, streak,
+    dayOfWeek, streak, isRestDay,
   } = ctx
 
   const fatNow     = weight * bodyFat / 100
   const fatGoal    = targetWeight * 0.15
   const fatToLose  = Math.max(fatNow - fatGoal, 0)
-  const kgToLose   = weight - targetWeight
   const weeksLeft  = weeksToGoal(fatToLose, 520)
   const protoGap   = Math.max(proteinTarget - protein, 0)
-  const calGap     = Math.max(calTarget - calories, 0)
   const waterL     = (waterMl / 1000).toFixed(1)
   const isWorkout  = !workoutDone
   const dayNames   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -94,6 +100,28 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     }
   }
 
+  // ── PRE-WORKOUT FUEL WINDOW (5–8am, workout not done, week not full) ─────
+
+  if (hour >= 5 && hour < 8 && !workoutDone && weekWorkouts < 5) {
+    insights.push({
+      id: 'pre-workout-fuel', tag: 'FUEL', color: C.FUEL, icon: '⚡',
+      title: 'FUEL THE SESSION — EAT BEFORE YOU LIFT',
+      body: `Training within the next 2 hours? A small pre-workout meal — 150-200 kcal with 20-30g protein — prevents muscle protein breakdown during the session and maintains intensity. Greek yogurt + banana, or scrambled eggs on rice cakes. Fasted training on a deficit increases muscle catabolism during the session itself.`,
+      action: 'Greek yogurt (150g) + 1 banana → 20g protein, fast carbs, ready in 2 minutes.',
+    })
+  }
+
+  // ── REST DAY COACHING ────────────────────────────────────────────────────
+
+  if (isRestDay) {
+    insights.push({
+      id: 'rest-day-guide', tag: 'RECOVER', color: C.RECOVER, icon: '🔄',
+      title: 'REST DAY — RECOVER LIKE A PROFESSIONAL',
+      body: `Your muscles are rebuilding from this week's sessions. Rest day isn't zero-effort day — it's where adaptation actually happens. Walk 8,000–10,000 easy steps to flush metabolic waste and drive blood flow without adding breakdown stimulus. Keep protein high (your full ${proteinTarget}g target still applies). Sleep 8+ hours tonight. You're not losing progress today — you're locking it in.`,
+      action: `Hit ${proteinTarget}g protein, 3L water, and an easy 8K-step walk today.`,
+    })
+  }
+
   // ── URGENT / ACTIONABLE ───────────────────────────────────────────────────
 
   // Protein gap after noon
@@ -102,6 +130,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'protein-low', tag: 'FUEL', color: C.FUEL, icon: '🥩',
       title: `YOU'RE ${protoGap}G SHORT ON PROTEIN`,
       body: `At ${protein}g, you're only halfway to your ${proteinTarget}g target. On a calorie deficit, insufficient protein forces your body to break down muscle tissue for fuel — you'd lose lean mass, not just fat. Add a chicken breast (40g), Greek yogurt (17g), or whey shake (25g) before the day ends.`,
+      action: `Add cottage cheese (200g = 25g), Greek yogurt (17g), or a whey shake (25g) before the day ends.`,
     })
   }
 
@@ -112,6 +141,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'over-cals', tag: 'FUEL', color: C.FUEL, icon: '⚠️',
       title: `YOU'RE ${over} KCAL OVER — MAKE IT UP`,
       body: `Going ${over} kcal above your target today partially wipes out your deficit. You can recover this: a 35-min incline walk burns ~${stepsKcal(4000, weight)} kcal, and skipping any late snack will bring you back inline. Awareness now stops this becoming a habit.`,
+      action: 'Skip any evening snack and do a 30-min brisk walk to close the gap.',
+      urgency: 'high',
     })
   }
 
@@ -121,6 +152,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'no-meals', tag: 'FUEL', color: C.FUEL, icon: '📋',
       title: `IT'S ${hour}:00 AND NOTHING'S BEEN LOGGED`,
       body: `This isn't about punishment — it's about awareness. Studies show untracked days have 30-40% more calories on average. You can't manage what you don't measure. Log what you've eaten so far and we get back on track.`,
+      urgency: 'high',
+      action: 'Open Nutrition and log what you\'ve already eaten today.',
     })
   }
 
@@ -131,6 +164,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'steps-low', tag: 'MOVE', color: C.MOVE, icon: '👟',
       title: `ONLY ${steps.toLocaleString()} STEPS — YOU NEED TO MOVE`,
       body: `You still need ${(10000 - steps).toLocaleString()} steps to hit your daily target. That's ${extraBurn} kcal of passive burn — no gym, no effort, just walking. A 30-min evening walk gets you there. Missing this daily adds ~1 extra week to your ${targetWeight}kg goal.`,
+      action: `A 30-min evening walk gets you there — that's ${10000 - steps} more steps.`,
     })
   }
 
@@ -140,10 +174,99 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'water-low', tag: 'RECOVER', color: C.RECOVER, icon: '💧',
       title: `ONLY ${waterL}L WATER — YOUR FAT METABOLISM IS SLUGGISH`,
       body: `Water is literally required for lipolysis — the chemical process of breaking down stored fat. You're running dehydrated right now. Drink 500ml immediately, then one glass every hour until you hit 3L. It also suppresses false hunger signals, which helps on a cut.`,
+      action: 'Drink 500ml right now, then one glass every hour.',
+      urgency: 'high',
     })
   }
 
-  // Good protein — acknowledge it
+  // ── EVENING PROTEIN WINDOW (after 8pm, still short on protein) ────────────
+
+  if (hour >= 20 && protein < proteinTarget * 0.85) {
+    insights.push({
+      id: 'casein-window', tag: 'SCIENCE', color: C.SCIENCE, icon: '🌙',
+      title: 'TAKE 30-40G PROTEIN BEFORE BED',
+      body: `Casein (cottage cheese, Greek yogurt, or slow-release shake) releases amino acids slowly over 5-7 hours. During the overnight fast, this sustained leucine drip keeps muscle protein synthesis elevated while you sleep. You've still got ${protoGap}g to hit tonight — close this gap before 11PM.`,
+      action: `${protoGap}g left: cottage cheese 200g (25g) + 1 boiled egg (6g) = done.`,
+      urgency: protoGap > 30 ? 'high' : undefined,
+    })
+  }
+
+  // ── LOCKED-IN DAY ────────────────────────────────────────────────────────
+
+  if (workoutDone && protein >= proteinTarget * 0.85 && calories <= calTarget && steps >= 8000) {
+    insights.push({
+      id: 'locked-in', tag: 'COACH', color: C.COACH, icon: '🔒',
+      title: "LOCKED IN — THIS IS EXACTLY HOW IT'S DONE",
+      body: `Workout done, protein on track, calories controlled, steps moving. Stack 90 days like this and the body composition math is simple. The compound effect of a day this complete is ${Math.round((maintenance - calories) / 7700 * 100) / 100}kg of fat loss — one day at a time. Sleep 8 hours tonight and repeat tomorrow.`,
+    })
+  }
+
+  // ── NEAR PROTEIN TARGET (after 5pm, 70-90% of target) ────────────────────
+
+  if (hour >= 17 && protein >= proteinTarget * 0.7 && protein < proteinTarget * 0.9) {
+    insights.push({
+      id: 'almost-protein', tag: 'FUEL', color: C.FUEL, icon: '🎯',
+      title: `ONLY ${protoGap}G TO GO ON PROTEIN`,
+      body: `You're close to your ${proteinTarget}g target and this last gap is genuinely easy to close. ${protoGap}g is one Greek yogurt, one and a half eggs, or a small chicken portion. The difference between hitting and missing your protein target tonight is the difference between muscle protein synthesis running all night or shutting down.`,
+      action: `${protoGap}g left: Greek yogurt 150g (13g) + 1 egg (6g) + 25g almonds (6g).`,
+    })
+  }
+
+  // ── STEPS AHEAD OF SCHEDULE (10K before 5pm) ─────────────────────────────
+
+  if (steps >= 10000 && hour < 17) {
+    insights.push({
+      id: 'steps-early', tag: 'MOVE', color: C.MOVE, icon: '👟',
+      title: '10K STEPS DONE EARLY — KEEP GOING',
+      body: `You hit your step target before ${hour}:00 — that's ${stepsKcal(steps, weight)} kcal of passive burn already banked. Every additional 1,000 steps from here adds ${stepsKcal(1000, weight)} kcal to your deficit for free. The people who consistently hit 12-15K steps lose fat noticeably faster than those who stop at 10K.`,
+    })
+  }
+
+  // ── HUNGER MANAGEMENT (below 50% calories after 3pm) ────────────────────
+
+  if (calories < calTarget * 0.5 && hour >= 15) {
+    insights.push({
+      id: 'volume-eating', tag: 'FUEL', color: C.FUEL, icon: '🥗',
+      title: 'EAT MORE FOOD — JUST SMARTER',
+      body: `You still have ${Math.max(calTarget - calories, 0)} kcal left today — use them. On a 1,930 kcal target, going too low triggers a larger cortisol spike and increases muscle breakdown. Volume foods (500g vegetables ≈ 100 kcal) let you fill your stomach without touching the calorie count. Hunger on a cut is a management problem, not a willpower test.`,
+      action: 'Add 400g of broccoli, spinach, or cucumber to your next meal before logging protein.',
+    })
+  }
+
+  // ── FRIDAY CHECK-IN ──────────────────────────────────────────────────────
+
+  if (dayOfWeek === 5 && weekWorkouts < 5) {
+    insights.push({
+      id: 'friday-checkin', tag: 'PROGRESS', color: C.PROGRESS, icon: '📊',
+      title: `FRIDAY — ${weekWorkouts}/5 SESSIONS DONE`,
+      body: `${5 - weekWorkouts} session${5 - weekWorkouts > 1 ? 's' : ''} left to complete the week. The weekend is the window. Saturday morning gym before the day gets busy is one of the most disciplined choices you can make — it sets the tone for the entire following week. Don't give yourself a reason to start Monday behind.`,
+      action: 5 - weekWorkouts === 1 ? 'Schedule Saturday morning now — gym first, everything else after.' : `Saturday + Sunday morning: ${5 - weekWorkouts} sessions, done.`,
+    })
+  }
+
+  // ── MONDAY RESET ──────────────────────────────────────────────────────────
+
+  if (dayOfWeek === 1) {
+    insights.push({
+      id: 'monday-reset', tag: 'COACH', color: C.COACH, icon: '🗓️',
+      title: 'MONDAY. NEW WEEK. CLEAN SLATE.',
+      body: `Whatever happened last week is irrelevant. Today the counter resets: 5 sessions, 3 cardio, protein and calories every day. Set your intention now, not Wednesday. The people who look the way you're working toward made a non-negotiable decision every Monday morning for 13 straight weeks. That decision starts today.`,
+      action: 'Log your first meal and get your session done before noon if possible.',
+    })
+  }
+
+  // ── WEEK COMPLETE ─────────────────────────────────────────────────────────
+
+  if (weekWorkouts >= 5) {
+    insights.push({
+      id: 'week-complete', tag: 'PROGRESS', color: C.PROGRESS, icon: '🏆',
+      title: '5/5 SESSIONS — COMPLETE WEEK',
+      body: `Five training sessions this week. Every rep, every set, every session — completed. Your body will spend the next 48 hours rebuilding and adapting. Protect the investment: keep protein high through the weekend, prioritize sleep, and keep steps moving. One more week like this and the momentum is genuinely hard to stop.`,
+    })
+  }
+
+  // ── GOOD PROTEIN ─────────────────────────────────────────────────────────
+
   if (hour >= 15 && protein >= proteinTarget * 0.8 && protein <= proteinTarget * 1.1) {
     insights.push({
       id: 'protein-good', tag: 'COACH', color: C.COACH, icon: '✅',
@@ -152,7 +275,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     })
   }
 
-  // Workout done — acknowledge it
+  // ── WORKOUT DONE ─────────────────────────────────────────────────────────
+
   if (workoutDone) {
     insights.push({
       id: 'workout-done', tag: 'COACH', color: C.COACH, icon: '🔥',
@@ -161,7 +285,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     })
   }
 
-  // No cardio by Thursday
+  // ── NO CARDIO BY THURSDAY ─────────────────────────────────────────────────
+
   if (dayOfWeek >= 4 && weekCardioDays === 0) {
     insights.push({
       id: 'no-cardio', tag: 'MOVE', color: C.MOVE, icon: '🏃',
@@ -170,7 +295,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     })
   }
 
-  // Streak acknowledgment
+  // ── STREAK ───────────────────────────────────────────────────────────────
+
   if (streak >= 3) {
     insights.push({
       id: 'streak', tag: 'COACH', color: C.COACH, icon: '⚡',
@@ -271,13 +397,48 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       title: 'THE MUSCLE IS ALREADY THERE',
       body: `You currently have ${(weight * (1 - bodyFat / 100)).toFixed(1)}kg of lean mass. At 15% BF and ${targetWeight}kg, you'll have ${(targetWeight * 0.85).toFixed(1)}kg lean mass — essentially the same muscle, just with ${fatToLose.toFixed(1)}kg less fat covering it. Every rep you've ever done is still there. The cut just reveals it.`,
     },
+    {
+      id: 'progressive-overload', tag: 'MOVE', color: C.MOVE, icon: '📈',
+      title: 'THE ONE TRAINING VARIABLE THAT PRESERVES MUSCLE ON A CUT',
+      body: `Progressive overload is the signal that tells your body "this muscle is needed — do not burn it." Without it, your body has no mechanical reason to maintain expensive tissue while in an energy deficit. Even 1 extra rep per set, 2.5kg added every two weeks — this is the difference between losing fat and losing muscle+fat.`,
+    },
+    {
+      id: 'deep-sleep', tag: 'RECOVER', color: C.RECOVER, icon: '🛌',
+      title: 'SLEEP IS THE MOST ANABOLIC THING YOU CAN DO TONIGHT',
+      body: `The first 90-minute sleep cycle produces the highest growth hormone pulse of the day — GH mobilizes stored fat AND drives muscle repair simultaneously. A single night of 5 hours reduces next-day anabolic hormone levels by 15-20%. Your 5:30AM alarm means lights out by 10PM is non-negotiable. The gym session is the trigger. Sleep is where the adaptation happens.`,
+      action: 'Screens off at 9:30PM. In bed by 10PM. Cool room (18-19°C).',
+    },
+    {
+      id: 'fiber-satiety', tag: 'SCIENCE', color: C.SCIENCE, icon: '🌱',
+      title: '30G FIBER/DAY MAKES YOUR DEFICIT EASIER',
+      body: `Dietary fiber slows gastric emptying by 2-3 hours, directly extending satiety. On 1,930 kcal, this is your hunger management system. Fiber also feeds gut bacteria that produce short-chain fatty acids, improving insulin sensitivity and reducing systemic inflammation. Oats (8g), lentils (8g), broccoli (3g), chia seeds (10g). Hit 30g/day and hunger becomes manageable.`,
+    },
+    {
+      id: 'compound-movements', tag: 'MOVE', color: C.MOVE, icon: '🏗️',
+      title: 'COMPOUND MOVEMENTS ARE YOUR FAT LOSS MULTIPLIER',
+      body: `Squats, deadlifts, bench press, rows — compound movements recruit multiple muscle groups simultaneously, burning 40-60% more calories per set than isolation work. They also trigger a larger hormonal response (testosterone, GH) than machine isolation. On a limited training schedule, compounds give you the most return per minute of gym time.`,
+    },
+    {
+      id: 'alcohol-impact', tag: 'SCIENCE', color: C.SCIENCE, icon: '🚫',
+      title: 'ALCOHOL HALTS FAT OXIDATION FOR 24-48 HOURS',
+      body: `Ethanol (7 kcal/g) isn't just empty calories — it completely stops fat burning while your body processes it as a priority toxin. Two standard drinks on a Saturday evening halt fat oxidation until Monday. For someone cutting, that's 2 of your 7 weekly fat-burning days eliminated. Social situations don't require alcohol — sparkling water with lime is indistinguishable in most contexts.`,
+    },
+    {
+      id: 'dehydration-performance', tag: 'SCIENCE', color: C.SCIENCE, icon: '💧',
+      title: '2% DEHYDRATION CUTS STRENGTH BY 10%',
+      body: `At just 2% body weight dehydration — 1.5kg for a 75kg person — strength output drops by 10% and cognitive performance by 15-20%. You won't feel thirsty until you're already at 1-2% dehydration. The fix: drink 500ml on waking, 500ml pre-training, and 250ml every hour during the workday. 3L/day is your standard.`,
+    },
+    {
+      id: 'insulin-sensitivity', tag: 'SCIENCE', color: C.SCIENCE, icon: '🔬',
+      title: 'BETTER INSULIN SENSITIVITY = FASTER FAT LOSS',
+      body: `Insulin is your primary fat-storage hormone. When cells are insulin sensitive, the same amount of insulin moves more glucose into muscle cells (not fat cells). Training and sleep improve insulin sensitivity acutely. Excess sugar, alcohol, and chronic sleep deprivation worsen it. Every habit in this app is, directly or indirectly, an insulin sensitivity intervention.`,
+    },
   ]
 
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
-  const startIdx  = dayOfYear % sciencePool.length
-  for (let i = 0; i < 4; i++) {
-    insights.push(sciencePool[(startIdx + i) % sciencePool.length])
-  }
+  const picked = new Set<number>()
+  for (let a = 0; picked.size < 3; a++) picked.add(seededInt(dayOfYear * 17 + a * 31, sciencePool.length))
+  for (const i of picked) insights.push(sciencePool[i])
 
   return insights
 }

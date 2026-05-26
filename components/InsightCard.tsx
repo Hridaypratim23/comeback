@@ -32,68 +32,128 @@ export default function InsightCard({ insights }: { insights: Insight[] }) {
 
   if (!insights.length) return null
 
-  const insight  = insights[idx % insights.length]
-  const progress = ((idx + 1) / insights.length) * 100
+  const insight = insights[idx % insights.length]
+  const color   = insight.color
 
   return (
     <div
       className="rounded-xl overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${insight.color}0D 0%, #0D0D10 60%)`,
-        border: `1px solid ${insight.color}28`,
+        background: `linear-gradient(135deg, ${color}08 0%, transparent 50%), #0D0D10`,
+        border: `1px solid ${color}22`,
       }}
     >
       {/* Header row */}
-      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+      <div
+        className="flex items-center gap-2 px-3 pt-3 pb-2"
+        style={{ opacity: visible ? 1 : 0, transition: 'opacity 150ms' }}
+      >
+        {/* Category pill */}
         <div
-          className="w-6 h-6 rounded-lg flex items-center justify-center text-sm leading-none flex-shrink-0"
-          style={{ background: `${insight.color}1A` }}
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ background: `${color}20` }}
         >
-          {insight.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[8px] font-black tracking-[0.28em]" style={{ color: `${insight.color}88` }}>
+          <span className="text-xs leading-none">{insight.icon}</span>
+          <span
+            className="text-[8px] font-black tracking-widest leading-none"
+            style={{ color }}
+          >
             {TAG_LABEL[insight.tag]}
           </span>
-          <div
-            className="text-[11px] font-black leading-tight truncate"
-            style={{ color: insight.color }}
-          >
-            {insight.title}
-          </div>
         </div>
-        <span className="text-[8px] font-black text-[#2C2C38] tracking-widest flex-shrink-0">{idx + 1}/{insights.length}</span>
+
+        {/* Urgent pulsing dot */}
+        {insight.urgency === 'high' && (
+          <div className="flex-shrink-0 relative w-2 h-2">
+            <div
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: '#FF2800', opacity: 0.6 }}
+            />
+            <div className="w-2 h-2 rounded-full bg-[#FF2800]" />
+          </div>
+        )}
+
+        {/* Counter */}
+        <span className="ml-auto text-[8px] font-black text-[#2C2C38] tracking-widest flex-shrink-0">
+          {idx + 1}/{insights.length}
+        </span>
       </div>
 
-      {/* Body */}
+      {/* Content */}
       <div
         className="px-3 pb-2 transition-opacity duration-150"
         style={{ opacity: visible ? 1 : 0 }}
       >
-        <p className="text-[11px] leading-[1.6] text-[#7A7A8A]">{insight.body}</p>
+        {/* Title */}
+        <p
+          className="text-[13px] font-black text-[#EDEDF0] leading-snug mb-2"
+        >
+          {insight.title}
+        </p>
+
+        {/* Body */}
+        <p className="text-[11px] leading-[1.65] text-[#8A8A9A]">
+          {insight.body}
+        </p>
+
+        {/* Action callout */}
+        {insight.action && (
+          <div
+            className="mt-3 rounded-[10px] px-3 py-2.5"
+            style={{
+              background: `${color}12`,
+              border: `1px solid ${color}25`,
+            }}
+          >
+            <div
+              className="text-[8px] font-black tracking-widest mb-1"
+              style={{ color }}
+            >
+              ⚡ DO THIS NOW
+            </div>
+            <p className="text-[11px] leading-[1.55] text-[#EDEDF0]">
+              {insight.action}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-2 px-3 pb-3">
+      {/* Footer — dot indicators + prev/next */}
+      <div className="flex items-center gap-2 px-3 pb-3 pt-1">
         <button
           onClick={() => go(-1)}
           className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 cursor-pointer"
-          style={{ background: `${insight.color}15` }}
+          style={{ background: `${color}15` }}
         >
-          <ChevronLeft size={12} style={{ color: insight.color }} />
+          <ChevronLeft size={12} style={{ color }} />
         </button>
-        <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: `${insight.color}18` }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%`, background: insight.color }}
-          />
+
+        {/* Dot indicators */}
+        <div className="flex-1 flex items-center justify-center gap-1 overflow-hidden">
+          {insights.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                if (i === idx) return
+                setVisible(false)
+                setTimeout(() => { setIdx(i); setVisible(true) }, 160)
+              }}
+              className="flex-shrink-0 rounded-full transition-all duration-300 cursor-pointer"
+              style={{
+                width:  i === idx ? 12 : 5,
+                height: 5,
+                background: i === idx ? color : `${color}30`,
+              }}
+            />
+          ))}
         </div>
+
         <button
           onClick={() => go(1)}
           className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 cursor-pointer"
-          style={{ background: `${insight.color}15` }}
+          style={{ background: `${color}15` }}
         >
-          <ChevronRight size={12} style={{ color: insight.color }} />
+          <ChevronRight size={12} style={{ color }} />
         </button>
       </div>
     </div>

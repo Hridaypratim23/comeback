@@ -376,6 +376,7 @@ export default function HomePage() {
     proteinTarget: TARGETS.protein,
     dayOfWeek:     now.getDay(),
     streak:        stats.streak,
+    isRestDay:     todayLog?.selectedWorkoutId === 'rest',
   })
 
   // Trigger celebration only the first time rings close today
