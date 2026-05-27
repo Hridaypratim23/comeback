@@ -219,6 +219,15 @@ export default function ProgressPage() {
   useEffect(() => {
     setMounted(true)
     setCiWeight(stats.weight.toString())
+    const todayEntry = measurements.find(m => m.date === new Date().toLocaleDateString('en-CA'))
+    if (todayEntry) {
+      if (todayEntry.chest != null) setMChest(todayEntry.chest.toString())
+      if (todayEntry.waist != null) setMWaist(todayEntry.waist.toString())
+      if (todayEntry.hips != null) setMHips(todayEntry.hips.toString())
+      if (todayEntry.leftArm != null) setMLeftArm(todayEntry.leftArm.toString())
+      if (todayEntry.rightArm != null) setMRightArm(todayEntry.rightArm.toString())
+      if (todayEntry.leftThigh != null) setMLeftThigh(todayEntry.leftThigh.toString())
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

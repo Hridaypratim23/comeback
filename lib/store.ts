@@ -535,9 +535,12 @@ export const useStore = create<AppState>()(
 
       addMeasurement: (m) => {
         const d = todayStr()
-        set(s => ({
-          measurements: [...s.measurements.filter(x => x.date !== d), { ...m, date: d }].slice(-90),
-        }))
+        set(s => {
+          const existing = s.measurements.find(x => x.date === d) ?? {}
+          return {
+            measurements: [...s.measurements.filter(x => x.date !== d), { ...existing, ...m, date: d }].slice(-90),
+          }
+        })
         get().syncToSupabase()
       },
 
