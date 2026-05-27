@@ -36,9 +36,11 @@ export async function GET(req: Request) {
   const existingDay = (existingDayLogs[targetDate] as Record<string, unknown> | undefined) ?? {
     date: targetDate, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false, fastingHours: 0,
   }
+  const existingOverrides = (state.stepsOverride as Record<string, number> | undefined) ?? {}
   const patched = {
     ...state,
     pendingStepFixes: { [targetDate]: targetSteps },
+    stepsOverride: { ...existingOverrides, [targetDate]: targetSteps },
     dayLogs: {
       ...existingDayLogs,
       [targetDate]: { ...existingDay, steps: targetSteps },

@@ -121,6 +121,7 @@ interface AppState {
   weeklyCheckins: WeeklyCheckin[]
   customMeals: CustomMealTemplate[]
   pendingStepFixes?: Record<string, number>
+  stepsOverride: Record<string, number>
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: () => void
@@ -208,6 +209,7 @@ export const useStore = create<AppState>()(
       measurements: [],
       weeklyCheckins: [],
       customMeals: [],
+      stepsOverride: {},
 
       getOrCreateToday: () => {
         const d = todayStr()
@@ -482,6 +484,7 @@ export const useStore = create<AppState>()(
             measurements: s.measurements,
             weeklyCheckins: s.weeklyCheckins,
             customMeals: s.customMeals,
+            stepsOverride: s.stepsOverride,
           }
           await fetch('/api/state', {
             method: 'POST',
@@ -512,13 +515,21 @@ export const useStore = create<AppState>()(
             }
           }
 
-          // Apply any server-mandated step corrections, overriding the merge result
+          // Apply one-time step corrections
           const fixes = (remote as Record<string, unknown>).pendingStepFixes as Record<string, number> | undefined
           if (fixes) {
             for (const [date, steps] of Object.entries(fixes)) {
               const existing = mergedDayLogs[date] ?? defaultDay(date)
               mergedDayLogs[date] = { ...existing, steps }
             }
+          }
+
+          // Apply permanent step overrides — highest priority, wins over everything including old local state
+          const remoteOverrides = (remote as Record<string, unknown>).stepsOverride as Record<string, number> | undefined
+          const mergedOverrides = { ...s.stepsOverride, ...(remoteOverrides ?? {}) }
+          for (const [date, steps] of Object.entries(mergedOverrides)) {
+            const existing = mergedDayLogs[date] ?? defaultDay(date)
+            mergedDayLogs[date] = { ...existing, steps }
           }
 
           // Stats: take whichever has higher XP (more complete)
@@ -534,6 +545,7 @@ export const useStore = create<AppState>()(
             weeklyCheckins: mergeByDate(remote.weeklyCheckins ?? [], s.weeklyCheckins).slice(-52),
             customMeals: s.customMeals.length > 0 ? s.customMeals : (remote.customMeals ?? []),
             pendingStepFixes: undefined,
+            stepsOverride: mergedOverrides,
           }
         })
       },
@@ -609,6 +621,7 @@ export const useStore = create<AppState>()(
         measurements: s.measurements,
         weeklyCheckins: s.weeklyCheckins,
         customMeals: s.customMeals,
+        stepsOverride: s.stepsOverride,
       }),
     }
   )
