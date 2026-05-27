@@ -233,7 +233,7 @@ export const useStore = create<AppState>()(
       measurements: [],
       weeklyCheckins: [],
       customMeals: [],
-      stepsOverride: {},
+      stepsOverride: { '2025-05-22': 0 },
 
       getOrCreateToday: () => {
         const d = todayStr()
@@ -499,8 +499,13 @@ export const useStore = create<AppState>()(
       syncToSupabase: async () => {
         try {
           const s = get()
+          // Apply overrides to dayLogs before sending — prevents bad step counts from ever reaching Supabase
+          const patchedDayLogs = { ...s.dayLogs }
+          for (const [date, steps] of Object.entries(s.stepsOverride)) {
+            if (patchedDayLogs[date]) patchedDayLogs[date] = { ...patchedDayLogs[date], steps }
+          }
           const payload = {
-            dayLogs: s.dayLogs,
+            dayLogs: patchedDayLogs,
             stats: s.stats,
             prs: s.prs,
             bodyHistory: s.bodyHistory,
@@ -619,34 +624,42 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'comeback-store',
-      version: 2,
+      version: 3,
       migrate: (raw: unknown) => {
         const state = raw as Record<string, unknown>
         const dayLogs = (state.dayLogs ?? {}) as Record<string, DayLog>
+        const overrides: Record<string, number> = { '2025-05-22': 0, ...((state.stepsOverride as Record<string, number> | undefined) ?? {}) }
         const today = localDateStr()
-        let changed = false
         const fixed: Record<string, DayLog> = {}
         for (const [date, log] of Object.entries(dayLogs)) {
-          if (date < today && (log.steps ?? 0) > 90000) {
+          if (overrides[date] !== undefined) {
+            fixed[date] = { ...log, steps: overrides[date] }
+          } else if (date < today && (log.steps ?? 0) > 90000) {
             fixed[date] = { ...log, steps: 0 }
-            changed = true
           } else {
             fixed[date] = log
           }
         }
-        return changed ? { ...state, dayLogs: fixed } : state
+        return { ...state, dayLogs: fixed, stepsOverride: overrides }
       },
-      partialize: (s) => ({
-        dayLogs: s.dayLogs,
-        stats: s.stats,
-        prs: s.prs,
-        bodyHistory: s.bodyHistory,
-        exerciseHistory: s.exerciseHistory,
-        measurements: s.measurements,
-        weeklyCheckins: s.weeklyCheckins,
-        customMeals: s.customMeals,
-        stepsOverride: s.stepsOverride,
-      }),
+      partialize: (s) => {
+        // Apply overrides before persisting — localStorage never stores a bad step count
+        const dayLogs = { ...s.dayLogs }
+        for (const [date, steps] of Object.entries(s.stepsOverride)) {
+          if (dayLogs[date]) dayLogs[date] = { ...dayLogs[date], steps }
+        }
+        return {
+          dayLogs,
+          stats: s.stats,
+          prs: s.prs,
+          bodyHistory: s.bodyHistory,
+          exerciseHistory: s.exerciseHistory,
+          measurements: s.measurements,
+          weeklyCheckins: s.weeklyCheckins,
+          customMeals: s.customMeals,
+          stepsOverride: s.stepsOverride,
+        }
+      },
     }
   )
 )
