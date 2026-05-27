@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { QUOTES } from '@/constants/quotes'
 
 function shuffle<T>(arr: T[]): T[] {
@@ -12,53 +12,63 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function getDuration(text: string) {
-  return Math.round(12 + (text.length / 90) * 10)
-}
+const SEP = '  ·  '
 
 export default function QuoteTicker() {
-  const deck = useRef<string[]>([])
-  const cursor = useRef(0)
-  const generation = useRef(0)
-  const [entry, setEntry] = useState<{ quote: string; gen: number } | null>(null)
+  const [items, setItems] = useState<Array<{ type: 'q' | 's'; text: string }>>([])
+  const [duration, setDuration] = useState(0)
+  const innerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    deck.current = shuffle(QUOTES)
-    cursor.current = 0
-    setEntry({ quote: deck.current[0], gen: 0 })
+    const half = shuffle(QUOTES).flatMap(q => [
+      { type: 'q' as const, text: q },
+      { type: 's' as const, text: SEP },
+    ])
+    setItems([...half, ...half])
   }, [])
 
-  const advance = () => {
-    cursor.current++
-    if (cursor.current >= deck.current.length) {
-      deck.current = shuffle(QUOTES)
-      cursor.current = 0
-    }
-    generation.current++
-    setEntry({ quote: deck.current[cursor.current], gen: generation.current })
-  }
+  useEffect(() => {
+    if (!items.length) return
+    // Measure after layout then set speed-based duration
+    const id = requestAnimationFrame(() => {
+      if (innerRef.current) {
+        const halfW = innerRef.current.scrollWidth / 2
+        setDuration(Math.round(halfW / 180)) // 180 px/s
+      }
+    })
+    return () => cancelAnimationFrame(id)
+  }, [items])
 
-  if (!entry) return <div style={{ height: 26 }} />
+  if (!items.length) return <div style={{ height: 28 }} />
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: 26 }}>
-      <span
-        key={entry.gen}
-        onAnimationEnd={advance}
+    <div style={{ overflow: 'hidden', height: 28 }}>
+      <div
+        ref={innerRef}
         style={{
-          position: 'absolute',
-          top: '50%',
-          transform: 'translateY(-50%)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: '100%',
           whiteSpace: 'nowrap',
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.1em',
-          color: '#5A5A6A',
-          animation: `scroll-quote ${getDuration(entry.quote)}s linear 1`,
+          willChange: 'transform',
+          animation: duration ? `ticker ${duration}s linear infinite` : 'none',
         }}
       >
-        {entry.quote}
-      </span>
+        {items.map((item, i) => (
+          <span
+            key={i}
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: item.type === 's' ? '#30303C' : '#9A9AB0',
+              flexShrink: 0,
+            }}
+          >
+            {item.text}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

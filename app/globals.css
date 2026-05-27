@@ -89,11 +89,6 @@ input[type], input:not([type]), textarea, select {
 .animate-ticker             { animation: ticker 22s linear infinite; }
 .animate-ticker:hover       { animation-play-state: paused; }
 
-@keyframes scroll-quote {
-  from { left: 100%; }
-  to   { left: -100%; }
-}
-
 /* ── Pulse red ────────────────────────────────────────── */
 
 @keyframes pulse-red {
