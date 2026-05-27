@@ -139,6 +139,9 @@ interface AppState {
   setStepsForDate: (date: string, steps: number) => void
   addSteps: (steps: number) => void
   toggleHabit: (habitId: string) => void
+  setWaterForDate: (date: string, ml: number) => void
+  toggleHabitForDate: (date: string, habitId: string) => void
+  setFastingHoursForDate: (date: string, hours: number) => void
   updateStats: (partial: Partial<UserStats>) => void
   updateBodyStats: (weight: number, bodyFat: number) => void
   setActiveWorkout: (id: string | null) => void
@@ -468,6 +471,31 @@ export const useStore = create<AppState>()(
             dayLogs: { ...s.dayLogs, [d]: { ...day, habits, xpEarned: Math.max(0, day.xpEarned + xpDelta) } },
             stats: { ...s.stats, totalXP, level },
           }
+        })
+        get().syncToSupabase()
+      },
+
+      setWaterForDate: (date, ml) => {
+        set(s => {
+          const day = s.dayLogs[date] ?? defaultDay(date)
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, waterMl: Math.max(0, ml) } } }
+        })
+        get().syncToSupabase()
+      },
+
+      toggleHabitForDate: (date, habitId) => {
+        set(s => {
+          const day = s.dayLogs[date] ?? defaultDay(date)
+          const habits = { ...day.habits, [habitId]: !day.habits?.[habitId] }
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, habits } } }
+        })
+        get().syncToSupabase()
+      },
+
+      setFastingHoursForDate: (date, hours) => {
+        set(s => {
+          const day = s.dayLogs[date] ?? defaultDay(date)
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, fastingHours: hours } } }
         })
         get().syncToSupabase()
       },

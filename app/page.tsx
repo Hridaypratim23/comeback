@@ -140,8 +140,10 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate } = useStore()
   const [stepsInput, setStepsInput] = useState('')
+  const [pastStepsInput, setPastStepsInput] = useState('')
+  const [pastFastingInput, setPastFastingInput] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
   const [ifHours, setIfHours] = useState(16)
@@ -671,92 +673,136 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── PAST DATE: Read-only journal entry ── */}
+        {/* ── PAST DATE: Editable journal entry ── */}
         {!isViewingToday && (
           <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
-            <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">DAY SUMMARY</div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">DAY LOG</span>
+              <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">EDITABLE</span>
+            </div>
 
-            {!dayLog ? (
-              <div className="py-4 text-center text-xs font-black text-[#2C2C38] tracking-widest">NO DATA LOGGED THIS DAY</div>
-            ) : (
-              <>
-                {/* Workout */}
-                <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                  <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUT</span>
-                  <span className={`text-xs font-black ${dayLog.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
-                    {dayLog.workoutDone
-                      ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓')
-                      : 'NOT LOGGED'}
-                  </span>
-                </div>
-                {/* Calories eaten */}
-                <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                  <span className="text-[10px] font-black tracking-widest text-[#686870]">CALORIES</span>
-                  <span className="text-xs font-black text-[#FF5500]">
-                    {totalCal > 0 ? `${totalCal} kcal` : '—'}
-                  </span>
-                </div>
-                {/* Calories burned */}
-                {(() => {
-                  const isActualLift = !!(dayLog.workoutDone && dayLog.selectedWorkoutId && dayLog.selectedWorkoutId !== 'rest')
-                  const burned = (isActualLift ? 350 : 0)
-                    + (dayLog.cardio?.caloriesBurned ?? 0)
-                    + Math.round((dayLog.steps ?? 0) * stats.weight * 0.00057)
-                    + Math.round((dayLog.intimacyMinutes ?? 0) * 4)
-                  return burned > 0 ? (
-                    <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                      <span className="text-[10px] font-black tracking-widest text-[#686870]">BURNED</span>
-                      <span className="text-xs font-black text-[#1DB954]">{burned} kcal</span>
-                    </div>
-                  ) : null
-                })()}
-                {/* Macros */}
-                {totalCal > 0 && (
-                  <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                    <span className="text-[10px] font-black tracking-widest text-[#686870]">MACROS</span>
-                    <span className="text-[10px] font-black text-[#686870]">
-                      P:{totalPro}g · C:{totalCarb}g · F:{totalFat}g
-                    </span>
-                  </div>
-                )}
-                {/* Water */}
-                <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                  <span className="text-[10px] font-black tracking-widest text-[#686870]">WATER</span>
-                  <span className="text-xs font-black text-[#2196F3]">
-                    {dayLog.waterMl > 0 ? `${(dayLog.waterMl / 1000).toFixed(1)}L` : '—'}
-                  </span>
-                </div>
-                {/* Steps */}
-                <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-                  <span className="text-[10px] font-black tracking-widest text-[#686870]">STEPS</span>
-                  <span className="text-xs font-black text-[#EDEDF0]">
-                    {dayLog.steps > 0 ? dayLog.steps.toLocaleString() : '—'}
-                    {dayLog.steps >= 10000 && <span className="text-[#1DB954] ml-1">✓</span>}
-                  </span>
-                </div>
-                {/* Habits */}
-                <div className="py-2">
-                  <span className="text-[10px] font-black tracking-widest text-[#686870] block mb-2">HABITS</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DAILY_HABITS.map(h => {
-                      const done = !!dayLog.habits?.[h.id]
-                      return (
-                        <span key={h.id}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border
-                            ${done ? 'bg-[#0D7A3A22] border-[#1DB95433] text-[#1DB954]' : 'bg-[#0D0D10] border-[#1E1E26] text-[#2C2C38]'}`}>
-                          {h.icon} {done ? '✓' : '✗'}
-                        </span>
-                      )
-                    })}
-                    {(dayLog.fastingHours ?? 0) > 0 && (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border bg-[#0D7A3A22] border-[#1DB95433] text-[#1DB954]">
-                        ⏱️ {dayLog.fastingHours}h fast ✓
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </>
+            {/* Workout — read-only */}
+            <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
+              <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUT</span>
+              <span className={`text-xs font-black ${dayLog?.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
+                {dayLog?.workoutDone ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓') : 'NOT LOGGED'}
+              </span>
+            </div>
+
+            {/* Calories — read-only */}
+            {totalCal > 0 && (
+              <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
+                <span className="text-[10px] font-black tracking-widest text-[#686870]">CALORIES</span>
+                <span className="text-xs font-black text-[#FF5500]">{totalCal} kcal · P:{totalPro}g C:{totalCarb}g F:{totalFat}g</span>
+              </div>
             )}
+
+            {/* Steps — editable */}
+            <div className="py-2 border-b border-[#1E1E26]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black tracking-widest text-[#686870]">STEPS</span>
+                <span className="text-xs font-black text-[#EDEDF0]">
+                  {(dayLog?.steps ?? 0) > 0 ? (dayLog?.steps ?? 0).toLocaleString() : '—'}
+                  {(dayLog?.steps ?? 0) >= 10000 && <span className="text-[#1DB954] ml-1">✓</span>}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Enter steps…"
+                  value={pastStepsInput}
+                  onChange={e => setPastStepsInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const n = parseInt(pastStepsInput)
+                      if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput('') }
+                    }
+                  }}
+                  className="flex-1 bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#2196F3]"
+                />
+                <button
+                  onClick={() => {
+                    const n = parseInt(pastStepsInput)
+                    if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput('') }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
+                >SET</button>
+              </div>
+            </div>
+
+            {/* Water — editable */}
+            <div className="py-2 border-b border-[#1E1E26]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black tracking-widest text-[#686870]">WATER</span>
+                <span className="text-xs font-black text-[#2196F3]">{((dayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setWaterForDate(selectedDate, Math.max(0, (dayLog?.waterMl ?? 0) - 250))}
+                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#1E1E26] text-[11px] font-black text-[#686870] cursor-pointer active:scale-95 transition-all">
+                  −250ml
+                </button>
+                <button onClick={() => setWaterForDate(selectedDate, (dayLog?.waterMl ?? 0) + 250)}
+                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#2196F344] text-[11px] font-black text-[#2196F3] cursor-pointer active:scale-95 transition-all">
+                  +250ml
+                </button>
+                <button onClick={() => setWaterForDate(selectedDate, (dayLog?.waterMl ?? 0) + 500)}
+                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#2196F344] text-[11px] font-black text-[#2196F3] cursor-pointer active:scale-95 transition-all">
+                  +500ml
+                </button>
+              </div>
+            </div>
+
+            {/* Habits — toggleable */}
+            <div className="py-2 border-b border-[#1E1E26]">
+              <span className="text-[10px] font-black tracking-widest text-[#686870] block mb-2">HABITS</span>
+              <div className="flex flex-wrap gap-1.5">
+                {DAILY_HABITS.map(h => {
+                  const done = !!(dayLog?.habits?.[h.id])
+                  return (
+                    <button key={h.id}
+                      onClick={() => { haptic(); toggleHabitForDate(selectedDate, h.id) }}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer active:scale-95
+                        ${done ? 'bg-[#0D7A3A22] border-[#1DB95433] text-[#1DB954]' : 'bg-[#0D0D10] border-[#1E1E26] text-[#2C2C38]'}`}>
+                      {h.icon} {done ? '✓' : '○'}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Fasting — editable */}
+            <div className="py-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING</span>
+                <span className="text-xs font-black text-[#1DB954]">
+                  {(dayLog?.fastingHours ?? 0) > 0 ? `${dayLog?.fastingHours}h` : '—'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Hours fasted…"
+                  value={pastFastingInput}
+                  onChange={e => setPastFastingInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const n = parseFloat(pastFastingInput)
+                      if (!isNaN(n) && n >= 0) { setFastingHoursForDate(selectedDate, n); setPastFastingInput('') }
+                    }
+                  }}
+                  className="flex-1 bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#1DB954]"
+                />
+                <button
+                  onClick={() => {
+                    const n = parseFloat(pastFastingInput)
+                    if (!isNaN(n) && n >= 0) { setFastingHoursForDate(selectedDate, n); setPastFastingInput('') }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#1DB95422] border border-[#1DB95433] text-[#1DB954] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
+                >SET</button>
+              </div>
+            </div>
           </div>
         )}
 
