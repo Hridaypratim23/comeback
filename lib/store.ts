@@ -495,13 +495,18 @@ export const useStore = create<AppState>()(
         set(s => {
           // Merge dayLogs: meals from whichever has more; numeric activity fields take max
           const mergedDayLogs: Record<string, DayLog> = { ...remote.dayLogs }
+          const today = todayStr()
           for (const [date, local] of Object.entries(s.dayLogs)) {
             const rem = mergedDayLogs[date]
             if (!rem) { mergedDayLogs[date] = local; continue }
             const base = local.meals.length >= rem.meals.length ? local : rem
             mergedDayLogs[date] = {
               ...base,
-              steps:        Math.max(local.steps ?? 0,        rem.steps ?? 0),
+              // Today: take max (step counter may still be accumulating mid-day)
+              // Past dates: remote is authoritative — lets fix-steps corrections stick permanently
+              steps: date === today
+                ? Math.max(local.steps ?? 0, rem.steps ?? 0)
+                : (rem.steps ?? local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
             }
