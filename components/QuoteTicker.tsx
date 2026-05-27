@@ -33,7 +33,7 @@ export default function QuoteTicker() {
     const id = requestAnimationFrame(() => {
       if (innerRef.current) {
         const halfW = innerRef.current.scrollWidth / 2
-        setDuration(Math.round(halfW / 180)) // 180 px/s
+        setDuration(Math.round(halfW / 80)) // 80 px/s
       }
     })
     return () => cancelAnimationFrame(id)
