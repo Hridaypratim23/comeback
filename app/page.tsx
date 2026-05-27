@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
-import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft, Edit3 } from 'lucide-react'
+import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft, Edit3, X } from 'lucide-react'
 import Link from 'next/link'
 import {
   requestNotificationPermission,
@@ -21,9 +21,10 @@ interface ProgressRingsProps {
   dailyScore: number; weeklyScore: number
   workoutDone: boolean; isRestDay: boolean; todaySteps: number; sleepDone: boolean; todayCal: number; calTarget: number
   weekWorkouts: number; weekStepDays: number; weekSleepDays: number; weekGoodDays: number
+  onClick?: () => void
 }
 
-function ProgressRings({ dailyScore, weeklyScore, workoutDone, isRestDay, todaySteps, sleepDone, todayCal, calTarget, weekWorkouts, weekStepDays, weekSleepDays, weekGoodDays }: ProgressRingsProps) {
+function ProgressRings({ dailyScore, weeklyScore, workoutDone, isRestDay, todaySteps, sleepDone, todayCal, calTarget, weekWorkouts, weekStepDays, weekSleepDays, weekGoodDays, onClick }: ProgressRingsProps) {
   const cx = 62, cy = 62, RING_W = 12
   const outerR = 50, innerR = 34
   const outerCirc = 2 * Math.PI * outerR
@@ -47,7 +48,7 @@ function ProgressRings({ dailyScore, weeklyScore, workoutDone, isRestDay, todayS
   ]
 
   return (
-    <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+    <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 cursor-pointer active:scale-[0.99] transition-transform select-none" onClick={onClick}>
 
       {/* Rings + score rows */}
       <div className="flex items-center gap-5">
@@ -141,6 +142,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 
 export default function HomePage() {
   const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
+  const [monthRingsOpen, setMonthRingsOpen] = useState(false)
   const [stepsInput, setStepsInput] = useState('')
   const [pastEditModal, setPastEditModal] = useState<null | 'steps' | 'water' | 'calories' | 'habits' | 'fasting'>(null)
   const [pastStepsInput, setPastStepsInput] = useState('')
@@ -599,6 +601,7 @@ export default function HomePage() {
 
         {/* ── Score Rings ── */}
         <ProgressRings
+          onClick={() => setMonthRingsOpen(true)}
           dailyScore={dailyScore}
           weeklyScore={weeklyScore}
           workoutDone={todayLog?.workoutDone ?? false}
@@ -1413,6 +1416,17 @@ export default function HomePage() {
         document.body
       )}
 
+      {/* ── Monthly rings calendar (portalled to escape PageTransition transform) ── */}
+      {monthRingsOpen && createPortal(
+        <MonthlyRingsOverlay
+          dayLogs={dayLogs}
+          todayKey={todayKey}
+          maintenance={maintenance}
+          onClose={() => setMonthRingsOpen(false)}
+        />,
+        document.body
+      )}
+
       {/* ── Uncheck habit confirmation (portalled to escape PageTransition transform) ── */}
       {unCheckPending && createPortal(
         <>
@@ -1450,6 +1464,113 @@ export default function HomePage() {
         document.body
       )}
 
+    </div>
+  )
+}
+
+function MonthlyRingsOverlay({
+  dayLogs,
+  todayKey,
+  maintenance,
+  onClose,
+}: {
+  dayLogs: Record<string, import('@/lib/store').DayLog>
+  todayKey: string
+  maintenance: number
+  onClose: () => void
+}) {
+  const todayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    todayRef.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
+  }, [])
+
+  function calcScore(dk: string): number {
+    const log = dayLogs[dk]
+    if (!log) return 0
+    const workout = (log.workoutDone && log.selectedWorkoutId !== 'rest') ? 25 : 0
+    const steps = Math.min((log.steps ?? 0) / 10000, 1) * 25
+    const sleep = log.habits?.sleep ? 25 : 0
+    const cal = log.meals.reduce((s: number, m: { calories: number }) => s + m.calories, 0)
+    return Math.round(workout + steps + sleep + (cal > 0 && cal <= maintenance ? 25 : 0))
+  }
+
+  const today = new Date(todayKey)
+  const months = Array.from({ length: 3 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - (2 - i), 1)
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
+
+  const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+  const RS = 36, SW = 5.5
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: '#070709', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      <button onClick={onClose}
+        style={{ position: 'sticky', top: 16, float: 'right', marginRight: 16, zIndex: 251, width: 36, height: 36, borderRadius: '50%', background: '#2C2C38', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <X size={16} color="#EDEDF0" />
+      </button>
+
+      <div style={{ padding: '16px 12px 100px', clear: 'both' }}>
+        {months.map(({ year, month }) => {
+          const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          const startDow = (new Date(year, month, 1).getDay() + 6) % 7
+          const daysInMonth = new Date(year, month + 1, 0).getDate()
+          const cells: (number | null)[] = [
+            ...Array(startDow).fill(null),
+            ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+          ]
+          while (cells.length % 7 !== 0) cells.push(null)
+
+          return (
+            <div key={`${year}-${month}`} style={{ marginBottom: 36 }}>
+              <div style={{ textAlign: 'center', color: '#EDEDF0', fontSize: 17, fontWeight: 900, marginBottom: 14 }}>
+                {label}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 6 }}>
+                {DOW.map((d, i) => (
+                  <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: '#2C2C38' }}>{d}</div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: 10 }}>
+                {cells.map((day, i) => {
+                  if (!day) return <div key={i} />
+                  const dk = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const isToday = dk === todayKey
+                  const isFuture = dk > todayKey
+                  const score = calcScore(dk)
+                  const hasLog = !!dayLogs[dk]
+                  const r = (RS - SW) / 2
+                  const circ = 2 * Math.PI * r
+                  const filled = score > 0 ? Math.max(circ * score / 100, SW) : 0
+
+                  return (
+                    <div key={dk} ref={isToday ? todayRef : undefined}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isToday ? '#FF2800' : 'transparent',
+                        fontSize: 10, fontWeight: isToday ? 900 : 600,
+                        color: isToday ? '#fff' : isFuture ? '#2C2C38' : '#686870',
+                      }}>{day}</div>
+                      <svg width={RS} height={RS} viewBox={`0 0 ${RS} ${RS}`}>
+                        <circle cx={RS/2} cy={RS/2} r={r} fill="none"
+                          stroke={isFuture ? '#111116' : hasLog ? '#FF280028' : '#1A1A1F'}
+                          strokeWidth={SW} />
+                        {!isFuture && filled > 0 && (
+                          <circle cx={RS/2} cy={RS/2} r={r} fill="none" stroke="#FF2800" strokeWidth={SW}
+                            strokeLinecap="round"
+                            strokeDasharray={`${filled} ${circ}`}
+                            transform={`rotate(-90 ${RS/2} ${RS/2})`} />
+                        )}
+                      </svg>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
