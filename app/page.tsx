@@ -755,11 +755,11 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Past-date edit modals ── */}
-        {pastEditModal && !isViewingToday && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70" onClick={() => setPastEditModal(null)} />
-            <div className="relative bg-[#111116] border border-[#2C2C38] rounded-2xl w-[320px] mx-4 overflow-hidden">
+        {/* ── Past-date edit modals (portalled to escape PageTransition transform) ── */}
+        {pastEditModal && !isViewingToday && createPortal(
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)' }} onClick={() => setPastEditModal(null)} />
+            <div style={{ position: 'relative', background: '#111116', border: '1px solid #2C2C38', borderRadius: 20, width: 'calc(100vw - 3rem)', maxWidth: 340, overflow: 'hidden' }}>
 
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E1E26]">
@@ -975,7 +975,8 @@ export default function HomePage() {
 
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* ── TODAY ONLY: full interactive view ── */}
