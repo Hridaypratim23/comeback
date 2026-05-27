@@ -583,6 +583,23 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'comeback-store',
+      version: 2,
+      migrate: (raw: unknown) => {
+        const state = raw as Record<string, unknown>
+        const dayLogs = (state.dayLogs ?? {}) as Record<string, DayLog>
+        const today = localDateStr()
+        let changed = false
+        const fixed: Record<string, DayLog> = {}
+        for (const [date, log] of Object.entries(dayLogs)) {
+          if (date < today && (log.steps ?? 0) > 90000) {
+            fixed[date] = { ...log, steps: 0 }
+            changed = true
+          } else {
+            fixed[date] = log
+          }
+        }
+        return changed ? { ...state, dayLogs: fixed } : state
+      },
       partialize: (s) => ({
         dayLogs: s.dayLogs,
         stats: s.stats,
