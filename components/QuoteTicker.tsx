@@ -45,11 +45,11 @@ export default function QuoteTicker() {
     >
       <div
         style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.1em',
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '0.12em',
           lineHeight: 1.5,
-          color: '#45454F',
+          color: '#7A7A8A',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0px)' : 'translateY(4px)',
           transition: 'opacity 0.38s ease, transform 0.38s ease',
