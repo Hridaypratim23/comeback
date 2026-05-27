@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, TARGETS, DAILY_HABITS } from '@/lib/store'
-import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Flame, Droplets, Trophy, Bell, ChevronRight, ChevronLeft, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import {
   requestNotificationPermission,
@@ -142,7 +142,9 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 export default function HomePage() {
   const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
   const [stepsInput, setStepsInput] = useState('')
+  const [pastEditModal, setPastEditModal] = useState<null | 'steps' | 'water' | 'calories' | 'habits' | 'fasting'>(null)
   const [pastStepsInput, setPastStepsInput] = useState('')
+  const [pastWaterInput, setPastWaterInput] = useState('')
   const [pastFastingInput, setPastFastingInput] = useState('')
   const [pastMealName, setPastMealName] = useState('')
   const [pastMealCal, setPastMealCal] = useState('')
@@ -678,196 +680,299 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── PAST DATE: Editable journal entry ── */}
+        {/* ── PAST DATE: Clean summary with edit icons ── */}
         {!isViewingToday && (
-          <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1E1E26]">
               <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">DAY LOG</span>
-              <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">EDITABLE</span>
             </div>
-
             {/* Workout — read-only */}
-            <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
-              <span className="text-[10px] font-black tracking-widest text-[#686870]">WORKOUT</span>
-              <span className={`text-xs font-black ${dayLog?.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
-                {dayLog?.workoutDone ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓') : 'NOT LOGGED'}
-              </span>
-            </div>
-
-            {/* Calories — editable meals list + add form */}
-            <div className="py-2 border-b border-[#1E1E26]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black tracking-widest text-[#686870]">CALORIES</span>
-                <span className="text-xs font-black text-[#FF5500]">
-                  {totalCal > 0 ? `${totalCal} kcal` : '—'}
-                  {totalCal > 0 && <span className="text-[#686870] font-bold ml-1">· P:{totalPro}g C:{totalCarb}g F:{totalFat}g</span>}
-                </span>
-              </div>
-              {/* Existing meals */}
-              {(dayLog?.meals ?? []).length > 0 && (
-                <div className="space-y-1 mb-2">
-                  {(dayLog?.meals ?? []).map(m => (
-                    <div key={m.id} className="flex items-center justify-between bg-[#0D0D10] rounded-lg px-3 py-2">
-                      <div>
-                        <span className="text-[11px] font-black text-[#EDEDF0]">{m.name}</span>
-                        <span className="text-[10px] text-[#686870] ml-2">{m.calories} kcal</span>
-                        {(m.protein > 0 || m.carbs > 0 || m.fat > 0) && (
-                          <span className="text-[9px] text-[#2C2C38] ml-1">P:{m.protein} C:{m.carbs} F:{m.fat}</span>
-                        )}
-                      </div>
+            {(() => {
+              const rows: { label: string; value: React.ReactNode; modal?: typeof pastEditModal }[] = [
+                {
+                  label: 'WORKOUT',
+                  value: <span className={`text-xs font-black ${dayLog?.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
+                    {dayLog?.workoutDone ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓') : '—'}
+                  </span>,
+                },
+                {
+                  label: 'CALORIES',
+                  value: <span className="text-xs font-black text-[#FF5500]">
+                    {totalCal > 0 ? `${totalCal} kcal` : '—'}
+                    {totalCal > 0 && <span className="text-[9px] text-[#686870] ml-1">P:{totalPro} C:{totalCarb} F:{totalFat}</span>}
+                  </span>,
+                  modal: 'calories',
+                },
+                {
+                  label: 'STEPS',
+                  value: <span className="text-xs font-black text-[#EDEDF0]">
+                    {(dayLog?.steps ?? 0) > 0 ? (dayLog?.steps ?? 0).toLocaleString() : '—'}
+                    {(dayLog?.steps ?? 0) >= 10000 && <span className="text-[#1DB954] ml-1">✓</span>}
+                  </span>,
+                  modal: 'steps',
+                },
+                {
+                  label: 'WATER',
+                  value: <span className="text-xs font-black text-[#2196F3]">
+                    {(dayLog?.waterMl ?? 0) > 0 ? `${((dayLog?.waterMl ?? 0) / 1000).toFixed(1)}L` : '—'}
+                  </span>,
+                  modal: 'water',
+                },
+                {
+                  label: 'HABITS',
+                  value: <div className="flex gap-1">
+                    {DAILY_HABITS.map(h => (
+                      <span key={h.id} className={`text-sm ${dayLog?.habits?.[h.id] ? 'opacity-100' : 'opacity-20'}`}>{h.icon}</span>
+                    ))}
+                  </div>,
+                  modal: 'habits',
+                },
+                {
+                  label: 'FASTING',
+                  value: <span className="text-xs font-black text-[#1DB954]">
+                    {(dayLog?.fastingHours ?? 0) > 0 ? `${dayLog?.fastingHours}h` : '—'}
+                  </span>,
+                  modal: 'fasting',
+                },
+              ]
+              return rows.map((row, i) => (
+                <div key={row.label} className={`flex items-center justify-between px-4 py-3 ${i < rows.length - 1 ? 'border-b border-[#1E1E26]' : ''}`}>
+                  <span className="text-[10px] font-black tracking-widest text-[#686870]">{row.label}</span>
+                  <div className="flex items-center gap-2">
+                    {row.value}
+                    {row.modal && (
                       <button
-                        onClick={() => removeMealForDate(selectedDate, m.id)}
-                        className="text-[#FF2800] text-[11px] font-black ml-2 cursor-pointer active:scale-95 transition-all px-1"
-                      >✕</button>
+                        onClick={() => setPastEditModal(row.modal!)}
+                        className="w-6 h-6 rounded-md bg-[#1E1E26] flex items-center justify-center cursor-pointer active:scale-90 transition-all hover:bg-[#2C2C38]"
+                      >
+                        <Edit3 size={11} className="text-[#686870]" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        )}
+
+        {/* ── Past-date edit modals ── */}
+        {pastEditModal && !isViewingToday && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setPastEditModal(null)} />
+            <div className="relative bg-[#111116] border border-[#2C2C38] rounded-2xl w-[320px] mx-4 overflow-hidden">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E1E26]">
+                <span className="text-[11px] font-black tracking-[0.25em] text-[#EDEDF0]">
+                  {pastEditModal === 'steps' && 'EDIT STEPS'}
+                  {pastEditModal === 'water' && 'EDIT WATER'}
+                  {pastEditModal === 'calories' && 'ADD CALORIES'}
+                  {pastEditModal === 'habits' && 'EDIT HABITS'}
+                  {pastEditModal === 'fasting' && 'EDIT FASTING'}
+                </span>
+                <span className="text-[9px] font-bold text-[#686870] tracking-widest">{selectedDateLabel}</span>
+              </div>
+
+              <div className="px-5 py-4 space-y-4">
+
+                {/* STEPS modal */}
+                {pastEditModal === 'steps' && (
+                  <>
+                    <div className="text-center py-1">
+                      <div className="text-[9px] font-bold tracking-widest text-[#686870] mb-1">CURRENT</div>
+                      <div className="text-2xl font-black text-[#EDEDF0]">
+                        {(dayLog?.steps ?? 0).toLocaleString()}
+                        {(dayLog?.steps ?? 0) >= 10000 && <span className="text-[#1DB954] text-base ml-1">✓</span>}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-              {/* Add meal form */}
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Meal name (optional)"
-                  value={pastMealName}
-                  onChange={e => setPastMealName(e.target.value)}
-                  className="w-full bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38]"
-                />
-                <div className="grid grid-cols-4 gap-1.5">
-                  <input type="number" inputMode="numeric" placeholder="Kcal" value={pastMealCal}
-                    onChange={e => setPastMealCal(e.target.value)}
-                    className="bg-[#0D0D10] border border-[#FF550033] rounded-lg px-2 py-2 text-[11px] font-black text-[#FF5500] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38] text-center" />
-                  <input type="number" inputMode="numeric" placeholder="P(g)" value={pastMealPro}
-                    onChange={e => setPastMealPro(e.target.value)}
-                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
-                  <input type="number" inputMode="numeric" placeholder="C(g)" value={pastMealCarb}
-                    onChange={e => setPastMealCarb(e.target.value)}
-                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
-                  <input type="number" inputMode="numeric" placeholder="F(g)" value={pastMealFat}
-                    onChange={e => setPastMealFat(e.target.value)}
-                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
-                </div>
-                <button
-                  onClick={() => {
-                    const cal = parseInt(pastMealCal)
-                    if (isNaN(cal) || cal <= 0) return
-                    addMealForDate(selectedDate, {
-                      name: pastMealName.trim() || 'Meal',
-                      calories: cal,
-                      protein: parseFloat(pastMealPro) || 0,
-                      carbs: parseFloat(pastMealCarb) || 0,
-                      fat: parseFloat(pastMealFat) || 0,
-                    })
-                    setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat('')
-                  }}
-                  className="w-full py-2 rounded-lg bg-[#FF550022] border border-[#FF550033] text-[#FF5500] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
-                >+ ADD MEAL</button>
-              </div>
-            </div>
+                    <input
+                      type="number" inputMode="numeric" placeholder="New step count"
+                      value={pastStepsInput} onChange={e => setPastStepsInput(e.target.value)}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const n = parseInt(pastStepsInput)
+                          if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput(''); setPastEditModal(null) }
+                        }
+                      }}
+                      className="w-full bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-4 py-3 text-lg font-black text-[#EDEDF0] outline-none focus:border-[#2196F3] text-center"
+                    />
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => { setPastStepsInput(''); setPastEditModal(null) }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        CANCEL
+                      </button>
+                      <button onClick={() => {
+                        const n = parseInt(pastStepsInput)
+                        if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput(''); setPastEditModal(null) }
+                      }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        SAVE
+                      </button>
+                    </div>
+                  </>
+                )}
 
-            {/* Steps — editable */}
-            <div className="py-2 border-b border-[#1E1E26]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black tracking-widest text-[#686870]">STEPS</span>
-                <span className="text-xs font-black text-[#EDEDF0]">
-                  {(dayLog?.steps ?? 0) > 0 ? (dayLog?.steps ?? 0).toLocaleString() : '—'}
-                  {(dayLog?.steps ?? 0) >= 10000 && <span className="text-[#1DB954] ml-1">✓</span>}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Enter steps…"
-                  value={pastStepsInput}
-                  onChange={e => setPastStepsInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      const n = parseInt(pastStepsInput)
-                      if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput('') }
-                    }
-                  }}
-                  className="flex-1 bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#2196F3]"
-                />
-                <button
-                  onClick={() => {
-                    const n = parseInt(pastStepsInput)
-                    if (!isNaN(n) && n >= 0) { setStepsForDate(selectedDate, n); setPastStepsInput('') }
-                  }}
-                  className="px-4 py-2 rounded-lg bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
-                >SET</button>
-              </div>
-            </div>
-
-            {/* Water — editable */}
-            <div className="py-2 border-b border-[#1E1E26]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black tracking-widest text-[#686870]">WATER</span>
-                <span className="text-xs font-black text-[#2196F3]">{((dayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</span>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setWaterForDate(selectedDate, Math.max(0, (dayLog?.waterMl ?? 0) - 250))}
-                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#1E1E26] text-[11px] font-black text-[#686870] cursor-pointer active:scale-95 transition-all">
-                  −250ml
-                </button>
-                <button onClick={() => setWaterForDate(selectedDate, (dayLog?.waterMl ?? 0) + 250)}
-                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#2196F344] text-[11px] font-black text-[#2196F3] cursor-pointer active:scale-95 transition-all">
-                  +250ml
-                </button>
-                <button onClick={() => setWaterForDate(selectedDate, (dayLog?.waterMl ?? 0) + 500)}
-                  className="flex-1 py-2 rounded-lg bg-[#0D0D10] border border-[#2196F344] text-[11px] font-black text-[#2196F3] cursor-pointer active:scale-95 transition-all">
-                  +500ml
-                </button>
-              </div>
-            </div>
-
-            {/* Habits — toggleable */}
-            <div className="py-2 border-b border-[#1E1E26]">
-              <span className="text-[10px] font-black tracking-widest text-[#686870] block mb-2">HABITS</span>
-              <div className="flex flex-wrap gap-1.5">
-                {DAILY_HABITS.map(h => {
-                  const done = !!(dayLog?.habits?.[h.id])
-                  return (
-                    <button key={h.id}
-                      onClick={() => { haptic(); toggleHabitForDate(selectedDate, h.id) }}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer active:scale-95
-                        ${done ? 'bg-[#0D7A3A22] border-[#1DB95433] text-[#1DB954]' : 'bg-[#0D0D10] border-[#1E1E26] text-[#2C2C38]'}`}>
-                      {h.icon} {done ? '✓' : '○'}
+                {/* WATER modal */}
+                {pastEditModal === 'water' && (
+                  <>
+                    <div className="text-center py-1">
+                      <div className="text-[9px] font-bold tracking-widest text-[#686870] mb-1">CURRENT</div>
+                      <div className="text-2xl font-black text-[#2196F3]">{((dayLog?.waterMl ?? 0) / 1000).toFixed(1)}L</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[[-500,'−500ml'],[- 250,'−250ml'],[250,'+250ml'],[500,'+500ml'],[750,'+750ml'],[1000,'+1L']].map(([ml, label]) => (
+                        <button key={label}
+                          onClick={() => setWaterForDate(selectedDate, Math.max(0, (dayLog?.waterMl ?? 0) + (ml as number)))}
+                          className={`py-2.5 rounded-xl border text-[10px] font-black cursor-pointer active:scale-95 transition-all
+                            ${(ml as number) < 0 ? 'bg-[#0D0D10] border-[#1E1E26] text-[#686870]' : 'bg-[#2196F311] border-[#2196F333] text-[#2196F3]'}`}>
+                          {label as string}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input type="number" inputMode="numeric" placeholder="Set exact ml"
+                        value={pastWaterInput} onChange={e => setPastWaterInput(e.target.value)}
+                        className="flex-1 bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-3 py-2.5 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#2196F3] text-center"
+                      />
+                      <button onClick={() => {
+                        const n = parseInt(pastWaterInput)
+                        if (!isNaN(n) && n >= 0) { setWaterForDate(selectedDate, n); setPastWaterInput('') }
+                      }} className="px-4 py-2.5 rounded-xl bg-[#2196F3] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        SET
+                      </button>
+                    </div>
+                    <button onClick={() => { setPastWaterInput(''); setPastEditModal(null) }}
+                      className="w-full py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                      DONE
                     </button>
-                  )
-                })}
-              </div>
-            </div>
+                  </>
+                )}
 
-            {/* Fasting — editable */}
-            <div className="py-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black tracking-widest text-[#686870]">FASTING</span>
-                <span className="text-xs font-black text-[#1DB954]">
-                  {(dayLog?.fastingHours ?? 0) > 0 ? `${dayLog?.fastingHours}h` : '—'}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Hours fasted…"
-                  value={pastFastingInput}
-                  onChange={e => setPastFastingInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      const n = parseFloat(pastFastingInput)
-                      if (!isNaN(n) && n >= 0) { setFastingHoursForDate(selectedDate, n); setPastFastingInput('') }
-                    }
-                  }}
-                  className="flex-1 bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#1DB954]"
-                />
-                <button
-                  onClick={() => {
-                    const n = parseFloat(pastFastingInput)
-                    if (!isNaN(n) && n >= 0) { setFastingHoursForDate(selectedDate, n); setPastFastingInput('') }
-                  }}
-                  className="px-4 py-2 rounded-lg bg-[#1DB95422] border border-[#1DB95433] text-[#1DB954] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
-                >SET</button>
+                {/* CALORIES modal */}
+                {pastEditModal === 'calories' && (
+                  <>
+                    <div className="text-center py-1">
+                      <div className="text-[9px] font-bold tracking-widest text-[#686870] mb-1">TOTAL TODAY</div>
+                      <div className="text-2xl font-black text-[#FF5500]">{totalCal > 0 ? `${totalCal} kcal` : '—'}</div>
+                      {totalCal > 0 && <div className="text-[10px] text-[#686870] mt-0.5">P:{totalPro}g · C:{totalCarb}g · F:{totalFat}g</div>}
+                    </div>
+                    <div className="space-y-2">
+                      <input type="text" placeholder="Name (optional)"
+                        value={pastMealName} onChange={e => setPastMealName(e.target.value)}
+                        className="w-full bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-4 py-2.5 text-[12px] font-black text-[#EDEDF0] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38]"
+                      />
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { key: 'cal', label: 'KCAL', val: pastMealCal, set: setPastMealCal, color: '#FF5500' },
+                          { key: 'pro', label: 'P(g)', val: pastMealPro, set: setPastMealPro, color: '#EDEDF0' },
+                          { key: 'carb', label: 'C(g)', val: pastMealCarb, set: setPastMealCarb, color: '#EDEDF0' },
+                          { key: 'fat', label: 'F(g)', val: pastMealFat, set: setPastMealFat, color: '#EDEDF0' },
+                        ].map(f => (
+                          <div key={f.key} className="flex flex-col gap-1">
+                            <span className="text-[8px] font-black tracking-widest text-center" style={{ color: f.color === '#EDEDF0' ? '#686870' : f.color }}>{f.label}</span>
+                            <input type="number" inputMode="numeric" placeholder="0"
+                              value={f.val} onChange={e => f.set(e.target.value)}
+                              className="w-full bg-[#0D0D10] border border-[#2C2C38] rounded-lg px-1 py-2 text-[12px] font-black outline-none focus:border-[#FF5500] text-center"
+                              style={{ color: f.color }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => { setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat(''); setPastEditModal(null) }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        CANCEL
+                      </button>
+                      <button onClick={() => {
+                        const cal = parseInt(pastMealCal)
+                        if (isNaN(cal) || cal <= 0) return
+                        addMealForDate(selectedDate, {
+                          name: pastMealName.trim() || 'Extra',
+                          calories: cal,
+                          protein: parseFloat(pastMealPro) || 0,
+                          carbs: parseFloat(pastMealCarb) || 0,
+                          fat: parseFloat(pastMealFat) || 0,
+                        })
+                        setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat('')
+                        setPastEditModal(null)
+                      }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        ADD
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* HABITS modal */}
+                {pastEditModal === 'habits' && (
+                  <>
+                    <div className="space-y-2">
+                      {DAILY_HABITS.map(h => {
+                        const done = !!(dayLog?.habits?.[h.id])
+                        return (
+                          <button key={h.id}
+                            onClick={() => { haptic(); toggleHabitForDate(selectedDate, h.id) }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-pointer active:scale-[0.98]
+                              ${done ? 'bg-[#0D7A3A22] border-[#1DB95444] text-[#1DB954]' : 'bg-[#0D0D10] border-[#1E1E26] text-[#686870]'}`}>
+                            <span className="text-lg">{h.icon}</span>
+                            <span className="text-[11px] font-black tracking-wider flex-1 text-left">{h.label}</span>
+                            <span className="text-[11px] font-black">{done ? '✓' : '○'}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button onClick={() => setPastEditModal(null)}
+                      className="w-full py-2.5 rounded-xl bg-[#1DB95422] border border-[#1DB95433] text-[#1DB954] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                      DONE
+                    </button>
+                  </>
+                )}
+
+                {/* FASTING modal */}
+                {pastEditModal === 'fasting' && (
+                  <>
+                    <div className="text-center py-1">
+                      <div className="text-[9px] font-bold tracking-widest text-[#686870] mb-1">CURRENT</div>
+                      <div className="text-2xl font-black text-[#1DB954]">
+                        {(dayLog?.fastingHours ?? 0) > 0 ? `${dayLog?.fastingHours}h` : '—'}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[12, 14, 16, 18, 20, 24].map(h => (
+                        <button key={h} onClick={() => { setFastingHoursForDate(selectedDate, h); setPastFastingInput('') }}
+                          className={`py-2.5 rounded-xl border text-[11px] font-black cursor-pointer active:scale-95 transition-all
+                            ${dayLog?.fastingHours === h ? 'bg-[#1DB95422] border-[#1DB954] text-[#1DB954]' : 'bg-[#0D0D10] border-[#1E1E26] text-[#686870]'}`}>
+                          {h}h
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input type="number" inputMode="numeric" placeholder="Custom hours"
+                        value={pastFastingInput} onChange={e => setPastFastingInput(e.target.value)}
+                        className="flex-1 bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-3 py-2.5 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#1DB954] text-center"
+                      />
+                      <button onClick={() => {
+                        const n = parseFloat(pastFastingInput)
+                        if (!isNaN(n) && n >= 0) { setFastingHoursForDate(selectedDate, n); setPastFastingInput('') }
+                      }} className="px-4 py-2.5 rounded-xl bg-[#1DB95422] border border-[#1DB95433] text-[#1DB954] text-[10px] font-black cursor-pointer active:scale-95 transition-all">
+                        SET
+                      </button>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => { setFastingHoursForDate(selectedDate, 0); setPastFastingInput('') }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#FF280011] border border-[#FF280033] text-[#FF2800] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        CLEAR
+                      </button>
+                      <button onClick={() => { setPastFastingInput(''); setPastEditModal(null) }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                        DONE
+                      </button>
+                    </div>
+                  </>
+                )}
+
               </div>
             </div>
           </div>
