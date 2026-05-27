@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { QUOTES } from '@/constants/quotes'
 
 function shuffle<T>(arr: T[]): T[] {
@@ -12,15 +12,21 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-// ~14s for short quotes, up to ~22s for long ones
-function duration(text: string) {
+function getDuration(text: string) {
   return Math.round(12 + (text.length / 90) * 10)
 }
 
 export default function QuoteTicker() {
-  const deck = useRef<string[]>(shuffle(QUOTES))
+  const deck = useRef<string[]>([])
   const cursor = useRef(0)
-  const [quote, setQuote] = useState(deck.current[0])
+  const generation = useRef(0)
+  const [entry, setEntry] = useState<{ quote: string; gen: number } | null>(null)
+
+  useEffect(() => {
+    deck.current = shuffle(QUOTES)
+    cursor.current = 0
+    setEntry({ quote: deck.current[0], gen: 0 })
+  }, [])
 
   const advance = () => {
     cursor.current++
@@ -28,25 +34,30 @@ export default function QuoteTicker() {
       deck.current = shuffle(QUOTES)
       cursor.current = 0
     }
-    setQuote(deck.current[cursor.current])
+    generation.current++
+    setEntry({ quote: deck.current[cursor.current], gen: generation.current })
   }
 
+  if (!entry) return <div style={{ height: 26 }} />
+
   return (
-    <div style={{ overflow: 'hidden', height: 26, display: 'flex', alignItems: 'center' }}>
+    <div style={{ position: 'relative', overflow: 'hidden', height: 26 }}>
       <span
-        key={quote}
+        key={entry.gen}
         onAnimationEnd={advance}
         style={{
-          display: 'inline-block',
+          position: 'absolute',
+          top: '50%',
+          transform: 'translateY(-50%)',
           whiteSpace: 'nowrap',
           fontSize: 10,
           fontWeight: 600,
           letterSpacing: '0.1em',
           color: '#5A5A6A',
-          animation: `scroll-quote ${duration(quote)}s linear 1`,
+          animation: `scroll-quote ${getDuration(entry.quote)}s linear 1`,
         }}
       >
-        {quote}
+        {entry.quote}
       </span>
     </div>
   )
