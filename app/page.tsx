@@ -140,10 +140,15 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
   const [stepsInput, setStepsInput] = useState('')
   const [pastStepsInput, setPastStepsInput] = useState('')
   const [pastFastingInput, setPastFastingInput] = useState('')
+  const [pastMealName, setPastMealName] = useState('')
+  const [pastMealCal, setPastMealCal] = useState('')
+  const [pastMealPro, setPastMealPro] = useState('')
+  const [pastMealCarb, setPastMealCarb] = useState('')
+  const [pastMealFat, setPastMealFat] = useState('')
   const [mounted, setMounted] = useState(false)
   const [ifExpanded, setIfExpanded] = useState(false)
   const [ifHours, setIfHours] = useState(16)
@@ -689,13 +694,75 @@ export default function HomePage() {
               </span>
             </div>
 
-            {/* Calories — read-only */}
-            {totalCal > 0 && (
-              <div className="flex items-center justify-between py-2 border-b border-[#1E1E26]">
+            {/* Calories — editable meals list + add form */}
+            <div className="py-2 border-b border-[#1E1E26]">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-black tracking-widest text-[#686870]">CALORIES</span>
-                <span className="text-xs font-black text-[#FF5500]">{totalCal} kcal · P:{totalPro}g C:{totalCarb}g F:{totalFat}g</span>
+                <span className="text-xs font-black text-[#FF5500]">
+                  {totalCal > 0 ? `${totalCal} kcal` : '—'}
+                  {totalCal > 0 && <span className="text-[#686870] font-bold ml-1">· P:{totalPro}g C:{totalCarb}g F:{totalFat}g</span>}
+                </span>
               </div>
-            )}
+              {/* Existing meals */}
+              {(dayLog?.meals ?? []).length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {(dayLog?.meals ?? []).map(m => (
+                    <div key={m.id} className="flex items-center justify-between bg-[#0D0D10] rounded-lg px-3 py-2">
+                      <div>
+                        <span className="text-[11px] font-black text-[#EDEDF0]">{m.name}</span>
+                        <span className="text-[10px] text-[#686870] ml-2">{m.calories} kcal</span>
+                        {(m.protein > 0 || m.carbs > 0 || m.fat > 0) && (
+                          <span className="text-[9px] text-[#2C2C38] ml-1">P:{m.protein} C:{m.carbs} F:{m.fat}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => removeMealForDate(selectedDate, m.id)}
+                        className="text-[#FF2800] text-[11px] font-black ml-2 cursor-pointer active:scale-95 transition-all px-1"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Add meal form */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Meal name (optional)"
+                  value={pastMealName}
+                  onChange={e => setPastMealName(e.target.value)}
+                  className="w-full bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38]"
+                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  <input type="number" inputMode="numeric" placeholder="Kcal" value={pastMealCal}
+                    onChange={e => setPastMealCal(e.target.value)}
+                    className="bg-[#0D0D10] border border-[#FF550033] rounded-lg px-2 py-2 text-[11px] font-black text-[#FF5500] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38] text-center" />
+                  <input type="number" inputMode="numeric" placeholder="P(g)" value={pastMealPro}
+                    onChange={e => setPastMealPro(e.target.value)}
+                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
+                  <input type="number" inputMode="numeric" placeholder="C(g)" value={pastMealCarb}
+                    onChange={e => setPastMealCarb(e.target.value)}
+                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
+                  <input type="number" inputMode="numeric" placeholder="F(g)" value={pastMealFat}
+                    onChange={e => setPastMealFat(e.target.value)}
+                    className="bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-2 py-2 text-[11px] font-black text-[#EDEDF0] outline-none focus:border-[#686870] placeholder:text-[#2C2C38] text-center" />
+                </div>
+                <button
+                  onClick={() => {
+                    const cal = parseInt(pastMealCal)
+                    if (isNaN(cal) || cal <= 0) return
+                    addMealForDate(selectedDate, {
+                      name: pastMealName.trim() || 'Meal',
+                      calories: cal,
+                      protein: parseFloat(pastMealPro) || 0,
+                      carbs: parseFloat(pastMealCarb) || 0,
+                      fat: parseFloat(pastMealFat) || 0,
+                    })
+                    setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat('')
+                  }}
+                  className="w-full py-2 rounded-lg bg-[#FF550022] border border-[#FF550033] text-[#FF5500] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all"
+                >+ ADD MEAL</button>
+              </div>
+            </div>
 
             {/* Steps — editable */}
             <div className="py-2 border-b border-[#1E1E26]">

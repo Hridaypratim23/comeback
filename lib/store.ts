@@ -133,6 +133,8 @@ interface AppState {
   logIntimacy: (minutes: number | null) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
   removeMeal: (id: string) => void
+  addMealForDate: (date: string, meal: Omit<MealEntry, 'id' | 'time'>) => void
+  removeMealForDate: (date: string, id: string) => void
   updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
@@ -343,6 +345,28 @@ export const useStore = create<AppState>()(
           if (!day) return s
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, meals: day.meals.filter(m => m.id !== id) } } }
         })
+      },
+
+      addMealForDate: (date, meal) => {
+        const entry: MealEntry = {
+          ...meal,
+          id: crypto.randomUUID(),
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        }
+        set(s => {
+          const day = s.dayLogs[date] ?? defaultDay(date)
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, meals: [...day.meals, entry] } } }
+        })
+        get().syncToSupabase()
+      },
+
+      removeMealForDate: (date, id) => {
+        set(s => {
+          const day = s.dayLogs[date]
+          if (!day) return s
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, meals: day.meals.filter(m => m.id !== id) } } }
+        })
+        get().syncToSupabase()
       },
 
       updateMeal: (id, updates) => {
