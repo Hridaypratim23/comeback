@@ -625,6 +625,22 @@ export const useStore = create<AppState>()(
     {
       name: 'comeback-store',
       version: 3,
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        // Hardcoded overrides survive rehydration regardless of localStorage contents
+        const FIXED: Record<string, number> = { '2025-05-22': 0 }
+        state.stepsOverride = { ...FIXED, ...state.stepsOverride }
+        const today = localDateStr()
+        for (const [date, steps] of Object.entries(state.stepsOverride)) {
+          if (state.dayLogs[date]) state.dayLogs[date] = { ...state.dayLogs[date], steps }
+        }
+        // Also cap any past date with suspiciously high steps
+        for (const [date, log] of Object.entries(state.dayLogs)) {
+          if (date < today && (log.steps ?? 0) > 90000) {
+            state.dayLogs[date] = { ...log, steps: 0 }
+          }
+        }
+      },
       migrate: (raw: unknown) => {
         const state = raw as Record<string, unknown>
         const dayLogs = (state.dayLogs ?? {}) as Record<string, DayLog>

@@ -189,13 +189,23 @@ function StatCard({ icon, label, value, sub, color }: {
 
 export default function ProgressPage() {
   const { stats, dayLogs: rawDayLogs, stepsOverride, updateBodyStats, bodyHistory, prs, measurements, addMeasurement, saveWeeklyCheckin } = useStore()
-  // Apply stepsOverride so corrected step counts flow into all stats calculations
-  const dayLogs = Object.keys(stepsOverride).length === 0 ? rawDayLogs : (() => {
+  // Apply stepsOverride + cap absurd past-date steps so stats are always correct
+  const dayLogs = (() => {
+    const todayKey = new Date().toLocaleDateString('en-CA')
+    const allFixes: Record<string, number> = { '2025-05-22': 0, ...stepsOverride }
+    let dirty = false
     const corrected = { ...rawDayLogs }
-    for (const [date, steps] of Object.entries(stepsOverride)) {
-      if (corrected[date]) corrected[date] = { ...corrected[date], steps }
+    for (const [date, log] of Object.entries(corrected)) {
+      const override = allFixes[date]
+      if (override !== undefined) {
+        corrected[date] = { ...log, steps: override }
+        dirty = true
+      } else if (date < todayKey && (log.steps ?? 0) > 90000) {
+        corrected[date] = { ...log, steps: 0 }
+        dirty = true
+      }
     }
-    return corrected
+    return dirty ? corrected : rawDayLogs
   })()
   const [mounted, setMounted] = useState(false)
 
