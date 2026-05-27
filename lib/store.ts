@@ -195,6 +195,30 @@ function epley(weight: number, reps: number): number {
   return Math.round(weight * (1 + reps / 30))
 }
 
+// Synchronous localStorage patch — runs before Zustand rehydrates so the
+// bad value never enters the initial state, regardless of migration timing.
+if (typeof window !== 'undefined') {
+  try {
+    const _raw = localStorage.getItem('comeback-store')
+    if (_raw) {
+      const _parsed = JSON.parse(_raw)
+      const _s = _parsed?.state ?? _parsed
+      if (_s?.dayLogs) {
+        const _today = localDateStr()
+        let _dirty = false
+        for (const _k of Object.keys(_s.dayLogs as Record<string, unknown>)) {
+          const _entry = (_s.dayLogs as Record<string, {steps?: number}>)[_k]
+          if (_k < _today && (_entry?.steps ?? 0) > 90000) {
+            _s.dayLogs[_k] = { ..._entry, steps: 0 }
+            _dirty = true
+          }
+        }
+        if (_dirty) localStorage.setItem('comeback-store', JSON.stringify(_parsed))
+      }
+    }
+  } catch { /* ignore */ }
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
