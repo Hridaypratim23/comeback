@@ -41,6 +41,7 @@ export default function AppInit() {
   const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase } = useStore()
   const pathname = usePathname()
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const syncReady = useRef(false)   // gates debounced sync until remote fetch has merged
   const [isOnline, setIsOnline] = useState(true)
 
   function buildSchedule() {
@@ -78,15 +79,17 @@ export default function AppInit() {
 
     setIsOnline(navigator.onLine)
 
-    // Pull remote state and merge with local, then push merged result back
+    // Pull remote state and merge with local, then push merged result back.
+    // syncReady gates the debounced sync — nothing is pushed to Supabase until
+    // the merge has run, so stale local data can never overwrite the remote state.
     fetch('/api/state')
       .then(r => r.json())
       .then(({ data }) => {
         if (data) mergeRemoteState(data)
-        // Push current local state up so it's always backed up
+        syncReady.current = true
         useStore.getState().syncToSupabase()
       })
-      .catch(() => {})
+      .catch(() => { syncReady.current = true })
 
     if (!('serviceWorker' in navigator)) return
 
@@ -133,11 +136,13 @@ export default function AppInit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.streak, dayLogs])
 
-  // Debounced cloud backup on every state change (3s after last write)
+  // Debounced cloud backup on every state change (3s after last write).
+  // Only fires after syncReady — ensures the remote merge has run first so
+  // stale local data never races ahead and overwrites corrected Supabase data.
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (syncTimer.current) clearTimeout(syncTimer.current)
-    syncTimer.current = setTimeout(() => { syncToSupabase() }, 3000)
+    syncTimer.current = setTimeout(() => { if (syncReady.current) syncToSupabase() }, 3000)
     return () => { if (syncTimer.current) clearTimeout(syncTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayLogs, stats, customMeals])
