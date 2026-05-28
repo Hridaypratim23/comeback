@@ -1506,11 +1506,11 @@ function MonthlyRingsOverlay({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: '#070709', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       <button onClick={onClose}
-        style={{ position: 'sticky', top: 16, float: 'right', marginRight: 16, zIndex: 251, width: 36, height: 36, borderRadius: '50%', background: '#2C2C38', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ position: 'fixed', top: 16, right: 16, zIndex: 251, width: 36, height: 36, borderRadius: '50%', background: '#2C2C38', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <X size={16} color="#EDEDF0" />
       </button>
 
-      <div style={{ padding: '16px 12px 100px', clear: 'both' }}>
+      <div style={{ padding: '60px 12px 100px' }}>
         {months.map(({ year, month }) => {
           const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
           const startDow = (new Date(year, month, 1).getDay() + 6) % 7
