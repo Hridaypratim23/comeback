@@ -1505,7 +1505,7 @@ function MonthlyRingsOverlay({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: '#070709', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '16px 16px 0' }}>
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', paddingTop: 'calc(env(safe-area-inset-top) + 16px)', paddingRight: 16, paddingBottom: 0 } as React.CSSProperties}>
         <button onClick={onClose}
           style={{ width: 36, height: 36, borderRadius: '50%', background: '#2C2C38', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <X size={16} color="#EDEDF0" />
