@@ -333,9 +333,15 @@ export default function HomePage() {
       ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05)
       : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
     : 0
-  // Incline walk steps are already counted in stepsKcal — only add cardio kcal for cross trainer
-  const cardioKcal    = todayLog?.cardio?.type === 'cross_trainer' ? (todayLog.cardio.caloriesBurned ?? 0) : 0
-  const stepsKcal     = Math.round(todaySteps * stats.weight * 0.00057)
+  // Steps entered manually include incline walk steps.
+  // Subtract estimated incline steps (60 steps/min) so those calories aren't flat-rated.
+  // Incline kcal comes from the user's own treadmill readout — more accurate than any formula.
+  // Cross trainer generates no steps so its kcal is always additive.
+  const cardio        = todayLog?.cardio
+  const inclineSteps  = cardio?.type === 'incline_walk' ? (cardio.minutes ?? 0) * 60 : 0
+  const flatSteps     = Math.max(0, todaySteps - inclineSteps)
+  const stepsKcal     = Math.round(flatSteps * stats.weight * 0.00057)
+  const cardioKcal    = cardio ? (cardio.caloriesBurned ?? 0) : 0
   const intimacyKcal  = Math.round((todayLog?.intimacyMinutes ?? 0) * 4)
   const bmr           = 370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))
   const sleepKcal     = todayLog?.habits?.sleep ? Math.round(bmr * 7.5 / 24) : 0

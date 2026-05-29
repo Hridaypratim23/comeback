@@ -87,8 +87,7 @@ export default function WorkoutPage() {
   const liftingKcal = isActualLift
     ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
     : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
-  // Incline walk steps already counted in step calories — only add cross trainer kcal
-  const cardioKcalBurned = dayLog?.cardio?.type === 'cross_trainer' ? (dayLog.cardio.caloriesBurned ?? 0) : 0
+  const cardioKcalBurned = dayLog?.cardio?.caloriesBurned ?? 0
   const totalWorkoutBurned = liftingKcal + cardioKcalBurned
 
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
