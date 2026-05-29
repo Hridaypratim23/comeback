@@ -82,14 +82,22 @@ export default function AppInit() {
     // Pull remote state and merge with local, then push merged result back.
     // syncReady gates the debounced sync — nothing is pushed to Supabase until
     // the merge has run, so stale local data can never overwrite the remote state.
-    fetch('/api/state')
-      .then(r => r.json())
-      .then(({ data }) => {
-        if (data) mergeRemoteState(data)
+    const fetchRemote = () =>
+      fetch('/api/state')
+        .then(r => r.json())
+        .then(({ data }) => { if (data) mergeRemoteState(data) })
+        .catch(() => {})
+
+    fetchRemote()
+      .then(() => {
         syncReady.current = true
         useStore.getState().syncToSupabase()
       })
       .catch(() => { syncReady.current = true })
+
+    // Second fetch after 4s — gives iOS Shortcut time to finish writing steps
+    // before we read, so steps are always fresh on first open.
+    const delayedFetch = setTimeout(() => fetchRemote(), 4000)
 
     if (!('serviceWorker' in navigator)) return
 
@@ -115,19 +123,20 @@ export default function AppInit() {
     window.addEventListener('offline', handleOffline)
 
     // Re-fetch from Supabase whenever app comes back to foreground.
-    // This ensures steps synced by the iOS Shortcut are picked up immediately.
+    // Delayed 4s so the iOS Shortcut has time to finish writing before we read.
+    let visibilityTimer: ReturnType<typeof setTimeout> | null = null
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        fetch('/api/state')
-          .then(r => r.json())
-          .then(({ data }) => { if (data) mergeRemoteState(data) })
-          .catch(() => {})
+        if (visibilityTimer) clearTimeout(visibilityTimer)
+        visibilityTimer = setTimeout(() => fetchRemote(), 4000)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       clearTimeout(timer)
+      clearTimeout(delayedFetch)
+      if (visibilityTimer) clearTimeout(visibilityTimer)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
       document.removeEventListener('visibilitychange', handleVisibility)
