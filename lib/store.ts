@@ -316,6 +316,7 @@ export const useStore = create<AppState>()(
             newPR: isPR ? exerciseId : s.newPR,
           }
         })
+        get().syncToSupabase()
       },
 
       clearNewPR: () => set({ newPR: null }),

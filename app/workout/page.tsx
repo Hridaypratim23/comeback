@@ -8,7 +8,7 @@ import { Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import QuoteTicker from '@/components/QuoteTicker'
 
 export default function WorkoutPage() {
-  const { dayLogs, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
+  const { dayLogs, stats, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
@@ -78,6 +78,16 @@ export default function WorkoutPage() {
     })
     setExpanded(null)
   }
+
+  const tvl = (dayLog?.exerciseLogs ?? []).reduce((sum, el) =>
+    sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
+  const sessionHours = (dayLog?.workoutDurationSecs ?? 0) / 3600
+  const isActualLift = !!(dayLog?.workoutDone && dayLog?.selectedWorkoutId && dayLog.selectedWorkoutId !== 'rest')
+  const liftingKcal = isActualLift
+    ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
+    : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
+  const cardioKcalBurned = dayLog?.cardio?.caloriesBurned ?? 0
+  const totalWorkoutBurned = liftingKcal + cardioKcalBurned
 
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
   const secs = (timer % 60).toString().padStart(2, '0')
@@ -418,6 +428,31 @@ export default function WorkoutPage() {
                     rows={3}
                   />
                 </div>
+
+                {/* Calories burned summary */}
+                {totalWorkoutBurned > 0 && (
+                  <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+                    <div className="text-[10px] font-black tracking-[0.3em] text-[#686870] mb-3">CALORIES BURNED</div>
+                    <div className="flex items-end gap-1 mb-3">
+                      <span className="text-4xl font-black text-[#1DB954] leading-none">{totalWorkoutBurned}</span>
+                      <span className="text-sm text-[#686870] mb-1">kcal</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {liftingKcal > 0 && (
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[#686870]">Lifting {tvl > 0 ? `· ${Math.round(tvl).toLocaleString()}kg volume` : ''}</span>
+                          <span className="font-black text-[#EDEDF0]">{liftingKcal} kcal</span>
+                        </div>
+                      )}
+                      {cardioKcalBurned > 0 && (
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[#686870]">Cardio</span>
+                          <span className="font-black text-[#EDEDF0]">{cardioKcalBurned} kcal</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Complete Button */}
                 {!workoutDone ? (
