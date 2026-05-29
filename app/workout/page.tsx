@@ -329,7 +329,36 @@ export default function WorkoutPage() {
                 </div>
 
                 {/* ── Lifting duration ── */}
-                {(timer === 0 && !timerRunning) || (workoutDone && !dayLog?.workoutDurationSecs) ? (
+                {dayLog?.workoutDurationSecs ? (
+                  // Saved duration (from timer or manual) — always show this when it exists
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#111116] border border-[#1DB95433] rounded-xl">
+                    <Clock size={14} className="text-[#1DB954] flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-[10px] font-black tracking-widest text-[#686870]">LIFTING DURATION</div>
+                      <div className="text-sm font-black text-[#EDEDF0]">{Math.round(dayLog.workoutDurationSecs / 60)} min</div>
+                    </div>
+                    <button
+                      onClick={() => { setWorkoutDuration(0); setTimer(0) }}
+                      className="text-[9px] font-black text-[#686870] tracking-widest cursor-pointer active:opacity-60">
+                      EDIT
+                    </button>
+                  </div>
+                ) : timerRunning || timer > 0 ? (
+                  // Timer is actively running or has elapsed time — show live status
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#111116] border border-[#1E1E26] rounded-xl">
+                    <Clock size={14} className="text-[#FF2800] flex-shrink-0" />
+                    <div>
+                      <div className="text-[10px] font-black tracking-widest text-[#686870]">LIFTING DURATION</div>
+                      <div className="text-sm font-black text-[#EDEDF0]">
+                        {mins}:{secs}&nbsp;
+                        {timerRunning
+                          ? <span className="text-[#FF2800] text-[10px]">RUNNING</span>
+                          : <span className="text-[#686870] text-[10px]">· SAVED ON COMPLETE</span>}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // No timer, no saved duration — show manual entry
                   <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-[#1E1E26]">
                       <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">LIFTING DURATION</span>
@@ -337,9 +366,7 @@ export default function WorkoutPage() {
                     </div>
                     <div className="p-4 space-y-3">
                       <p className="text-[10px] text-[#686870]">
-                        {workoutDone
-                          ? 'No timer was recorded. Enter how long you lifted to improve calorie accuracy.'
-                          : 'Forgot to start the timer? Enter your lifting duration here. Or just tap the timer above before you start.'}
+                        Forgot to start the timer? Enter how long you lifted to improve calorie accuracy.
                       </p>
                       <div className="flex gap-2">
                         <div className="flex-1 relative">
@@ -367,15 +394,7 @@ export default function WorkoutPage() {
                       </div>
                     </div>
                   </div>
-                ) : timer > 0 ? (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-[#111116] border border-[#1E1E26] rounded-xl">
-                    <Clock size={14} className="text-[#FF2800] flex-shrink-0" />
-                    <div>
-                      <div className="text-[10px] font-black tracking-widest text-[#686870]">LIFTING DURATION</div>
-                      <div className="text-sm font-black text-[#EDEDF0]">{mins}:{secs} {timerRunning ? <span className="text-[#FF2800] text-[10px]">RUNNING</span> : <span className="text-[#1DB954] text-[10px]">RECORDED</span>}</div>
-                    </div>
-                  </div>
-                ) : null}
+                )}
 
                 {/* ── Cardio (optional) ── */}
                 <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
