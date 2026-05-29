@@ -168,7 +168,7 @@ export default function HomePage() {
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
   const [tasksOpen, setTasksOpen] = useState(false)
-  const [unCheckPending, setUnCheckPending] = useState<{ id: string; label: string; icon: string } | null>(null)
+  const [unCheckPending, setUnCheckPending] = useState<{ label: string; icon: string; onConfirm: () => void } | null>(null)
   const [celebrating, setCelebrating] = useState(false)
   const [celebrateFading, setCelebrateFading] = useState(false)
   const prevDailyScoreRef = useRef(0)
@@ -1156,7 +1156,7 @@ export default function HomePage() {
                       return (
                         <button key={habit.id}
                           onClick={() => { haptic(); done
-                            ? setUnCheckPending({ id: habit.id, label: habit.label, icon: habit.icon })
+                            ? setUnCheckPending({ label: habit.label, icon: habit.icon, onConfirm: () => toggleHabit(habit.id) })
                             : toggleHabit(habit.id) }}
                           className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer btn-press text-left
                             ${done ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
@@ -1181,7 +1181,13 @@ export default function HomePage() {
                       return (
                         <div className={`rounded-lg border transition-all ${isActive ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
                           <button
-                            onClick={() => { setIfExpanded(e => !e); if (!ifExpanded) setIfHours(fastingHours || 16) }}
+                            onClick={() => {
+                              if (isActive) {
+                                setUnCheckPending({ label: `INTERMITTENT FASTING · ${fastingHours}H`, icon: '⏱️', onConfirm: () => { setFastingHours(0); setIfExpanded(false); setIfHours(16) } })
+                              } else {
+                                setIfExpanded(e => !e); if (!ifExpanded) setIfHours(fastingHours || 16)
+                              }
+                            }}
                             className="w-full flex items-center gap-3 p-3 cursor-pointer btn-press text-left"
                           >
                             <span className="text-xl leading-none">⏱️</span>
@@ -1234,7 +1240,13 @@ export default function HomePage() {
                       return (
                         <div className={`rounded-lg border transition-all ${isActive ? 'bg-[#FF280011] border-[#FF280033]' : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
                           <button
-                            onClick={() => { if (!isActive) setIntimacyExpanded(e => !e) }}
+                            onClick={() => {
+                              if (isActive) {
+                                setUnCheckPending({ label: `INTIMACY · ${mins}MIN`, icon: '❤️‍🔥', onConfirm: () => logIntimacy(null) })
+                              } else {
+                                setIntimacyExpanded(e => !e)
+                              }
+                            }}
                             className="w-full flex items-center gap-3 p-3 cursor-pointer btn-press text-left"
                           >
                             <span className="text-xl leading-none">❤️‍🔥</span>
@@ -1248,15 +1260,6 @@ export default function HomePage() {
                               {isActive && <span className="text-[10px] font-black">✓</span>}
                             </div>
                           </button>
-                          {isActive && (
-                            <div className="px-3 pb-3">
-                              <button
-                                onClick={() => logIntimacy(null)}
-                                className="w-full py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer btn-press">
-                                CLEAR
-                              </button>
-                            </div>
-                          )}
                           {!isActive && intimacyExpanded && (
                             <div className="px-3 pb-3 space-y-3">
                               <div>
@@ -1305,8 +1308,11 @@ export default function HomePage() {
                         <div className={`rounded-lg border transition-all ${isActive ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
                           <button
                             onClick={() => {
-                              if (isActive) return
-                              setCardioExpanded(e => !e)
+                              if (isActive) {
+                                setUnCheckPending({ label: label, icon: '🏃', onConfirm: () => logCardio(null) })
+                              } else {
+                                setCardioExpanded(e => !e)
+                              }
                             }}
                             className="w-full flex items-center gap-3 p-3 cursor-pointer btn-press text-left"
                           >
@@ -1321,15 +1327,6 @@ export default function HomePage() {
                               {isActive && <span className="text-[10px] font-black">✓</span>}
                             </div>
                           </button>
-                          {isActive && (
-                            <div className="px-3 pb-3">
-                              <button
-                                onClick={() => logCardio(null)}
-                                className="w-full py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer btn-press">
-                                CLEAR
-                              </button>
-                            </div>
-                          )}
                           {!isActive && cardioExpanded && (
                             <div className="px-3 pb-3 space-y-3">
                               <div className="flex gap-2">
@@ -1470,7 +1467,7 @@ export default function HomePage() {
                 GO BACK
               </button>
               <button
-                onClick={() => { toggleHabit(unCheckPending.id); setUnCheckPending(null) }}
+                onClick={() => { unCheckPending.onConfirm(); setUnCheckPending(null) }}
                 className="flex-1 py-3 rounded-xl bg-[#D4A017] text-[#070709] text-[11px] font-black tracking-widest cursor-pointer btn-press">
                 UNCHECK
               </button>
