@@ -7,6 +7,7 @@ export interface UnitConfig {
   step: number
   defaultQty: number
   isGrams: boolean  // if true, macros are per 100g; else per 1 unit
+  presets?: number[] // if set, show chips instead of slider
 }
 
 type Rule = {
@@ -101,7 +102,8 @@ const RULES: Rule[] = [
 
 const CHICKEN_CONFIG: UnitConfig = {
   unit: 'g', singular: '100g', plural: 'g',
-  min: 325, max: 400, step: 25, defaultQty: 350, isGrams: true,
+  min: 50, max: 500, step: 50, defaultQty: 350, isGrams: true,
+  presets: [50, 100, 150, 200, 250, 300, 325, 350, 375, 400, 450, 500],
 }
 
 const CHICKEN_KEYWORDS = [

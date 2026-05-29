@@ -788,20 +788,38 @@ export default function NutritionPage() {
                 <div className="text-[10px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
                 <div className="font-black text-lg text-[#EDEDF0]">{servingMeal.name}</div>
 
-                {/* Slider */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#686870]">{minLabel}</span>
-                    <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
-                    <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                {/* Chips (for irregular presets) or Slider */}
+                {!isLegacy && cfg!.presets ? (
+                  <div className="space-y-2">
+                    <div className="text-center text-xl font-black text-[#FF2800]">{qtyLabel}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {cfg!.presets.map(p => (
+                        <button key={p}
+                          onClick={() => setServingQty(p)}
+                          className={`px-3 py-2 rounded-lg text-sm font-black tracking-wide cursor-pointer btn-press transition-all
+                            ${servingQty === p
+                              ? 'bg-[#FF2800] text-white border border-[#FF2800]'
+                              : 'bg-[#0D0D10] text-[#686870] border border-[#1E1E26]'}`}>
+                          {p}g
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <input
-                    type="range" min={min} max={max} step={step}
-                    value={servingQty}
-                    onChange={e => setServingQty(Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
-                  />
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-[#686870]">{minLabel}</span>
+                      <span className="text-xl font-black text-[#FF2800]">{qtyLabel}</span>
+                      <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                    </div>
+                    <input
+                      type="range" min={min} max={max} step={step}
+                      value={servingQty}
+                      onChange={e => setServingQty(Number(e.target.value))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+                    />
+                  </div>
+                )}
 
                 {/* Scaled macro preview */}
                 <div className="bg-[#0D0D10] rounded-xl p-4 space-y-1">
