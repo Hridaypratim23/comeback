@@ -428,7 +428,10 @@ export const useStore = create<AppState>()(
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
           if (day.stepsManualOverride) return s
-          return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: false } } }
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: false } },
+            stepsOverride: { ...s.stepsOverride, [d]: steps },
+          }
         })
       },
 
