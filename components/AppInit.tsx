@@ -39,6 +39,8 @@ async function subscribeToPush(schedule: ReturnType<typeof buildDaySchedule>) {
 
 export default function AppInit() {
   const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase, setStepsFromSync } = useStore()
+  const setStepsFromSyncRef = useRef(setStepsFromSync)
+  setStepsFromSyncRef.current = setStepsFromSync
   const pathname = usePathname()
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const syncReady = useRef(false)   // gates debounced sync until remote fetch has merged
@@ -129,21 +131,47 @@ export default function AppInit() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    const syncStepsNow = () => {
+      fetch('/api/get-steps')
+        .then(r => r.json())
+        .then(({ steps }) => {
+          if (typeof steps === 'number') setStepsFromSyncRef.current(steps)
+        })
+        .catch(() => {})
+    }
+
+    // Sync steps immediately on load, then again after 5s (Shortcut may still be writing)
+    syncStepsNow()
+    const immediateStepsDelay = setTimeout(syncStepsNow, 5000)
+
     // Re-fetch from Supabase whenever app comes back to foreground.
     // Delayed 4s so the iOS Shortcut has time to finish writing before we read.
     let visibilityTimer: ReturnType<typeof setTimeout> | null = null
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         if (visibilityTimer) clearTimeout(visibilityTimer)
-        visibilityTimer = setTimeout(() => fetchRemote(), 4000)
+        syncStepsNow()
+        visibilityTimer = setTimeout(() => { fetchRemote(); syncStepsNow() }, 4000)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
+    // Poll for steps every 30s — simple and reliable, bypasses all merge complexity
+    const stepsPoll = setInterval(() => {
+      fetch('/api/get-steps')
+        .then(r => r.json())
+        .then(({ steps }) => {
+          if (typeof steps === 'number') setStepsFromSyncRef.current(steps)
+        })
+        .catch(() => {})
+    }, 30000)
+
     return () => {
       clearTimeout(timer)
       clearTimeout(delayedFetch)
+      clearTimeout(immediateStepsDelay)
       if (visibilityTimer) clearTimeout(visibilityTimer)
+      clearInterval(stepsPoll)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
       document.removeEventListener('visibilitychange', handleVisibility)
