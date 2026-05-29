@@ -333,7 +333,8 @@ export default function HomePage() {
       ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05)
       : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
     : 0
-  const cardioKcal    = todayLog?.cardio?.caloriesBurned ?? 0
+  // Incline walk steps are already counted in stepsKcal — only add cardio kcal for cross trainer
+  const cardioKcal    = todayLog?.cardio?.type === 'cross_trainer' ? (todayLog.cardio.caloriesBurned ?? 0) : 0
   const stepsKcal     = Math.round(todaySteps * stats.weight * 0.00057)
   const intimacyKcal  = Math.round((todayLog?.intimacyMinutes ?? 0) * 4)
   const bmr           = 370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))
