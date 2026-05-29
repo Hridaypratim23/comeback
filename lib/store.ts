@@ -596,11 +596,15 @@ export const useStore = create<AppState>()(
             const rem = mergedDayLogs[date]
             if (!rem) { mergedDayLogs[date] = local; continue }
             const base = local.meals.length >= rem.meals.length ? local : rem
-            // Merge exerciseLogs: for each exerciseId, keep whichever side has more sets logged
+            // Merge exerciseLogs: remote sets baseline, local always wins on equal or more sets
+            // (local is always more recent — updating weights on existing sets has same count)
             const exMap: Record<string, ExerciseLog> = {}
-            for (const el of [...(rem.exerciseLogs ?? []), ...(local.exerciseLogs ?? [])]) {
+            for (const el of (rem.exerciseLogs ?? [])) {
+              exMap[el.exerciseId] = el
+            }
+            for (const el of (local.exerciseLogs ?? [])) {
               const existing = exMap[el.exerciseId]
-              if (!existing || el.sets.length > existing.sets.length) exMap[el.exerciseId] = el
+              if (!existing || el.sets.length >= existing.sets.length) exMap[el.exerciseId] = el
             }
             mergedDayLogs[date] = {
               ...base,
