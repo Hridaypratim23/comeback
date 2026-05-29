@@ -8,11 +8,12 @@ import { Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import QuoteTicker from '@/components/QuoteTicker'
 
 export default function WorkoutPage() {
-  const { dayLogs, stats, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
+  const { dayLogs, stats, markWorkoutDone, setWorkoutDuration, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showFinisher, setShowFinisher] = useState(false)
+  const [manualMins, setManualMins] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [setInputs, setSetInputs] = useState<Record<string, Array<{ weight: string; reps: string }>>>({})
   const [cardioType, setCardioType] = useState<'incline_walk' | 'cross_trainer'>('incline_walk')
@@ -192,6 +193,32 @@ export default function WorkoutPage() {
                     {mins}:{secs}
                   </span>
                 </button>
+                {!timerRunning && (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number" inputMode="numeric"
+                      value={manualMins}
+                      onChange={e => setManualMins(e.target.value)}
+                      placeholder="min"
+                      className="w-14 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-1.5 text-[11px] font-black text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
+                    />
+                    <button
+                      onClick={() => {
+                        const m = parseInt(manualMins)
+                        if (!m || m <= 0) return
+                        const secs = m * 60
+                        if (workoutDone) {
+                          setWorkoutDuration(secs)
+                        } else {
+                          setTimer(secs)
+                        }
+                        setManualMins('')
+                      }}
+                      className="px-2 py-1.5 rounded-lg border border-[#1E1E26] bg-[#0D0D10] text-[9px] font-black tracking-widest text-[#686870] cursor-pointer active:scale-95 transition-all">
+                      SET
+                    </button>
+                  </div>
+                )}
                 {!workoutDone && (
                   <button
                     onClick={() => selectWorkout('')}

@@ -126,6 +126,7 @@ interface AppState {
 
   getOrCreateToday: () => DayLog
   markWorkoutDone: (durationSecs?: number) => void
+  setWorkoutDuration: (durationSecs: number) => void
   logSet: (exerciseId: string, setNum: number, reps: number, weight: number) => void
   selectWorkout: (workoutId: string) => void
   toggleExerciseCheck: (exerciseId: string) => void
@@ -263,6 +264,15 @@ export const useStore = create<AppState>()(
             dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDone: true, workoutDurationSecs: durationSecs, xpEarned: xp, habits } },
             stats: { ...s.stats, totalXP, level, workoutsCompleted: s.stats.workoutsCompleted + 1, streak: s.stats.streak + 1 },
           }
+        })
+        get().syncToSupabase()
+      },
+
+      setWorkoutDuration: (durationSecs) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDurationSecs: durationSecs } } }
         })
         get().syncToSupabase()
       },
