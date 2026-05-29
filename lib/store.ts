@@ -611,13 +611,11 @@ export const useStore = create<AppState>()(
               ...base,
               // Today: take max (step counter may still be accumulating mid-day)
               // Past dates: remote is authoritative — lets fix-steps corrections stick permanently
-              // If user manually overrode steps, preserve their value
+              // Manual override wins; otherwise remote is authoritative (Health sync keeps it fresh)
               stepsManualOverride: local.stepsManualOverride || rem.stepsManualOverride,
-              steps: (local.stepsManualOverride || rem.stepsManualOverride)
-                ? (local.stepsManualOverride ? local.steps : rem.steps)
-                : date === today
-                  ? Math.max(local.steps ?? 0, rem.steps ?? 0)
-                  : (rem.steps ?? local.steps ?? 0),
+              steps: local.stepsManualOverride
+                ? local.steps
+                : (rem.steps ?? local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
               workoutDone: local.workoutDone || rem.workoutDone,
