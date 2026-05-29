@@ -44,6 +44,7 @@ export interface DayLog {
   meals: MealEntry[]
   waterMl: number
   steps: number
+  stepsManualOverride?: boolean
   xpEarned: number
   habits: Record<string, boolean>
   fastingHours?: number
@@ -417,14 +418,14 @@ export const useStore = create<AppState>()(
         const d = todayStr()
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
-          return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps } } }
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: true } } }
         })
       },
 
       setStepsForDate: (date, steps) => {
         set(s => {
           const day = s.dayLogs[date] ?? defaultDay(date)
-          return { dayLogs: { ...s.dayLogs, [date]: { ...day, steps } } }
+          return { dayLogs: { ...s.dayLogs, [date]: { ...day, steps, stepsManualOverride: true } } }
         })
         get().syncToSupabase()
       },
@@ -610,9 +611,13 @@ export const useStore = create<AppState>()(
               ...base,
               // Today: take max (step counter may still be accumulating mid-day)
               // Past dates: remote is authoritative — lets fix-steps corrections stick permanently
-              steps: date === today
-                ? Math.max(local.steps ?? 0, rem.steps ?? 0)
-                : (rem.steps ?? local.steps ?? 0),
+              // If user manually overrode steps, preserve their value
+              stepsManualOverride: local.stepsManualOverride || rem.stepsManualOverride,
+              steps: (local.stepsManualOverride || rem.stepsManualOverride)
+                ? (local.stepsManualOverride ? local.steps : rem.steps)
+                : date === today
+                  ? Math.max(local.steps ?? 0, rem.steps ?? 0)
+                  : (rem.steps ?? local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
               workoutDone: local.workoutDone || rem.workoutDone,

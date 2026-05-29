@@ -30,6 +30,11 @@ export async function POST(req: NextRequest) {
     date, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false,
   }
 
+  // Respect manual override — if user entered steps manually, don't overwrite with Health sync
+  if ((existingDay as Record<string, unknown>).stepsManualOverride === true) {
+    return NextResponse.json({ ok: true, date, steps: existingDay.steps, skipped: 'manual_override' })
+  }
+
   const patched = {
     ...state,
     stepsOverride: { ...existingOverrides, [date]: steps },
