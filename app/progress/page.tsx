@@ -354,6 +354,41 @@ export default function ProgressPage() {
   const bfChartData = bodyHistory.map(e => ({ date: e.date, value: e.bodyFat }))
   const bodyFatGoal = 15
 
+  // ── Goal Projection ──────────────────────────────────────────────────────
+  const leanMass    = parseFloat((stats.weight * (1 - stats.bodyFat / 100)).toFixed(2))
+  const goalWeight  = parseFloat((leanMass / (1 - bodyFatGoal / 100)).toFixed(2))
+  const fatToLose   = parseFloat((stats.weight - goalWeight).toFixed(2))
+
+  // Avg daily calories over last 14 days that have meal data
+  const last14Keys  = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(nowDate); d.setDate(d.getDate() - i); return d.toLocaleDateString('en-CA')
+  })
+  const caloriedDays = last14Keys.map(dk => dayLogs[dk]).filter(d => d && d.meals.length > 0)
+  const avgDailyCal  = caloriedDays.length > 0
+    ? Math.round(caloriedDays.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0) / caloriedDays.length)
+    : null
+  const avgDeficit   = avgDailyCal !== null ? maintenance - avgDailyCal : null
+
+  // Use actual weight trend from body history if we have 2+ entries >= 7 days apart
+  const sortedHistory = [...bodyHistory].sort((a, b) => a.date.localeCompare(b.date))
+  let actualWeeklyLoss: number | null = null
+  if (sortedHistory.length >= 2) {
+    const first = sortedHistory[0], last = sortedHistory[sortedHistory.length - 1]
+    const daysDiff = (new Date(last.date).getTime() - new Date(first.date).getTime()) / 86400000
+    if (daysDiff >= 7) actualWeeklyLoss = parseFloat(((first.weight - last.weight) / (daysDiff / 7)).toFixed(2))
+  }
+
+  // Weekly fat loss: prefer actual trend, fall back to deficit formula
+  const weeklyLoss   = actualWeeklyLoss !== null && actualWeeklyLoss > 0
+    ? actualWeeklyLoss
+    : avgDeficit !== null && avgDeficit > 0 ? parseFloat(((avgDeficit * 7) / 7700).toFixed(2)) : null
+  const weeksToGoal  = weeklyLoss && weeklyLoss > 0 ? Math.ceil(fatToLose / weeklyLoss) : null
+  const targetDate   = weeksToGoal ? (() => {
+    const d = new Date(nowDate); d.setDate(d.getDate() + weeksToGoal * 7)
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  })() : null
+  const isAggressive = avgDeficit !== null && avgDeficit > 700
+
   const saveBodyStats = (key: 'weight' | 'bodyFat') => (v: number) => {
     updateBodyStats(key === 'weight' ? v : stats.weight, key === 'bodyFat' ? v : stats.bodyFat)
   }
@@ -764,6 +799,89 @@ export default function ProgressPage() {
             <span>START: 22%</span>
             <span>NOW: {stats.bodyFat}%</span>
             <span>GOAL: {bodyFatGoal}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Goal Projection */}
+      <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+        <div className="h-[2px] bg-gradient-to-r from-[#FF2800] to-[#1DB954]" />
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">GOAL PROJECTION</span>
+            {isAggressive && (
+              <span className="text-[9px] font-black tracking-widest text-[#D4A017] bg-[#D4A01722] border border-[#D4A01744] px-2 py-0.5 rounded-full">⚠ AGGRESSIVE CUT</span>
+            )}
+          </div>
+
+          {/* Body comp breakdown */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'LEAN MASS', value: `${leanMass}kg`, color: '#2196F3' },
+              { label: 'FAT TO LOSE', value: `${fatToLose}kg`, color: '#FF2800' },
+              { label: 'GOAL WEIGHT', value: `${goalWeight}kg`, color: '#1DB954' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-[#0D0D10] rounded-xl p-3 border border-[#1E1E26] text-center">
+                <div className="text-[8px] font-black tracking-widest text-[#686870] mb-1">{label}</div>
+                <div className="text-sm font-black" style={{ color }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* BF% progress bar */}
+          <div>
+            <div className="flex justify-between text-[10px] mb-1.5">
+              <span className="font-bold text-[#686870]">BODY FAT PROGRESS</span>
+              <span className="font-black text-[#1DB954]">{stats.bodyFat}% → {bodyFatGoal}%</span>
+            </div>
+            <div className="h-2.5 bg-[#0D0D10] border border-[#1E1E26] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(Math.max(((22 - stats.bodyFat) / (22 - bodyFatGoal)) * 100, 0), 100)}%`, background: 'linear-gradient(90deg, #FF2800, #1DB954)' }} />
+            </div>
+            <div className="flex justify-between text-[9px] text-[#686870] mt-1">
+              <span>START 22%</span>
+              <span>NOW {stats.bodyFat}%</span>
+              <span>GOAL {bodyFatGoal}%</span>
+            </div>
+          </div>
+
+          {/* Rate & ETA */}
+          <div className="border-t border-[#1E1E26] pt-3 space-y-2.5">
+            {avgDailyCal !== null && (
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[#686870]">Avg daily intake (14d)</span>
+                <span className="text-[11px] font-black text-[#EDEDF0]">{avgDailyCal} kcal</span>
+              </div>
+            )}
+            {avgDeficit !== null && (
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[#686870]">Avg daily deficit</span>
+                <span className="text-[11px] font-black" style={{ color: isAggressive ? '#D4A017' : '#1DB954' }}>{avgDeficit} kcal</span>
+              </div>
+            )}
+            {weeklyLoss !== null && (
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[#686870]">
+                  Weekly loss {actualWeeklyLoss !== null ? '(actual)' : '(estimated)'}
+                </span>
+                <span className="text-[11px] font-black text-[#EDEDF0]">{weeklyLoss} kg/week</span>
+              </div>
+            )}
+            {weeksToGoal !== null && targetDate && (
+              <div className="bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-3 mt-1">
+                <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">ESTIMATED TIME TO GOAL</div>
+                <div className="text-2xl font-black text-[#EDEDF0]">{weeksToGoal} <span className="text-sm text-[#686870]">weeks</span></div>
+                <div className="text-[10px] text-[#686870] mt-0.5">Around <span className="font-black text-[#1DB954]">{targetDate}</span></div>
+              </div>
+            )}
+            {isAggressive && (
+              <div className="text-[10px] text-[#D4A017] leading-relaxed pt-1">
+                ⚠ Deficit over 700 kcal risks muscle loss. Eating 1,900–2,000 kcal/day would add ~4 weeks but preserve significantly more lean mass.
+              </div>
+            )}
+            {weeklyLoss === null && (
+              <div className="text-[10px] text-[#686870] text-center py-2">Log calories for a few days to see your projection.</div>
+            )}
           </div>
         </div>
       </div>
