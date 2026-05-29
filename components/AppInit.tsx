@@ -114,10 +114,23 @@ export default function AppInit() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    // Re-fetch from Supabase whenever app comes back to foreground.
+    // This ensures steps synced by the iOS Shortcut are picked up immediately.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetch('/api/state')
+          .then(r => r.json())
+          .then(({ data }) => { if (data) mergeRemoteState(data) })
+          .catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
       clearTimeout(timer)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
