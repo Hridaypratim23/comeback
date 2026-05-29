@@ -99,6 +99,16 @@ const RULES: Rule[] = [
   },
 ]
 
+const CHICKEN_CONFIG: UnitConfig = {
+  unit: 'g', singular: '100g', plural: 'g',
+  min: 325, max: 400, step: 25, defaultQty: 350, isGrams: true,
+}
+
+const CHICKEN_KEYWORDS = [
+  'chicken', 'grilled chicken', 'boiled chicken', 'chicken breast',
+  'chicken thigh', 'chicken leg', 'chicken fillet', 'chicken piece',
+]
+
 const GRAMS_CONFIG: UnitConfig = {
   unit: 'g', singular: '100g', plural: 'g',
   min: 50, max: 500, step: 50, defaultQty: 100, isGrams: true,
@@ -117,6 +127,7 @@ const SNACK_EXCLUDES = ['butter', 'paste', 'oil']
 
 export function getUnitConfig(foodName: string): UnitConfig {
   const lower = foodName.toLowerCase()
+  if (CHICKEN_KEYWORDS.some(kw => lower.includes(kw))) return CHICKEN_CONFIG
   const isSnackGrams =
     SNACK_GRAM_KEYWORDS.some(kw => lower.includes(kw)) &&
     !SNACK_EXCLUDES.some(ex => lower.includes(ex))
