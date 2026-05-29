@@ -179,7 +179,7 @@ export default function WorkoutPage() {
                 </div>
                 {!workoutDone && (
                   <button
-                    onClick={() => { markWorkoutDone(); setTimerRunning(false) }}
+                    onClick={() => { markWorkoutDone(timerRef.current); setTimerRunning(false) }}
                     className="mt-4 px-6 py-3 rounded-xl border border-[#686870] text-[10px] font-black tracking-widest text-[#686870] cursor-pointer active:scale-95 transition-all"
                   >
                     LOG REST DAY
@@ -341,7 +341,7 @@ export default function WorkoutPage() {
                 {/* Complete Button */}
                 {!workoutDone ? (
                   <button
-                    onClick={() => { markWorkoutDone(); setTimerRunning(false) }}
+                    onClick={() => { markWorkoutDone(timerRef.current); setTimerRunning(false) }}
                     disabled={doneCount === 0}
                     className="w-full py-4 rounded-xl font-black text-sm tracking-widest uppercase transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed btn-press"
                     style={{

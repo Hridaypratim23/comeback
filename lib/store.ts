@@ -34,6 +34,7 @@ export interface MealEntry {
 export interface DayLog {
   date: string
   workoutDone: boolean
+  workoutDurationSecs?: number
   selectedWorkoutId?: string
   exerciseLogs: ExerciseLog[]
   checkedExercises: string[]
@@ -124,7 +125,7 @@ interface AppState {
   stepsOverride: Record<string, number>
 
   getOrCreateToday: () => DayLog
-  markWorkoutDone: () => void
+  markWorkoutDone: (durationSecs?: number) => void
   logSet: (exerciseId: string, setNum: number, reps: number, weight: number) => void
   selectWorkout: (workoutId: string) => void
   toggleExerciseCheck: (exerciseId: string) => void
@@ -249,7 +250,7 @@ export const useStore = create<AppState>()(
         return fresh
       },
 
-      markWorkoutDone: () => {
+      markWorkoutDone: (durationSecs?: number) => {
         const d = todayStr()
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
@@ -259,7 +260,7 @@ export const useStore = create<AppState>()(
           const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
           const habits = { ...day.habits, workout: true }
           return {
-            dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDone: true, xpEarned: xp, habits } },
+            dayLogs: { ...s.dayLogs, [d]: { ...day, workoutDone: true, workoutDurationSecs: durationSecs, xpEarned: xp, habits } },
             stats: { ...s.stats, totalXP, level, workoutsCompleted: s.stats.workoutsCompleted + 1, streak: s.stats.streak + 1 },
           }
         })

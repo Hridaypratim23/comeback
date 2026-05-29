@@ -325,7 +325,14 @@ export default function HomePage() {
   // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min) + sleep BMR
   // Only count 350 kcal for an actual lift — rest day (selectedWorkoutId='rest') earns no lifting credit
   const isActualLift  = !!(todayLog?.workoutDone && todayLog?.selectedWorkoutId && todayLog.selectedWorkoutId !== 'rest')
-  const liftingKcal   = isActualLift ? 350 : 0
+  const tvl           = (todayLog?.exerciseLogs ?? []).reduce((sum, el) =>
+    sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
+  const sessionHours  = ((todayLog?.workoutDurationSecs ?? 0) / 3600)
+  const liftingKcal   = isActualLift
+    ? sessionHours > 0
+      ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05)
+      : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
+    : 0
   const cardioKcal    = todayLog?.cardio?.caloriesBurned ?? 0
   const stepsKcal     = Math.round(todaySteps * stats.weight * 0.00057)
   const intimacyKcal  = Math.round((todayLog?.intimacyMinutes ?? 0) * 4)
