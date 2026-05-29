@@ -8,11 +8,13 @@ import { Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import QuoteTicker from '@/components/QuoteTicker'
 
 export default function WorkoutPage() {
-  const { dayLogs, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio } = useStore()
+  const { dayLogs, markWorkoutDone, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showFinisher, setShowFinisher] = useState(false)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [setInputs, setSetInputs] = useState<Record<string, Array<{ weight: string; reps: string }>>>({})
   const [cardioType, setCardioType] = useState<'incline_walk' | 'cross_trainer'>('incline_walk')
   const [cardioMins, setCardioMins] = useState('')
   const [cardioKcal, setCardioKcal] = useState('')
@@ -54,6 +56,28 @@ export default function WorkoutPage() {
   const workoutDone = dayLog?.workoutDone ?? false
   const notes = dayLog?.workoutNotes ?? ''
   const savedCardio = dayLog?.cardio
+
+  const toggleExpand = (exId: string, numSets: number) => {
+    if (expanded === exId) { setExpanded(null); return }
+    setExpanded(exId)
+    const saved = dayLog?.exerciseLogs.find(l => l.exerciseId === exId)
+    setSetInputs(prev => ({
+      ...prev,
+      [exId]: Array.from({ length: numSets }, (_, i) => {
+        const s = saved?.sets.find(ss => ss.setNum === i + 1)
+        return { weight: s ? String(s.weight) : '', reps: s ? String(s.reps) : '' }
+      }),
+    }))
+  }
+
+  const saveSets = (exId: string) => {
+    ;(setInputs[exId] ?? []).forEach((inp, i) => {
+      const w = parseFloat(inp.weight)
+      const r = parseInt(inp.reps)
+      if (w > 0 && r > 0) logSet(exId, i + 1, r, w)
+    })
+    setExpanded(null)
+  }
 
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
   const secs = (timer % 60).toString().padStart(2, '0')
@@ -209,25 +233,82 @@ export default function WorkoutPage() {
                 <div className="space-y-2">
                   {workout.exercises.map(ex => {
                     const done = checked.includes(ex.id)
+                    const exLog = dayLog?.exerciseLogs.find(l => l.exerciseId === ex.id)
+                    const isOpen = expanded === ex.id
                     return (
-                      <button key={ex.id} onClick={() => toggleExerciseCheck(ex.id)}
-                        className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer btn-press text-left
-                          ${done ? 'bg-[#0D7A3A22] border-[#1DB95444]' : 'bg-[#111116] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
-                        <div className="w-1.5 rounded-full self-stretch flex-shrink-0"
-                          style={{ backgroundColor: done ? '#1DB954' : workout.color }} />
-                        <div className="flex-1 min-w-0">
-                          <div className={`font-black text-sm tracking-wide transition-all ${done ? 'text-[#1DB954] line-through opacity-70' : 'text-[#EDEDF0]'}`}>
-                            {ex.name}
+                      <div key={ex.id} className={`rounded-xl border overflow-hidden transition-all
+                        ${done ? 'bg-[#0D7A3A22] border-[#1DB95444]' : 'bg-[#111116] border-[#1E1E26]'}`}>
+
+                        {/* Header row */}
+                        <div className="flex items-center gap-3 p-4 cursor-pointer"
+                          onClick={() => toggleExpand(ex.id, ex.sets)}>
+                          <div className="w-1.5 rounded-full self-stretch flex-shrink-0"
+                            style={{ backgroundColor: done ? '#1DB954' : workout.color }} />
+                          <div className="flex-1 min-w-0">
+                            <div className={`font-black text-sm tracking-wide transition-all ${done ? 'text-[#1DB954] line-through opacity-70' : 'text-[#EDEDF0]'}`}>
+                              {ex.name}
+                            </div>
+                            <div className="text-[11px] text-[#686870] mt-0.5">
+                              {ex.sets} sets · {ex.repsRange} reps{ex.notes ? ` · ${ex.notes}` : ''}
+                            </div>
+                            {exLog && exLog.sets.length > 0 && (
+                              <div className="text-[10px] font-bold mt-0.5" style={{ color: workout.color }}>
+                                {exLog.sets.map(s => `${s.weight}kg×${s.reps}`).join(' · ')}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-[11px] text-[#686870] mt-0.5">
-                            {ex.sets} sets · {ex.repsRange} reps{ex.notes ? ` · ${ex.notes}` : ''}
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleExerciseCheck(ex.id) }}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                              ${done ? 'bg-[#1DB954] border-[#1DB954] text-[#070709]' : 'border-[#2C2C38]'}`}>
+                            {done && <span className="text-[11px] font-black leading-none">✓</span>}
+                          </button>
+                        </div>
+
+                        {/* Set inputs */}
+                        {isOpen && (
+                          <div className="border-t border-[#1E1E26] px-4 pt-3 pb-4 space-y-2">
+                            {Array.from({ length: ex.sets }, (_, i) => {
+                              const inp = setInputs[ex.id]?.[i] ?? { weight: '', reps: '' }
+                              return (
+                                <div key={i} className="flex items-center gap-2">
+                                  <span className="text-[9px] font-black text-[#686870] w-10 flex-shrink-0">SET {i + 1}</span>
+                                  <input
+                                    type="number" inputMode="decimal"
+                                    value={inp.weight}
+                                    onChange={e => setSetInputs(prev => {
+                                      const arr = [...(prev[ex.id] ?? [])]
+                                      arr[i] = { ...arr[i], weight: e.target.value }
+                                      return { ...prev, [ex.id]: arr }
+                                    })}
+                                    placeholder="kg"
+                                    className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
+                                  />
+                                  <span className="text-[10px] text-[#686870]">kg</span>
+                                  <input
+                                    type="number" inputMode="numeric"
+                                    value={inp.reps}
+                                    onChange={e => setSetInputs(prev => {
+                                      const arr = [...(prev[ex.id] ?? [])]
+                                      arr[i] = { ...arr[i], reps: e.target.value }
+                                      return { ...prev, [ex.id]: arr }
+                                    })}
+                                    placeholder="reps"
+                                    className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
+                                  />
+                                  <span className="text-[10px] text-[#686870]">reps</span>
+                                </div>
+                              )
+                            })}
+                            <button
+                              onClick={() => saveSets(ex.id)}
+                              className="w-full py-2.5 rounded-xl text-[10px] font-black tracking-widest mt-1 cursor-pointer btn-press"
+                              style={{ background: `${workout.color}22`, border: `1px solid ${workout.color}55`, color: workout.color }}>
+                              SAVE SETS
+                            </button>
                           </div>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                          ${done ? 'bg-[#1DB954] border-[#1DB954] text-[#070709]' : 'border-[#2C2C38]'}`}>
-                          {done && <span className="text-[11px] font-black leading-none">✓</span>}
-                        </div>
-                      </button>
+                        )}
+                      </div>
                     )
                   })}
                 </div>
