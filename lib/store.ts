@@ -596,6 +596,12 @@ export const useStore = create<AppState>()(
             const rem = mergedDayLogs[date]
             if (!rem) { mergedDayLogs[date] = local; continue }
             const base = local.meals.length >= rem.meals.length ? local : rem
+            // Merge exerciseLogs: for each exerciseId, keep whichever side has more sets logged
+            const exMap: Record<string, ExerciseLog> = {}
+            for (const el of [...(rem.exerciseLogs ?? []), ...(local.exerciseLogs ?? [])]) {
+              const existing = exMap[el.exerciseId]
+              if (!existing || el.sets.length > existing.sets.length) exMap[el.exerciseId] = el
+            }
             mergedDayLogs[date] = {
               ...base,
               // Today: take max (step counter may still be accumulating mid-day)
@@ -605,6 +611,15 @@ export const useStore = create<AppState>()(
                 : (rem.steps ?? local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
+              workoutDone: local.workoutDone || rem.workoutDone,
+              workoutDurationSecs: Math.max(local.workoutDurationSecs ?? 0, rem.workoutDurationSecs ?? 0) || undefined,
+              checkedExercises: local.checkedExercises.length >= rem.checkedExercises.length
+                ? local.checkedExercises : rem.checkedExercises,
+              exerciseLogs: Object.values(exMap),
+              habits: { ...rem.habits, ...local.habits },
+              cardio: local.cardio ?? rem.cardio,
+              workoutNotes: local.workoutNotes || rem.workoutNotes,
+              xpEarned: Math.max(local.xpEarned ?? 0, rem.xpEarned ?? 0),
             }
           }
 
