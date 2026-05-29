@@ -38,7 +38,7 @@ async function subscribeToPush(schedule: ReturnType<typeof buildDaySchedule>) {
 }
 
 export default function AppInit() {
-  const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase } = useStore()
+  const { stats, dayLogs, customMeals, mergeRemoteState, syncToSupabase, setStepsFromSync } = useStore()
   const pathname = usePathname()
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const syncReady = useRef(false)   // gates debounced sync until remote fetch has merged
@@ -85,7 +85,14 @@ export default function AppInit() {
     const fetchRemote = () =>
       fetch('/api/state')
         .then(r => r.json())
-        .then(({ data }) => { if (data) mergeRemoteState(data) })
+        .then(({ data }) => {
+          if (!data) return
+          mergeRemoteState(data)
+          // Directly apply today's steps from stepsOverride — bypasses merge complexity
+          const today = new Date().toLocaleDateString('en-CA')
+          const overrideSteps = (data.stepsOverride as Record<string, number> | undefined)?.[today]
+          if (typeof overrideSteps === 'number') setStepsFromSync(overrideSteps)
+        })
         .catch(() => {})
 
     fetchRemote()

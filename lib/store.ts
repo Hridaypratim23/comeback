@@ -141,6 +141,7 @@ interface AppState {
   updateMeal: (id: string, updates: Partial<Omit<MealEntry, 'id' | 'time'>>) => void
   addWater: (ml: number) => void
   setSteps: (steps: number) => void
+  setStepsFromSync: (steps: number) => void
   setStepsForDate: (date: string, steps: number) => void
   addSteps: (steps: number) => void
   toggleHabit: (habitId: string) => void
@@ -419,6 +420,15 @@ export const useStore = create<AppState>()(
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
           return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: true } } }
+        })
+      },
+
+      setStepsFromSync: (steps) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          if (day.stepsManualOverride) return s
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: false } } }
         })
       },
 
