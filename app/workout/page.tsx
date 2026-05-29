@@ -310,30 +310,34 @@ export default function WorkoutPage() {
                               return (
                                 <div key={i} className="flex items-center gap-2">
                                   <span className="text-[9px] font-black text-[#686870] w-10 flex-shrink-0">SET {i + 1}</span>
-                                  <input
-                                    type="number" inputMode="decimal"
-                                    value={inp.weight}
-                                    onChange={e => setSetInputs(prev => {
-                                      const arr = [...(prev[ex.id] ?? [])]
-                                      arr[i] = { ...arr[i], weight: e.target.value }
-                                      return { ...prev, [ex.id]: arr }
-                                    })}
-                                    placeholder="kg"
-                                    className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
-                                  />
-                                  <span className="text-[10px] text-[#686870]">kg</span>
-                                  <input
-                                    type="number" inputMode="numeric"
-                                    value={inp.reps}
-                                    onChange={e => setSetInputs(prev => {
-                                      const arr = [...(prev[ex.id] ?? [])]
-                                      arr[i] = { ...arr[i], reps: e.target.value }
-                                      return { ...prev, [ex.id]: arr }
-                                    })}
-                                    placeholder="reps"
-                                    className="flex-1 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
-                                  />
-                                  <span className="text-[10px] text-[#686870]">reps</span>
+                                  <div className="flex-1 relative">
+                                    <input
+                                      type="number" inputMode="decimal"
+                                      value={inp.weight}
+                                      onChange={e => setSetInputs(prev => {
+                                        const arr = [...(prev[ex.id] ?? [])]
+                                        arr[i] = { ...arr[i], weight: e.target.value }
+                                        return { ...prev, [ex.id]: arr }
+                                      })}
+                                      placeholder="0"
+                                      className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-7 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">kg</span>
+                                  </div>
+                                  <div className="flex-1 relative">
+                                    <input
+                                      type="number" inputMode="numeric"
+                                      value={inp.reps}
+                                      onChange={e => setSetInputs(prev => {
+                                        const arr = [...(prev[ex.id] ?? [])]
+                                        arr[i] = { ...arr[i], reps: e.target.value }
+                                        return { ...prev, [ex.id]: arr }
+                                      })}
+                                      placeholder="0"
+                                      className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-9 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">reps</span>
+                                  </div>
                                 </div>
                               )
                             })}
