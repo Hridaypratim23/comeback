@@ -193,32 +193,6 @@ export default function WorkoutPage() {
                     {mins}:{secs}
                   </span>
                 </button>
-                {!timerRunning && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number" inputMode="numeric"
-                      value={manualMins}
-                      onChange={e => setManualMins(e.target.value)}
-                      placeholder="min"
-                      className="w-14 bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-2 py-1.5 text-[11px] font-black text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center"
-                    />
-                    <button
-                      onClick={() => {
-                        const m = parseInt(manualMins)
-                        if (!m || m <= 0) return
-                        const secs = m * 60
-                        if (workoutDone) {
-                          setWorkoutDuration(secs)
-                        } else {
-                          setTimer(secs)
-                        }
-                        setManualMins('')
-                      }}
-                      className="px-2 py-1.5 rounded-lg border border-[#1E1E26] bg-[#0D0D10] text-[9px] font-black tracking-widest text-[#686870] cursor-pointer active:scale-95 transition-all">
-                      SET
-                    </button>
-                  </div>
-                )}
                 {!workoutDone && (
                   <button
                     onClick={() => selectWorkout('')}
@@ -353,6 +327,55 @@ export default function WorkoutPage() {
                     )
                   })}
                 </div>
+
+                {/* ── Lifting duration ── */}
+                {(timer === 0 && !timerRunning) || (workoutDone && !dayLog?.workoutDurationSecs) ? (
+                  <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-[#1E1E26]">
+                      <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">LIFTING DURATION</span>
+                      <span className="text-[10px] font-black tracking-[0.3em] text-[#2C2C38]"> · CARDIO LOGGED SEPARATELY</span>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <p className="text-[10px] text-[#686870]">
+                        {workoutDone
+                          ? 'No timer was recorded. Enter how long you lifted to improve calorie accuracy.'
+                          : 'Forgot to start the timer? Enter your lifting duration here. Or just tap the timer above before you start.'}
+                      </p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="number" inputMode="numeric"
+                            value={manualMins}
+                            onChange={e => setManualMins(e.target.value)}
+                            placeholder="75"
+                            className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-3 pr-10 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">min</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const m = parseInt(manualMins)
+                            if (!m || m <= 0) return
+                            const s = m * 60
+                            if (workoutDone) { setWorkoutDuration(s) } else { setTimer(s) }
+                            setManualMins('')
+                          }}
+                          disabled={!manualMins || parseInt(manualMins) <= 0}
+                          className="px-4 py-2.5 rounded-lg text-[10px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-30 disabled:cursor-not-allowed bg-[#FF280018] border border-[#FF280044] text-[#FF5500]">
+                          SAVE
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : timer > 0 ? (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#111116] border border-[#1E1E26] rounded-xl">
+                    <Clock size={14} className="text-[#FF2800] flex-shrink-0" />
+                    <div>
+                      <div className="text-[10px] font-black tracking-widest text-[#686870]">LIFTING DURATION</div>
+                      <div className="text-sm font-black text-[#EDEDF0]">{mins}:{secs} {timerRunning ? <span className="text-[#FF2800] text-[10px]">RUNNING</span> : <span className="text-[#1DB954] text-[10px]">RECORDED</span>}</div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* ── Cardio (optional) ── */}
                 <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
