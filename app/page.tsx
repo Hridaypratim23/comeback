@@ -141,7 +141,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, setStepsFromSync, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
   const [monthRingsOpen, setMonthRingsOpen] = useState(false)
   const [stepsInput, setStepsInput] = useState('')
   const [pastEditModal, setPastEditModal] = useState<null | 'steps' | 'water' | 'calories' | 'habits' | 'fasting'>(null)
@@ -190,12 +190,22 @@ export default function HomePage() {
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
     const d = new Date()
     setSelectedDate(d.toLocaleDateString('en-CA'))
-    // Prevent re-showing celebration if ring was already closed today
     if (localStorage.getItem('ring-celebrated') === d.toLocaleDateString('en-CA')) {
       celebratedTodayRef.current = true
     }
     const tick = setInterval(() => setNow(new Date()), 60_000)
-    return () => clearInterval(tick)
+
+    // Sync steps from Health on load, then every 30s
+    const syncSteps = () =>
+      fetch('/api/get-steps')
+        .then(r => r.json())
+        .then(({ steps }) => { if (typeof steps === 'number') useStore.getState().setStepsFromSync(steps) })
+        .catch(() => {})
+    syncSteps()
+    setTimeout(syncSteps, 5000)
+    const stepsPoll = setInterval(syncSteps, 30000)
+
+    return () => { clearInterval(tick); clearInterval(stepsPoll) }
   }, [getOrCreateToday])
 
   const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
