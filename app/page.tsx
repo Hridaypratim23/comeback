@@ -154,6 +154,7 @@ export default function HomePage() {
   const [pastMealCarb, setPastMealCarb] = useState('')
   const [pastMealFat, setPastMealFat] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [syncedSteps, setSyncedSteps] = useState<number | null>(null)
   const [ifExpanded, setIfExpanded] = useState(false)
   const [ifHours, setIfHours] = useState(16)
   const [cardioExpanded, setCardioExpanded] = useState(false)
@@ -201,6 +202,7 @@ export default function HomePage() {
         .then(r => r.json())
         .then(({ steps, date }: { steps: number | null; date: string }) => {
           if (typeof steps !== 'number' || !date) return
+          setSyncedSteps(steps)
           useStore.setState(s => {
             const day = s.dayLogs[date] ?? { date, workoutDone: false, exerciseLogs: [], checkedExercises: [], workoutNotes: '', meals: [], waterMl: 0, steps: 0, xpEarned: 0, habits: {} }
             if (day.stepsManualOverride) return s
@@ -340,7 +342,7 @@ export default function HomePage() {
   // ── Score calculations ─────────────────────────────────────────────────
   const maintenance = Math.round((370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))) * 1.55)
   const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
-  const todaySteps = todayLog?.steps ?? 0
+  const todaySteps = syncedSteps ?? (todayLog?.steps ?? 0)
 
   // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min) + sleep BMR
   // Only count 350 kcal for an actual lift — rest day (selectedWorkoutId='rest') earns no lifting credit
