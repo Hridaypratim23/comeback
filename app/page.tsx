@@ -237,6 +237,23 @@ export default function HomePage() {
   const totalFat  = dayLog?.meals.reduce((s, m) => s + m.fat, 0) ?? 0
   const waterPct  = Math.min(((dayLog?.waterMl ?? 0) / TARGETS.waterMl) * 100, 100)
 
+  // Calories burned for the selected date (past or today)
+  const selIsActualLift = !!(dayLog?.workoutDone && dayLog?.selectedWorkoutId && dayLog.selectedWorkoutId !== 'rest')
+  const selTvl          = (dayLog?.exerciseLogs ?? []).reduce((sum, el) => sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
+  const selSessionHours = (dayLog?.workoutDurationSecs ?? 0) / 3600
+  const selLiftingKcal  = selIsActualLift
+    ? selSessionHours > 0 ? Math.round(6 * stats.weight * selSessionHours + selTvl * 0.05) : selTvl > 0 ? Math.round(selTvl * 0.05 + 350) : 350
+    : 0
+  const selCardio       = dayLog?.cardio
+  const selInclineSteps = selCardio?.type === 'incline_walk' ? (selCardio.minutes ?? 0) * 60 : 0
+  const selFlatSteps    = Math.max(0, (dayLog?.steps ?? 0) - selInclineSteps)
+  const selStepsKcal    = Math.round(selFlatSteps * stats.weight * 0.00057)
+  const selCardioKcal   = selCardio ? (selCardio.caloriesBurned ?? 0) : 0
+  const selIntimacyKcal = Math.round((dayLog?.intimacyMinutes ?? 0) * 4)
+  const selBmr          = 370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))
+  const selSleepKcal    = dayLog?.habits?.sleep ? Math.round(selBmr * 7.5 / 24) : 0
+  const selTotalBurned  = selLiftingKcal + selStepsKcal + selCardioKcal + selIntimacyKcal + selSleepKcal
+
   // Week strip — Mon to Sun of the shifted week
   const weekStartDate = new Date(now)
   const dow = now.getDay()
@@ -734,6 +751,15 @@ export default function HomePage() {
                   label: 'WORKOUT',
                   value: <span className={`text-xs font-black ${dayLog?.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
                     {dayLog?.workoutDone ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓') : '—'}
+                  </span>,
+                },
+                {
+                  label: 'BURNED',
+                  value: <span className="text-xs font-black text-[#1DB954]">
+                    {selTotalBurned > 0 ? `${selTotalBurned} kcal` : '—'}
+                    {selTotalBurned > 0 && selLiftingKcal > 0 && selSessionHours > 0 && (
+                      <span className="text-[9px] text-[#686870] ml-1">{Math.round(selSessionHours * 60)}min lift</span>
+                    )}
                   </span>,
                 },
                 {
