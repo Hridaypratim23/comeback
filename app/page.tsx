@@ -195,11 +195,21 @@ export default function HomePage() {
     }
     const tick = setInterval(() => setNow(new Date()), 60_000)
 
-    // Sync steps from Health on load, then every 30s
+    // Sync steps from Health — use setState directly, no action indirection
     const syncSteps = () =>
       fetch('/api/get-steps')
         .then(r => r.json())
-        .then(({ steps }) => { if (typeof steps === 'number') useStore.getState().setStepsFromSync(steps) })
+        .then(({ steps, date }: { steps: number | null; date: string }) => {
+          if (typeof steps !== 'number' || !date) return
+          useStore.setState(s => {
+            const day = s.dayLogs[date] ?? { date, workoutDone: false, exerciseLogs: [], checkedExercises: [], workoutNotes: '', meals: [], waterMl: 0, steps: 0, xpEarned: 0, habits: {} }
+            if (day.stepsManualOverride) return s
+            return {
+              dayLogs: { ...s.dayLogs, [date]: { ...day, steps, stepsManualOverride: false } },
+              stepsOverride: { ...s.stepsOverride, [date]: steps },
+            }
+          })
+        })
         .catch(() => {})
     syncSteps()
     setTimeout(syncSteps, 5000)
