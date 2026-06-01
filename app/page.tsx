@@ -833,7 +833,7 @@ export default function HomePage() {
                 <span className="text-[11px] font-black tracking-[0.25em] text-[#EDEDF0]">
                   {pastEditModal === 'steps' && 'EDIT STEPS'}
                   {pastEditModal === 'water' && 'EDIT WATER'}
-                  {pastEditModal === 'calories' && 'ADD CALORIES'}
+                  {pastEditModal === 'calories' && 'FOOD LOG'}
                   {pastEditModal === 'habits' && 'EDIT HABITS'}
                   {pastEditModal === 'fasting' && 'EDIT FASTING'}
                 </span>
@@ -919,13 +919,40 @@ export default function HomePage() {
                 {/* CALORIES modal */}
                 {pastEditModal === 'calories' && (
                   <>
-                    <div className="text-center py-1">
-                      <div className="text-[9px] font-bold tracking-widest text-[#686870] mb-1">TOTAL TODAY</div>
-                      <div className="text-2xl font-black text-[#FF5500]">{totalCal > 0 ? `${totalCal} kcal` : '—'}</div>
-                      {totalCal > 0 && <div className="text-[10px] text-[#686870] mt-0.5">P:{totalPro}g · C:{totalCarb}g · F:{totalFat}g</div>}
-                    </div>
-                    <div className="space-y-2">
-                      <input type="text" placeholder="Name (optional)"
+                    {/* Existing meals list */}
+                    {(dayLog?.meals ?? []).length > 0 ? (
+                      <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                        <div className="text-[9px] font-black tracking-widest text-[#686870] mb-2">LOGGED FOOD</div>
+                        {(dayLog?.meals ?? []).map((m, i) => (
+                          <div key={m.id ?? i} className="flex items-center gap-2 bg-[#0D0D10] rounded-lg px-3 py-2 border border-[#1E1E26]">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
+                              <div className="text-[9px] text-[#686870] mt-0.5">
+                                <span className="text-[#FF5500] font-black">{m.calories} kcal</span>
+                                {(m.protein > 0 || m.carbs > 0 || m.fat > 0) && (
+                                  <span className="ml-1">· P:{m.protein}g C:{m.carbs}g F:{m.fat}g</span>
+                                )}
+                              </div>
+                            </div>
+                            <button onClick={() => removeMealForDate(selectedDate, m.id)}
+                              className="w-6 h-6 rounded-full bg-[#1E1E26] flex items-center justify-center cursor-pointer active:scale-90 flex-shrink-0">
+                              <X size={10} className="text-[#686870]" />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex justify-between pt-1 border-t border-[#1E1E26] text-[10px] font-black">
+                          <span className="text-[#686870]">TOTAL</span>
+                          <span className="text-[#FF5500]">{totalCal} kcal · P:{totalPro}g C:{totalCarb}g F:{totalFat}g</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 text-[10px] text-[#2C2C38] font-black tracking-widest">NO FOOD LOGGED</div>
+                    )}
+
+                    {/* Add new food */}
+                    <div className="border-t border-[#1E1E26] pt-3 space-y-2">
+                      <div className="text-[9px] font-black tracking-widest text-[#686870]">ADD FOOD</div>
+                      <input type="text" placeholder="Food name"
                         value={pastMealName} onChange={e => setPastMealName(e.target.value)}
                         className="w-full bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-4 py-2.5 text-[12px] font-black text-[#EDEDF0] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38]"
                       />
@@ -950,23 +977,23 @@ export default function HomePage() {
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => { setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat(''); setPastEditModal(null) }}
                         className="flex-1 py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
-                        CANCEL
+                        CLOSE
                       </button>
                       <button onClick={() => {
                         const cal = parseInt(pastMealCal)
                         if (isNaN(cal) || cal <= 0) return
                         addMealForDate(selectedDate, {
-                          name: pastMealName.trim() || 'Extra',
+                          name: pastMealName.trim() || 'Food',
                           calories: cal,
                           protein: parseFloat(pastMealPro) || 0,
                           carbs: parseFloat(pastMealCarb) || 0,
                           fat: parseFloat(pastMealFat) || 0,
                         })
                         setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat('')
-                        setPastEditModal(null)
                       }}
-                        className="flex-1 py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
-                        ADD
+                        disabled={!pastMealCal || parseInt(pastMealCal) <= 0}
+                        className="flex-1 py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all disabled:opacity-30">
+                        ADD FOOD
                       </button>
                     </div>
                   </>
