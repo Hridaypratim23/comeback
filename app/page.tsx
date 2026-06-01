@@ -740,6 +740,32 @@ export default function HomePage() {
 
         {/* ── PAST DATE: Clean summary with edit icons ── */}
         {!isViewingToday && (
+          <>
+          {/* Calories Burned Card — matches home screen style */}
+          <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-sm leading-none">🔥</span>
+              <span className="text-[9px] font-black tracking-widest text-[#686870]">CALORIES BURNED</span>
+            </div>
+            <div className="flex items-end gap-1 mb-2">
+              <span className={`text-3xl font-black leading-none ${selTotalBurned > 0 ? 'text-[#1DB954]' : 'text-[#686870]'}`}>{selTotalBurned > 0 ? selTotalBurned : '—'}</span>
+              {selTotalBurned > 0 && <span className="text-sm text-[#686870] mb-0.5">kcal</span>}
+            </div>
+            {selTotalBurned > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#686870] mb-2">
+                {selLiftingKcal > 0 && <span>🏋️ {selLiftingKcal}{selSessionHours > 0 ? ` · ${Math.round(selSessionHours * 60)}min` : ''}</span>}
+                {selStepsKcal > 0 && <span>👟 {selStepsKcal}</span>}
+                {selCardioKcal > 0 && <span>🏃 {selCardioKcal}</span>}
+                {selSleepKcal > 0 && <span>😴 {selSleepKcal}</span>}
+                {selIntimacyKcal > 0 && <span>❤️‍🔥 {selIntimacyKcal}</span>}
+              </div>
+            )}
+            <div className="h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${Math.min((selTotalBurned / 2500) * 100, 100)}%`, background: 'linear-gradient(90deg, #0D7A3A, #1DB954)' }} />
+            </div>
+          </div>
+
           <div className="bg-[#111116] border border-[#1E1E26] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-[#1E1E26]">
               <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">DAY LOG</span>
@@ -751,15 +777,6 @@ export default function HomePage() {
                   label: 'WORKOUT',
                   value: <span className={`text-xs font-black ${dayLog?.workoutDone ? 'text-[#1DB954]' : 'text-[#686870]'}`}>
                     {dayLog?.workoutDone ? (dayLog.selectedWorkoutId === 'rest' ? 'REST ✓' : 'DONE ✓') : '—'}
-                  </span>,
-                },
-                {
-                  label: 'BURNED',
-                  value: <span className="text-xs font-black text-[#1DB954]">
-                    {selTotalBurned > 0 ? `${selTotalBurned} kcal` : '—'}
-                    {selTotalBurned > 0 && selLiftingKcal > 0 && selSessionHours > 0 && (
-                      <span className="text-[9px] text-[#686870] ml-1">{Math.round(selSessionHours * 60)}min lift</span>
-                    )}
                   </span>,
                 },
                 {
@@ -815,6 +832,7 @@ export default function HomePage() {
               ))
             })()}
           </div>
+          </>
         )}
 
         {/* ── Past-date edit modals (portalled to escape PageTransition transform) ── */}
