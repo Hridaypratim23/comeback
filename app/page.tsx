@@ -803,18 +803,13 @@ export default function HomePage() {
                 },
               ]
               return rows.map((row, i) => (
-                <div key={row.label} className={`flex items-center justify-between px-4 py-3 ${i < rows.length - 1 ? 'border-b border-[#1E1E26]' : ''}`}>
+                <div key={row.label}
+                  onClick={() => row.modal && setPastEditModal(row.modal!)}
+                  className={`flex items-center justify-between px-4 py-3 ${i < rows.length - 1 ? 'border-b border-[#1E1E26]' : ''} ${row.modal ? 'cursor-pointer active:bg-[#1A1A20] transition-colors' : ''}`}>
                   <span className="text-[10px] font-black tracking-widest text-[#686870]">{row.label}</span>
                   <div className="flex items-center gap-2">
                     {row.value}
-                    {row.modal && (
-                      <button
-                        onClick={() => setPastEditModal(row.modal!)}
-                        className="w-6 h-6 rounded-md bg-[#1E1E26] flex items-center justify-center cursor-pointer active:scale-90 transition-all hover:bg-[#2C2C38]"
-                      >
-                        <Edit3 size={11} className="text-[#686870]" />
-                      </button>
-                    )}
+                    {row.modal && <Edit3 size={11} className="text-[#2C2C38]" />}
                   </div>
                 </div>
               ))
