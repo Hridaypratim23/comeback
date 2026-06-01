@@ -90,7 +90,7 @@ export default function NutritionPage() {
 
   // extra calories logger
   const [showExtraModal, setShowExtraModal] = useState(false)
-  const [extraForm, setExtraForm] = useState({ calories: '', protein: '', carbs: '', fat: '' })
+  const [extraForm, setExtraForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '' })
 
   useEffect(() => {
     setMounted(true)
@@ -1068,7 +1068,14 @@ export default function NutritionPage() {
             </div>
             <div>
               <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">LOG EXTRA CALORIES</div>
-              <div className="text-[10px] text-[#2C2C38] mt-0.5">No food name needed — just log what you consumed.</div>
+            </div>
+
+            <div>
+              <div className="text-[9px] font-black tracking-wider mb-1.5 text-[#686870]">FOOD NAME</div>
+              <input type="text" placeholder="e.g. Protein shake, Rice, Biscuits…"
+                value={extraForm.name}
+                onChange={e => setExtraForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF5500] rounded-lg px-3 py-2.5 text-sm font-black text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors" />
             </div>
 
             <div>
@@ -1096,7 +1103,7 @@ export default function NutritionPage() {
             </div>
 
             <div className="flex gap-3 pb-1">
-              <button onClick={() => { setShowExtraModal(false); setExtraForm({ calories: '', protein: '', carbs: '', fat: '' }) }}
+              <button onClick={() => { setShowExtraModal(false); setExtraForm({ name: '', calories: '', protein: '', carbs: '', fat: '' }) }}
                 className="flex-1 py-3 rounded-xl bg-[#1E1E26] text-[#686870] text-[11px] font-black tracking-widest cursor-pointer btn-press">
                 CANCEL
               </button>
@@ -1104,7 +1111,7 @@ export default function NutritionPage() {
                 disabled={!extraForm.calories || parseFloat(extraForm.calories) <= 0}
                 onClick={() => {
                   addMeal({
-                    name: 'Extra',
+                    name: extraForm.name.trim() || 'Extra',
                     calories: parseFloat(extraForm.calories) || 0,
                     protein:  parseFloat(extraForm.protein)  || 0,
                     carbs:    parseFloat(extraForm.carbs)    || 0,
@@ -1112,7 +1119,7 @@ export default function NutritionPage() {
                     fibre:    0,
                   })
                   setShowExtraModal(false)
-                  setExtraForm({ calories: '', protein: '', carbs: '', fat: '' })
+                  setExtraForm({ name: '', calories: '', protein: '', carbs: '', fat: '' })
                   haptic()
                 }}
                 className="flex-1 py-3 rounded-xl bg-[#FF5500] text-white text-[11px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-30 disabled:cursor-not-allowed">
