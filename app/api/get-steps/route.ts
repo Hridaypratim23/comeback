@@ -13,5 +13,7 @@ export async function GET() {
   const overrides = (state.stepsOverride as Record<string, number> | undefined) ?? {}
   const steps = overrides[today] ?? null
 
-  return NextResponse.json({ steps, date: today })
+  return NextResponse.json({ steps, date: today }, {
+    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+  })
 }

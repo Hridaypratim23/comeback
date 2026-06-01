@@ -196,9 +196,14 @@ export default function HomePage() {
     }
     const tick = setInterval(() => setNow(new Date()), 60_000)
 
-    // Sync steps from Health — use setState directly, no action indirection
+    // Immediately seed from local stepsOverride (no network wait)
+    const todayKey = new Date().toLocaleDateString('en-CA')
+    const localOverride = useStore.getState().stepsOverride?.[todayKey]
+    if (typeof localOverride === 'number' && localOverride > 0) setSyncedSteps(localOverride)
+
+    // Sync steps from Health — cache-busted fetch, no action indirection
     const syncSteps = () =>
-      fetch('/api/get-steps')
+      fetch(`/api/get-steps?t=${Date.now()}`)
         .then(r => r.json())
         .then(({ steps, date }: { steps: number | null; date: string }) => {
           if (typeof steps !== 'number' || !date) return
