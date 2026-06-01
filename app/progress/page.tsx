@@ -279,12 +279,21 @@ export default function ProgressPage() {
   }).length
   const weekCardioDays = weekLogs.filter(d => d.cardio != null).length
   const weekTotalSteps = weekLogs.reduce((s, d) => s + (d.steps ?? 0), 0)
+  const bmr = 370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))
   const dayBurned = (d: typeof weekLogs[0]) => {
     const isActualLift = !!(d.workoutDone && d.selectedWorkoutId && d.selectedWorkoutId !== 'rest')
-    return (isActualLift ? 350 : 0)
-      + (d.cardio?.caloriesBurned ?? 0)
-      + Math.round((d.steps ?? 0) * stats.weight * 0.00057)
-      + Math.round((d.intimacyMinutes ?? 0) * 4)
+    const tvl = (d.exerciseLogs ?? []).reduce((sum, el) => sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
+    const sessionHours = (d.workoutDurationSecs ?? 0) / 3600
+    const liftingKcal = isActualLift
+      ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
+      : 0
+    const inclineSteps = d.cardio?.type === 'incline_walk' ? (d.cardio.minutes ?? 0) * 60 : 0
+    const flatSteps = Math.max(0, (d.steps ?? 0) - inclineSteps)
+    const stepsKcal = Math.round(flatSteps * stats.weight * 0.00057)
+    const cardioKcal = d.cardio ? (d.cardio.caloriesBurned ?? 0) : 0
+    const intimacyKcal = Math.round((d.intimacyMinutes ?? 0) * 4)
+    const sleepKcal = d.habits?.sleep ? Math.round(bmr * 7.5 / 24) : 0
+    return liftingKcal + stepsKcal + cardioKcal + intimacyKcal + sleepKcal
   }
   const weekCalsBurned = weekLogs.reduce((s, d) => s + dayBurned(d), 0)
   const weekFastingHours = weekLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
