@@ -76,6 +76,18 @@ export const WORKOUT_PLANS: Workout[] = [
     ],
     finisher: '100 bodyweight squats for time — aim to beat it each week',
   },
+  {
+    id: 'conditioning', label: 'Conditioning', muscles: 'Cardio · Abs · Olympic Lifts', color: '#D4A017',
+    exercises: [
+      { id: 'clean-jerk', name: 'Clean & Jerk', sets: 5, repsRange: '3', notes: 'Light-moderate load — focus on speed and technique, not max weight' },
+      { id: 'push-press', name: 'Push Press', sets: 4, repsRange: '5', notes: 'Drive from legs, lock out overhead, control the descent' },
+      { id: 'hang-clean', name: 'Hang Power Clean', sets: 4, repsRange: '4', notes: 'From above the knee — explosive pull, fast elbows' },
+      { id: 'ab-wheel', name: 'Ab Wheel Rollout', sets: 3, repsRange: '10–12', notes: 'Brace your core the entire rep, don\'t let your hips sag' },
+      { id: 'l-sit', name: 'L-Sit Hold (parallel bars)', sets: 3, repsRange: '20–30 sec', notes: 'Legs straight, depress the shoulders hard' },
+      { id: 'toes-to-bar', name: 'Toes to Bar', sets: 3, repsRange: '10–15', notes: 'Control the swing — don\'t kip wildly' },
+    ],
+    finisher: '3 rounds: 400m run + 15 KB swings + 10 burpees — rest 90s between rounds',
+  },
 ]
 
 export const REST_WORKOUT: Workout = {
@@ -110,7 +122,7 @@ export const MOTIVATION: Record<string, string> = {
   WED: 'Legs. Squat deep, split squat hard. Built different.',
   THU: 'Functional Upper. Move well, carry heavy, stay strong.',
   FRI: 'Functional Lower. Swings, jumps, carries. Finish the week.',
-  SAT: 'Active recovery. Walk, stretch, prep tomorrow.',
+  SAT: 'Optional day. Conditioning — clean & jerk, abs, cardio. Or rest.',
   SUN: 'Rest. Own next week.',
 }
 
