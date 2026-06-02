@@ -17,74 +17,64 @@ export interface Workout {
 
 export const WORKOUT_PLANS: Workout[] = [
   {
-    id: 'push-a', label: 'Push A', muscles: 'Chest · Shoulders · Triceps', color: '#FF2800',
+    id: 'push', label: 'Push', muscles: 'Chest · Shoulders · Triceps', color: '#FF2800',
     exercises: [
       { id: 'bench', name: 'Barbell Bench Press', sets: 4, repsRange: '6–8', notes: 'Controlled descent, full ROM' },
-      { id: 'ohp', name: 'Overhead Press', sets: 3, repsRange: '8–10' },
+      { id: 'ohp', name: 'Overhead Press', sets: 4, repsRange: '6–8', notes: 'Push the bar back on the way up' },
       { id: 'incline', name: 'Incline DB Press', sets: 3, repsRange: '10–12' },
+      { id: 'cablefly', name: 'Cable Flyes', sets: 3, repsRange: '12–15', notes: 'Squeeze at the midline' },
       { id: 'lateral', name: 'Lateral Raises', sets: 4, repsRange: '15–20', notes: 'No momentum' },
       { id: 'pushdown', name: 'Tricep Pushdowns', sets: 3, repsRange: '12–15' },
-      { id: 'ohe', name: 'Overhead Tricep Extension', sets: 3, repsRange: '12–15' },
     ],
     finisher: '100 push-ups in as few sets as possible',
   },
   {
-    id: 'pull-a', label: 'Pull A', muscles: 'Back · Biceps · Rear Delts', color: '#2196F3',
+    id: 'pull', label: 'Pull', muscles: 'Back · Biceps · Rear Delts', color: '#2196F3',
     exercises: [
       { id: 'dl', name: 'Deadlift', sets: 4, repsRange: '5', notes: 'Lock hips at the top' },
       { id: 'pullup', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
       { id: 'row', name: 'Barbell Row', sets: 3, repsRange: '8–10', notes: 'Chest to bar' },
-      { id: 'cable-row', name: 'Seated Cable Row', sets: 3, repsRange: '10–12' },
+      { id: 'pulldown', name: 'Lat Pulldown', sets: 3, repsRange: '10–12' },
       { id: 'face', name: 'Face Pulls', sets: 3, repsRange: '15–20' },
       { id: 'curl', name: 'Barbell Curl', sets: 3, repsRange: '10–12' },
     ],
-    finisher: '50 band pull-aparts',
+    finisher: '5 min dead hang accumulation',
   },
   {
-    id: 'legs-a', label: 'Legs A', muscles: 'Quads · Hamstrings · Glutes · Calves', color: '#1DB954',
+    id: 'legs', label: 'Legs', muscles: 'Quads · Hamstrings · Glutes · Calves', color: '#1DB954',
     exercises: [
       { id: 'squat', name: 'Back Squat', sets: 4, repsRange: '6–8', notes: 'Below parallel' },
-      { id: 'rdl', name: 'Romanian Deadlift', sets: 3, repsRange: '8–10', notes: 'Feel the stretch' },
+      { id: 'rdl', name: 'Romanian Deadlift', sets: 3, repsRange: '8–10', notes: 'Load the hamstrings, feel the stretch' },
+      { id: 'bss', name: 'Bulgarian Split Squat', sets: 3, repsRange: '10–12', notes: 'Rear foot elevated, drive through front heel' },
       { id: 'legpress', name: 'Leg Press', sets: 3, repsRange: '10–12' },
       { id: 'legcurl', name: 'Lying Leg Curl', sets: 3, repsRange: '12–15' },
       { id: 'calf', name: 'Standing Calf Raise', sets: 4, repsRange: '15–20', notes: 'Full stretch at bottom' },
     ],
-    finisher: '200 bodyweight calf raises',
-  },
-  {
-    id: 'push-b', label: 'Push B', muscles: 'Shoulders · Chest · Triceps', color: '#FF5500',
-    exercises: [
-      { id: 'ohp2', name: 'Overhead Press', sets: 4, repsRange: '6–8', notes: 'Push the bar back on the way up' },
-      { id: 'incline2', name: 'Incline Bench Press', sets: 3, repsRange: '8–10' },
-      { id: 'cablefly', name: 'Cable Flyes', sets: 3, repsRange: '12–15' },
-      { id: 'lateral2', name: 'Lateral Raises', sets: 4, repsRange: '15–20' },
-      { id: 'skull', name: 'Skull Crushers', sets: 3, repsRange: '10–12' },
-      { id: 'dip', name: 'Tricep Dips', sets: 3, repsRange: '12–15', notes: 'Lean forward for chest' },
-    ],
-  },
-  {
-    id: 'legs-b', label: 'Legs B', muscles: 'Hamstrings · Glutes · Quads · Calves', color: '#9B59B6',
-    exercises: [
-      { id: 'rdl2', name: 'Romanian Deadlift', sets: 4, repsRange: '6–8', notes: 'Load the hamstrings, soft knee bend' },
-      { id: 'hacksquat', name: 'Hack Squat', sets: 3, repsRange: '8–10', notes: 'Toes out, full depth' },
-      { id: 'bss', name: 'Bulgarian Split Squat', sets: 3, repsRange: '10–12', notes: 'Rear foot elevated, drive through front heel' },
-      { id: 'legext', name: 'Leg Extension', sets: 3, repsRange: '15–20', notes: 'Full extension, 1s squeeze at top' },
-      { id: 'seatedcurl', name: 'Seated Leg Curl', sets: 3, repsRange: '12–15', notes: 'More stretch than lying curl' },
-      { id: 'seatedcalf', name: 'Seated Calf Raise', sets: 4, repsRange: '15–20', notes: 'Slow eccentric, full stretch at bottom' },
-    ],
     finisher: '100 walking lunges — 50 each leg, no rest',
   },
   {
-    id: 'pull-b', label: 'Pull B', muscles: 'Back · Biceps · Rear Delts', color: '#D4A017',
+    id: 'func-upper', label: 'Functional Upper', muscles: 'Push · Pull · Core · Carries', color: '#FF5500',
     exercises: [
-      { id: 'pullup2', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
-      { id: 'pendlay', name: 'Pendlay Row', sets: 3, repsRange: '8–10', notes: 'Bar to floor each rep' },
-      { id: 'pulldown', name: 'Lat Pulldown', sets: 3, repsRange: '10–12' },
-      { id: 'cablerow2', name: 'Cable Row', sets: 3, repsRange: '12–15' },
-      { id: 'hammer', name: 'Hammer Curls', sets: 3, repsRange: '12–15' },
-      { id: 'inccurl', name: 'Incline DB Curl', sets: 3, repsRange: '12–15', notes: 'Full stretch at bottom' },
+      { id: 'sa-press', name: 'Single Arm DB Press', sets: 3, repsRange: '10 each side', notes: 'Brace hard — no lateral lean' },
+      { id: 'bw-pullup', name: 'Pull-ups (bodyweight)', sets: 3, repsRange: 'AMRAP', notes: 'Full hang to chin over bar' },
+      { id: 'renegade', name: 'Renegade Rows', sets: 3, repsRange: '8 each side', notes: 'Hips square, no rotation' },
+      { id: 'oh-carry', name: 'Overhead Carry (DB)', sets: 3, repsRange: '30 sec each side', notes: 'Pack the shoulder, ribs down' },
+      { id: 'pallof', name: 'Pallof Press', sets: 3, repsRange: '12 each side', notes: 'Anti-rotation — resist the cable' },
+      { id: 'woodchop', name: 'Cable Wood Chop', sets: 3, repsRange: '12 each side', notes: 'Drive from hips, not arms' },
     ],
-    finisher: '5 min dead hang accumulation',
+    finisher: '5 rounds: 10 burpees + 10 band pull-aparts — rest 30s between rounds',
+  },
+  {
+    id: 'func-lower', label: 'Functional Lower', muscles: 'Glutes · Hamstrings · Core · Power', color: '#9B59B6',
+    exercises: [
+      { id: 'kb-swing', name: 'Kettlebell Swings', sets: 4, repsRange: '15–20', notes: 'Hip hinge — not a squat. Snap the hips' },
+      { id: 'sl-rdl', name: 'Single Leg RDL', sets: 3, repsRange: '10 each side', notes: 'Slow eccentric, feel the hamstring load' },
+      { id: 'stepup', name: 'Weighted Step-ups', sets: 3, repsRange: '12 each side', notes: 'Drive through the heel, no push-off from back foot' },
+      { id: 'hipthrust', name: 'Hip Thrusts', sets: 3, repsRange: '12–15', notes: 'Full glute squeeze at the top, chin tucked' },
+      { id: 'boxjump', name: 'Box Jumps', sets: 3, repsRange: '6–8', notes: 'Land softly — absorb with your hips, not just knees' },
+      { id: 'farmer', name: 'Farmer\'s Carry', sets: 3, repsRange: '30 sec', notes: 'Heavy. Shoulders packed, walk with purpose' },
+    ],
+    finisher: '100 bodyweight squats for time — aim to beat it each week',
   },
 ]
 
@@ -115,13 +105,13 @@ export const QUICK_MEALS = [
 ]
 
 export const MOTIVATION: Record<string, string> = {
-  MON: 'Push day. Start the week with force.',
-  TUE: 'Pull your limits. Grow your back.',
-  WED: 'Leg day. Built different.',
-  THU: 'Second push. More weight than Monday.',
-  FRI: 'Pull B. Finish the week strong.',
-  SAT: 'Legs B. Hamstrings and glutes. Finish the week.',
-  SUN: 'Prep tomorrow. Own next week.',
+  MON: 'Push day. Bench, press, build. Start the week with force.',
+  TUE: 'Pull day. Deadlift heavy, grow your back.',
+  WED: 'Legs. Squat deep, split squat hard. Built different.',
+  THU: 'Functional Upper. Move well, carry heavy, stay strong.',
+  FRI: 'Functional Lower. Swings, jumps, carries. Finish the week.',
+  SAT: 'Active recovery. Walk, stretch, prep tomorrow.',
+  SUN: 'Rest. Own next week.',
 }
 
 export const BADGES = [

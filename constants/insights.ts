@@ -213,7 +213,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
         action: `${target}kg × 4 sets. Below parallel, no exceptions. Film a set if you're unsure on depth.`,
       })
     }
-    if (deadliftOneRM !== null && todayWorkoutId === 'pull-a') {
+    if (deadliftOneRM !== null && todayWorkoutId === 'pull') {
       const target = Math.round(deadliftOneRM * 0.82)
       insights.push({
         id: 'pr-deadlift', tag: 'MOVE', color: C.MOVE, icon: '⛏️',
