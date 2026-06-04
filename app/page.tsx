@@ -12,6 +12,7 @@ import {
 } from '@/lib/notifications'
 import QuoteTicker from '@/components/QuoteTicker'
 import { getWorkoutById, REST_WORKOUT, QUICK_MEALS } from '@/constants/workouts'
+import { getUnitConfig, formatQty, scaleRatio } from '@/lib/unitConfig'
 import { generateInsights } from '@/constants/insights'
 import InsightCard from '@/components/InsightCard'
 
@@ -149,7 +150,7 @@ export default function HomePage() {
   const [pastWaterInput, setPastWaterInput] = useState('')
   const [pastFastingInput, setPastFastingInput] = useState('')
   const [pastMealPickerTab, setPastMealPickerTab] = useState<'my-meals' | 'quick-add'>('my-meals')
-  const [pastPortionMeal, setPastPortionMeal] = useState<{ name: string; calories: number; protein: number; carbs: number; fat: number } | null>(null)
+  const [pastPortionMeal, setPastPortionMeal] = useState<{ name: string; calories: number; protein: number; carbs: number; fat: number; unit?: string; servingSize?: boolean } | null>(null)
   const [pastPortion, setPastPortion] = useState(1)
   const [pastMealName, setPastMealName] = useState('')
   const [pastMealCal, setPastMealCal] = useState('')
@@ -972,50 +973,81 @@ export default function HomePage() {
 
                     {/* Quick-pick from saved / quick meals */}
                     <div className="border-t border-[#1E1E26] pt-3 space-y-2">
-                      {pastPortionMeal ? (
-                        /* Portion step — shown after tapping a meal */
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="text-[9px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
-                            <button onClick={() => { setPastPortionMeal(null); setPastPortion(1) }}
-                              className="text-[9px] font-black text-[#686870] cursor-pointer">← BACK</button>
-                          </div>
-                          <div className="text-[12px] font-black text-[#EDEDF0] truncate">{pastPortionMeal.name}</div>
-                          <div className="flex gap-2">
-                            {[0.5, 1, 1.5, 2].map(p => (
-                              <button key={p} onClick={() => setPastPortion(p)}
-                                className={`flex-1 py-2 rounded-lg text-[11px] font-black tracking-wide cursor-pointer transition-all border ${pastPortion === p ? 'bg-[#FF5500] text-white border-[#FF5500]' : 'bg-[#0D0D10] text-[#686870] border-[#1E1E26]'}`}>
-                                {p}x
-                              </button>
-                            ))}
-                          </div>
-                          <div className="bg-[#0D0D10] rounded-xl px-4 py-3 flex items-center justify-between">
-                            <div className="text-[11px] font-black text-[#686870] space-y-0.5">
-                              <div>P:{Math.round(pastPortionMeal.protein * pastPortion)}g</div>
-                              <div>C:{Math.round(pastPortionMeal.carbs * pastPortion)}g · F:{Math.round(pastPortionMeal.fat * pastPortion)}g</div>
+                      {pastPortionMeal ? (() => {
+                        const isLegacy = !pastPortionMeal.unit && pastPortionMeal.servingSize
+                        const hasUnit  = !!(pastPortionMeal.unit || isLegacy)
+                        const cfg      = hasUnit ? (isLegacy ? null : getUnitConfig(pastPortionMeal.name)) : getUnitConfig(pastPortionMeal.name)
+                        const min      = isLegacy ? 50  : cfg!.min
+                        const max      = isLegacy ? 1000 : cfg!.max
+                        const step     = isLegacy ? 50  : cfg!.step
+                        const ratio    = isLegacy ? pastPortion / 50 : scaleRatio(pastPortion, cfg!)
+                        const qtyLabel = isLegacy ? `${pastPortion}g` : formatQty(pastPortion, cfg!)
+                        const minLabel = isLegacy ? '50g' : formatQty(min, cfg!)
+                        const maxLabel = isLegacy ? '1000g' : formatQty(max, cfg!)
+                        return (
+                          /* Portion step — identical logic to fuel tab serving slider */
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="text-[9px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
+                              <button onClick={() => { setPastPortionMeal(null); setPastPortion(cfg?.defaultQty ?? 1) }}
+                                className="text-[9px] font-black text-[#686870] cursor-pointer">← BACK</button>
                             </div>
-                            <div className="text-2xl font-black text-[#FF5500]">
-                              {Math.round(pastPortionMeal.calories * pastPortion)}
-                              <span className="text-[10px] text-[#686870] font-normal ml-1">kcal</span>
+                            <div className="text-[12px] font-black text-[#EDEDF0] truncate">{pastPortionMeal.name}</div>
+                            {!isLegacy && cfg!.presets ? (
+                              <div className="space-y-2">
+                                <div className="text-center text-lg font-black text-[#FF2800]">{qtyLabel}</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {cfg!.presets.map(p => (
+                                    <button key={p} onClick={() => setPastPortion(p)}
+                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-black cursor-pointer transition-all border ${pastPortion === p ? 'bg-[#FF2800] text-white border-[#FF2800]' : 'bg-[#0D0D10] text-[#686870] border-[#1E1E26]'}`}>
+                                      {p}g
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-[#686870]">{minLabel}</span>
+                                  <span className="text-lg font-black text-[#FF2800]">{qtyLabel}</span>
+                                  <span className="text-[10px] text-[#686870]">{maxLabel}</span>
+                                </div>
+                                <input type="range" min={min} max={max} step={step}
+                                  value={pastPortion}
+                                  onChange={e => setPastPortion(Number(e.target.value))}
+                                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF2800] bg-[#1E1E26]"
+                                />
+                              </div>
+                            )}
+                            <div className="bg-[#0D0D10] rounded-xl px-4 py-3">
+                              <div className="text-2xl font-black text-[#FF5500]">
+                                {Math.round(pastPortionMeal.calories * ratio)}
+                                <span className="text-[10px] text-[#686870] font-normal ml-1">cal</span>
+                              </div>
+                              <div className="flex gap-3 text-[11px] font-black mt-1">
+                                <span style={{ color: '#FF2800' }}>{Math.round(pastPortionMeal.protein * ratio)}g P</span>
+                                <span style={{ color: '#FF5500' }}>{Math.round(pastPortionMeal.carbs   * ratio)}g C</span>
+                                <span style={{ color: '#D4A017' }}>{Math.round(pastPortionMeal.fat     * ratio)}g F</span>
+                              </div>
                             </div>
+                            <button onClick={() => {
+                              addMealForDate(selectedDate, {
+                                name: `${pastPortionMeal.name} (${qtyLabel})`,
+                                calories: Math.round(pastPortionMeal.calories * ratio),
+                                protein:  Math.round(pastPortionMeal.protein  * ratio),
+                                carbs:    Math.round(pastPortionMeal.carbs    * ratio),
+                                fat:      Math.round(pastPortionMeal.fat      * ratio),
+                              })
+                              haptic()
+                              setPastPortionMeal(null)
+                              setPastPortion(1)
+                            }}
+                              className="w-full py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                              ADD TO {selectedDateLabel}
+                            </button>
                           </div>
-                          <button onClick={() => {
-                            addMealForDate(selectedDate, {
-                              name: pastPortion === 1 ? pastPortionMeal.name : `${pastPortionMeal.name} (${pastPortion}x)`,
-                              calories: Math.round(pastPortionMeal.calories * pastPortion),
-                              protein:  Math.round(pastPortionMeal.protein  * pastPortion),
-                              carbs:    Math.round(pastPortionMeal.carbs    * pastPortion),
-                              fat:      Math.round(pastPortionMeal.fat      * pastPortion),
-                            })
-                            haptic()
-                            setPastPortionMeal(null)
-                            setPastPortion(1)
-                          }}
-                            className="w-full py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
-                            ADD TO {selectedDateLabel}
-                          </button>
-                        </div>
-                      ) : (
+                        )
+                      })() : (
                         /* Meal picker tabs */
                         <>
                           <div className="flex items-center gap-2">
@@ -1032,7 +1064,7 @@ export default function HomePage() {
                             ) : (
                               <div className="max-h-36 overflow-y-auto space-y-1">
                                 {customMeals.map(m => (
-                                  <button key={m.id} onClick={() => { setPastPortionMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); setPastPortion(1); haptic() }}
+                                  <button key={m.id} onClick={() => { const cfg = (m.unit || m.servingSize) ? getUnitConfig(m.name) : null; setPastPortionMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, unit: m.unit, servingSize: m.servingSize }); setPastPortion(cfg ? cfg.defaultQty : 1); haptic() }}
                                     className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
                                     <div className="min-w-0">
                                       <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
@@ -1047,7 +1079,7 @@ export default function HomePage() {
                           {pastMealPickerTab === 'quick-add' && (
                             <div className="max-h-36 overflow-y-auto space-y-1">
                               {QUICK_MEALS.map(m => (
-                                <button key={m.name} onClick={() => { setPastPortionMeal(m); setPastPortion(1); haptic() }}
+                                <button key={m.name} onClick={() => { const cfg = getUnitConfig(m.name); setPastPortionMeal(m); setPastPortion(cfg.defaultQty); haptic() }}
                                   className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
                                   <div className="min-w-0">
                                     <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
