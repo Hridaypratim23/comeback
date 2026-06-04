@@ -248,7 +248,7 @@ export default function HomePage() {
   const selTvl          = (dayLog?.exerciseLogs ?? []).reduce((sum, el) => sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
   const selSessionHours = (dayLog?.workoutDurationSecs ?? 0) / 3600
   const selLiftingKcal  = selIsActualLift
-    ? selSessionHours > 0 ? Math.round(6 * stats.weight * selSessionHours + selTvl * 0.05) : selTvl > 0 ? Math.round(selTvl * 0.05 + 350) : 350
+    ? selSessionHours > 0 ? Math.round(6 * stats.weight * selSessionHours + selTvl * 0.05) : selTvl > 0 ? Math.round(selTvl * 0.05 + 350) : 0
     : 0
   const selCardio       = dayLog?.cardio
   const selInclineSteps = selCardio?.type === 'incline_walk' ? (selCardio.minutes ?? 0) * 60 : 0
@@ -368,7 +368,7 @@ export default function HomePage() {
   const todaySteps = syncedSteps ?? (todayLog?.steps ?? 0)
 
   // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min) + sleep BMR
-  // Only count 350 kcal for an actual lift — rest day (selectedWorkoutId='rest') earns no lifting credit
+  // Lifting kcal: 0 if no session time and no volume tracked (avoids phantom 350 kcal on unlogged days)
   const isActualLift  = !!(todayLog?.workoutDone && todayLog?.selectedWorkoutId && todayLog.selectedWorkoutId !== 'rest')
   const tvl           = (todayLog?.exerciseLogs ?? []).reduce((sum, el) =>
     sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
@@ -376,7 +376,7 @@ export default function HomePage() {
   const liftingKcal   = isActualLift
     ? sessionHours > 0
       ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05)
-      : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
+      : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
     : 0
   // Steps entered manually include incline walk steps.
   // Subtract estimated incline steps (60 steps/min) so those calories aren't flat-rated.

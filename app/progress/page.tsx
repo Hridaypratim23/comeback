@@ -285,7 +285,7 @@ export default function ProgressPage() {
     const tvl = (d.exerciseLogs ?? []).reduce((sum, el) => sum + el.sets.reduce((s, set) => s + set.reps * set.weight, 0), 0)
     const sessionHours = (d.workoutDurationSecs ?? 0) / 3600
     const liftingKcal = isActualLift
-      ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
+      ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
       : 0
     const inclineSteps = d.cardio?.type === 'incline_walk' ? (d.cardio.minutes ?? 0) * 60 : 0
     const flatSteps = Math.max(0, (d.steps ?? 0) - inclineSteps)

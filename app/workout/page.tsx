@@ -85,8 +85,8 @@ export default function WorkoutPage() {
   const sessionHours = (dayLog?.workoutDurationSecs ?? 0) / 3600
   const isActualLift = !!(dayLog?.workoutDone && dayLog?.selectedWorkoutId && dayLog.selectedWorkoutId !== 'rest')
   const liftingKcal = isActualLift
-    ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 350
-    : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
+    ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
+    : 0
   const cardioKcalBurned = dayLog?.cardio?.caloriesBurned ?? 0
   const totalWorkoutBurned = liftingKcal + cardioKcalBurned
 
