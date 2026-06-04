@@ -510,6 +510,7 @@ export default function HomePage() {
     fibre:         todayFibre,
     steps:         todaySteps,
     totalBurned,
+    liftingKcal,
     workoutDone:   todayLog?.workoutDone ?? false,
     isRestDay:     todayLog?.selectedWorkoutId === 'rest',
     cardioLogged:  cardioLog != null,

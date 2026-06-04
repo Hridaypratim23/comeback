@@ -25,6 +25,7 @@ export interface InsightContext {
   // Today activity
   steps: number
   totalBurned: number
+  liftingKcal: number
   workoutDone: boolean
   isRestDay: boolean
   cardioLogged: boolean
@@ -114,7 +115,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
   const {
     weight, bodyFat, maintenance,
     calories, protein, carbs, fat, fibre,
-    steps, totalBurned, workoutDone, isRestDay,
+    steps, totalBurned, liftingKcal, workoutDone, isRestDay,
     cardioLogged, cardioMinutes, cardioType, fastingHours,
     sleepDone, supplementsDone, veggiesDone,
     todayWorkoutId, todayWorkoutLabel, exercisesChecked, totalExercises,
@@ -414,7 +415,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     insights.push({
       id: 'burn-breakdown', tag: 'PROGRESS', color: C.PROGRESS, icon: '🔥',
       title: `${totalBurned} KCAL ACTIVE BURN TODAY`,
-      body: `Breakdown: lifting ${workoutDone && !isRestDay ? 350 : 0} kcal + steps ${stepsKcal(steps, weight)} kcal${cardioLogged ? ` + cardio ${Math.round(weight * cardioMinutes * 0.085)} kcal` : ''}. BMR ~${bmr} kcal. Total expenditure ~${totalExpenditure} kcal vs ${calories} kcal intake = ${deficit > 0 ? deficit + ' kcal deficit' : 'surplus'}.`,
+      body: `Breakdown:${liftingKcal > 0 ? ` lifting ${liftingKcal} kcal +` : ''} steps ${stepsKcal(steps, weight)} kcal${cardioLogged ? ` + cardio ${Math.round(weight * cardioMinutes * 0.085)} kcal` : ''}. BMR ~${bmr} kcal. Total expenditure ~${totalExpenditure} kcal vs ${calories} kcal intake = ${deficit > 0 ? deficit + ' kcal deficit' : 'surplus'}.`,
     })
   }
 
