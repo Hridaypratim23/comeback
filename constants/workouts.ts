@@ -34,7 +34,7 @@ export const WORKOUT_PLANS: Workout[] = [
       { id: 'dl', name: 'Deadlift', sets: 4, repsRange: '5', notes: 'Lock hips at the top' },
       { id: 'pullup', name: 'Weighted Pull-ups', sets: 4, repsRange: '6–8' },
       { id: 'row', name: 'Barbell Row', sets: 3, repsRange: '8–10', notes: 'Chest to bar' },
-      { id: 'pulldown', name: 'Lat Pulldown', sets: 3, repsRange: '10–12' },
+      { id: 'cable-row', name: 'Seated Cable Row', sets: 3, repsRange: '10–12', notes: 'Elbows tight to body, squeeze the mid-back at the end' },
       { id: 'face', name: 'Face Pulls', sets: 3, repsRange: '15–20' },
       { id: 'curl', name: 'Barbell Curl', sets: 3, repsRange: '10–12' },
     ],
