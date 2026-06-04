@@ -149,6 +149,8 @@ export default function HomePage() {
   const [pastWaterInput, setPastWaterInput] = useState('')
   const [pastFastingInput, setPastFastingInput] = useState('')
   const [pastMealPickerTab, setPastMealPickerTab] = useState<'my-meals' | 'quick-add'>('my-meals')
+  const [pastPortionMeal, setPastPortionMeal] = useState<{ name: string; calories: number; protein: number; carbs: number; fat: number } | null>(null)
+  const [pastPortion, setPastPortion] = useState(1)
   const [pastMealName, setPastMealName] = useState('')
   const [pastMealCal, setPastMealCal] = useState('')
   const [pastMealPro, setPastMealPro] = useState('')
@@ -844,7 +846,7 @@ export default function HomePage() {
         {/* ── Past-date edit modals (portalled to escape PageTransition transform) ── */}
         {pastEditModal && !isViewingToday && createPortal(
           <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)' }} onClick={() => setPastEditModal(null)} />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)' }} onClick={() => { setPastEditModal(null); setPastPortionMeal(null); setPastPortion(1) }} />
             <div style={{ position: 'relative', background: '#111116', border: '1px solid #2C2C38', borderRadius: 20, width: 'calc(100vw - 3rem)', maxWidth: 340, overflow: 'hidden' }}>
 
               {/* Header */}
@@ -970,45 +972,93 @@ export default function HomePage() {
 
                     {/* Quick-pick from saved / quick meals */}
                     <div className="border-t border-[#1E1E26] pt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        {(['my-meals', 'quick-add'] as const).map(t => (
-                          <button key={t} onClick={() => setPastMealPickerTab(t)}
-                            className={`px-3 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all cursor-pointer border ${pastMealPickerTab === t ? 'bg-[#FF550022] text-[#FF5500] border-[#FF550044]' : 'bg-[#1E1E26] text-[#686870] border-transparent'}`}>
-                            {t === 'my-meals' ? 'MY MEALS' : 'QUICK ADD'}
-                          </button>
-                        ))}
-                      </div>
-                      {pastMealPickerTab === 'my-meals' && (
-                        customMeals.length === 0 ? (
-                          <div className="text-center py-3 text-[10px] text-[#2C2C38] font-black tracking-widest">NO SAVED MEALS YET</div>
-                        ) : (
-                          <div className="max-h-36 overflow-y-auto space-y-1">
-                            {customMeals.map(m => (
-                              <button key={m.id} onClick={() => { addMealForDate(selectedDate, { name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); haptic() }}
-                                className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
-                                <div className="min-w-0">
-                                  <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
-                                  <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
-                                </div>
-                                <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">+{m.calories}</span>
+                      {pastPortionMeal ? (
+                        /* Portion step — shown after tapping a meal */
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[9px] font-black tracking-widest text-[#686870]">HOW MUCH?</div>
+                            <button onClick={() => { setPastPortionMeal(null); setPastPortion(1) }}
+                              className="text-[9px] font-black text-[#686870] cursor-pointer">← BACK</button>
+                          </div>
+                          <div className="text-[12px] font-black text-[#EDEDF0] truncate">{pastPortionMeal.name}</div>
+                          <div className="flex gap-2">
+                            {[0.5, 1, 1.5, 2].map(p => (
+                              <button key={p} onClick={() => setPastPortion(p)}
+                                className={`flex-1 py-2 rounded-lg text-[11px] font-black tracking-wide cursor-pointer transition-all border ${pastPortion === p ? 'bg-[#FF5500] text-white border-[#FF5500]' : 'bg-[#0D0D10] text-[#686870] border-[#1E1E26]'}`}>
+                                {p}x
                               </button>
                             ))}
                           </div>
-                        )
-                      )}
-                      {pastMealPickerTab === 'quick-add' && (
-                        <div className="max-h-36 overflow-y-auto space-y-1">
-                          {QUICK_MEALS.map(m => (
-                            <button key={m.name} onClick={() => { addMealForDate(selectedDate, { name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); haptic() }}
-                              className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
-                              <div className="min-w-0">
-                                <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
-                                <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
-                              </div>
-                              <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">+{m.calories}</span>
-                            </button>
-                          ))}
+                          <div className="bg-[#0D0D10] rounded-xl px-4 py-3 flex items-center justify-between">
+                            <div className="text-[11px] font-black text-[#686870] space-y-0.5">
+                              <div>P:{Math.round(pastPortionMeal.protein * pastPortion)}g</div>
+                              <div>C:{Math.round(pastPortionMeal.carbs * pastPortion)}g · F:{Math.round(pastPortionMeal.fat * pastPortion)}g</div>
+                            </div>
+                            <div className="text-2xl font-black text-[#FF5500]">
+                              {Math.round(pastPortionMeal.calories * pastPortion)}
+                              <span className="text-[10px] text-[#686870] font-normal ml-1">kcal</span>
+                            </div>
+                          </div>
+                          <button onClick={() => {
+                            addMealForDate(selectedDate, {
+                              name: pastPortion === 1 ? pastPortionMeal.name : `${pastPortionMeal.name} (${pastPortion}x)`,
+                              calories: Math.round(pastPortionMeal.calories * pastPortion),
+                              protein:  Math.round(pastPortionMeal.protein  * pastPortion),
+                              carbs:    Math.round(pastPortionMeal.carbs    * pastPortion),
+                              fat:      Math.round(pastPortionMeal.fat      * pastPortion),
+                            })
+                            haptic()
+                            setPastPortionMeal(null)
+                            setPastPortion(1)
+                          }}
+                            className="w-full py-2.5 rounded-xl bg-[#FF5500] text-white text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
+                            ADD TO {selectedDateLabel}
+                          </button>
                         </div>
+                      ) : (
+                        /* Meal picker tabs */
+                        <>
+                          <div className="flex items-center gap-2">
+                            {(['my-meals', 'quick-add'] as const).map(t => (
+                              <button key={t} onClick={() => setPastMealPickerTab(t)}
+                                className={`px-3 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all cursor-pointer border ${pastMealPickerTab === t ? 'bg-[#FF550022] text-[#FF5500] border-[#FF550044]' : 'bg-[#1E1E26] text-[#686870] border-transparent'}`}>
+                                {t === 'my-meals' ? 'MY MEALS' : 'QUICK ADD'}
+                              </button>
+                            ))}
+                          </div>
+                          {pastMealPickerTab === 'my-meals' && (
+                            customMeals.length === 0 ? (
+                              <div className="text-center py-3 text-[10px] text-[#2C2C38] font-black tracking-widest">NO SAVED MEALS YET</div>
+                            ) : (
+                              <div className="max-h-36 overflow-y-auto space-y-1">
+                                {customMeals.map(m => (
+                                  <button key={m.id} onClick={() => { setPastPortionMeal({ name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); setPastPortion(1); haptic() }}
+                                    className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
+                                    <div className="min-w-0">
+                                      <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
+                                      <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
+                                    </div>
+                                    <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">{m.calories} kcal</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                          )}
+                          {pastMealPickerTab === 'quick-add' && (
+                            <div className="max-h-36 overflow-y-auto space-y-1">
+                              {QUICK_MEALS.map(m => (
+                                <button key={m.name} onClick={() => { setPastPortionMeal(m); setPastPortion(1); haptic() }}
+                                  className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
+                                  <div className="min-w-0">
+                                    <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
+                                    <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
+                                  </div>
+                                  <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">{m.calories} kcal</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -1038,7 +1088,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => { setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat(''); setPastEditModal(null) }}
+                      <button onClick={() => { setPastMealName(''); setPastMealCal(''); setPastMealPro(''); setPastMealCarb(''); setPastMealFat(''); setPastPortionMeal(null); setPastPortion(1); setPastEditModal(null) }}
                         className="flex-1 py-2.5 rounded-xl bg-[#1E1E26] text-[#686870] text-[10px] font-black tracking-widest cursor-pointer active:scale-95 transition-all">
                         CLOSE
                       </button>
