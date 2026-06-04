@@ -11,7 +11,7 @@ import {
   sendScheduleToSW,
 } from '@/lib/notifications'
 import QuoteTicker from '@/components/QuoteTicker'
-import { getWorkoutById, REST_WORKOUT } from '@/constants/workouts'
+import { getWorkoutById, REST_WORKOUT, QUICK_MEALS } from '@/constants/workouts'
 import { generateInsights } from '@/constants/insights'
 import InsightCard from '@/components/InsightCard'
 
@@ -141,13 +141,14 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, getOrCreateToday, setSteps, setStepsFromSync, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, customMeals, getOrCreateToday, setSteps, setStepsFromSync, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
   const [monthRingsOpen, setMonthRingsOpen] = useState(false)
   const [stepsInput, setStepsInput] = useState('')
   const [pastEditModal, setPastEditModal] = useState<null | 'steps' | 'water' | 'calories' | 'habits' | 'fasting'>(null)
   const [pastStepsInput, setPastStepsInput] = useState('')
   const [pastWaterInput, setPastWaterInput] = useState('')
   const [pastFastingInput, setPastFastingInput] = useState('')
+  const [pastMealPickerTab, setPastMealPickerTab] = useState<'my-meals' | 'quick-add'>('my-meals')
   const [pastMealName, setPastMealName] = useState('')
   const [pastMealCal, setPastMealCal] = useState('')
   const [pastMealPro, setPastMealPro] = useState('')
@@ -967,9 +968,53 @@ export default function HomePage() {
                       <div className="text-center py-2 text-[10px] text-[#2C2C38] font-black tracking-widest">NO FOOD LOGGED</div>
                     )}
 
+                    {/* Quick-pick from saved / quick meals */}
+                    <div className="border-t border-[#1E1E26] pt-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        {(['my-meals', 'quick-add'] as const).map(t => (
+                          <button key={t} onClick={() => setPastMealPickerTab(t)}
+                            className={`px-3 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all cursor-pointer border ${pastMealPickerTab === t ? 'bg-[#FF550022] text-[#FF5500] border-[#FF550044]' : 'bg-[#1E1E26] text-[#686870] border-transparent'}`}>
+                            {t === 'my-meals' ? 'MY MEALS' : 'QUICK ADD'}
+                          </button>
+                        ))}
+                      </div>
+                      {pastMealPickerTab === 'my-meals' && (
+                        customMeals.length === 0 ? (
+                          <div className="text-center py-3 text-[10px] text-[#2C2C38] font-black tracking-widest">NO SAVED MEALS YET</div>
+                        ) : (
+                          <div className="max-h-36 overflow-y-auto space-y-1">
+                            {customMeals.map(m => (
+                              <button key={m.id} onClick={() => { addMealForDate(selectedDate, { name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); haptic() }}
+                                className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
+                                  <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
+                                </div>
+                                <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">+{m.calories}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )
+                      )}
+                      {pastMealPickerTab === 'quick-add' && (
+                        <div className="max-h-36 overflow-y-auto space-y-1">
+                          {QUICK_MEALS.map(m => (
+                            <button key={m.name} onClick={() => { addMealForDate(selectedDate, { name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat }); haptic() }}
+                              className="w-full flex items-center justify-between bg-[#0D0D10] border border-[#1E1E26] rounded-lg px-3 py-2 cursor-pointer active:scale-[0.98] transition-all text-left">
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-black text-[#EDEDF0] truncate">{m.name}</div>
+                                <div className="text-[9px] text-[#686870]">P:{m.protein}g C:{m.carbs}g F:{m.fat}g</div>
+                              </div>
+                              <span className="text-[#FF5500] font-black text-[11px] flex-shrink-0 ml-2">+{m.calories}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Add new food */}
                     <div className="border-t border-[#1E1E26] pt-3 space-y-2">
-                      <div className="text-[9px] font-black tracking-widest text-[#686870]">ADD FOOD</div>
+                      <div className="text-[9px] font-black tracking-widest text-[#686870]">ADD CUSTOM</div>
                       <input type="text" placeholder="Food name"
                         value={pastMealName} onChange={e => setPastMealName(e.target.value)}
                         className="w-full bg-[#0D0D10] border border-[#2C2C38] rounded-xl px-4 py-2.5 text-[12px] font-black text-[#EDEDF0] outline-none focus:border-[#FF5500] placeholder:text-[#2C2C38]"
