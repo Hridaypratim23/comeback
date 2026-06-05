@@ -609,6 +609,58 @@ export default function ProgressPage() {
         </div>
       </div>
 
+      {/* ── BIG FOUR PRs ─────────────────────────────────────────────────────── */}
+      {(() => {
+        const BIG_FOUR = [
+          { id: 'bench',  label: 'BENCH PRESS',     icon: '🏋️', color: '#FF2800',  altId: 'bench2' },
+          { id: 'dl',     label: 'DEADLIFT',         icon: '⛏️', color: '#D4A017',  altId: null },
+          { id: 'squat',  label: 'BACK SQUAT',       icon: '🦵', color: '#1DB954',  altId: null },
+          { id: 'ohp',    label: 'OVERHEAD PRESS',   icon: '💪', color: '#2196F3',  altId: 'ohp2' },
+        ]
+        return (
+          <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black tracking-[0.3em] text-[#686870]">BIG FOUR PRs</span>
+              <span className="text-[9px] font-bold text-[#2C2C38] tracking-widest">EPLEY 1RM</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {BIG_FOUR.map(({ id, label, icon, color, altId }) => {
+                const pr = prs[id] ?? (altId ? prs[altId] : null) ?? null
+                const dateStr = pr?.date
+                  ? new Date(pr.date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' })
+                  : null
+                return (
+                  <div key={id} className="bg-[#0D0D10] border border-[#1E1E26] rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-base leading-none">{icon}</span>
+                      {dateStr && (
+                        <span className="text-[8px] font-bold text-[#2C2C38] tracking-wider">{dateStr}</span>
+                      )}
+                    </div>
+                    <div className="text-[8px] font-black tracking-widest mb-1" style={{ color: '#686870' }}>{label}</div>
+                    {pr ? (
+                      <>
+                        <div className="text-xl font-black leading-none" style={{ color }}>
+                          {pr.oneRM}<span className="text-[10px] font-bold text-[#686870] ml-0.5">kg</span>
+                        </div>
+                        <div className="text-[9px] text-[#686870] mt-1">
+                          {pr.weight}kg × {pr.reps} reps
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm font-black text-[#2C2C38]">—</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-2.5 text-[8px] text-[#2C2C38] text-center tracking-wider">
+              Updates automatically when you log a heavier set
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ── WEEK IN NUMBERS ─────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-[#1E1E26] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
