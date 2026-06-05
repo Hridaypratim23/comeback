@@ -1374,17 +1374,21 @@ export default function HomePage() {
                   <div className="space-y-2">
                     {DAILY_HABITS.map(habit => {
                       const done = !!habits[habit.id]
+                      const isRestDay = todayLog?.selectedWorkoutId === 'rest'
+                      const isWorkoutHabit = habit.id === 'workout'
+                      const displayLabel = isWorkoutHabit && isRestDay ? 'REST DAY' : habit.label
+                      const displayIcon  = isWorkoutHabit && isRestDay ? '😴' : habit.icon
                       return (
                         <button key={habit.id}
                           onClick={() => { haptic(); done
-                            ? setUnCheckPending({ label: habit.label, icon: habit.icon, onConfirm: () => toggleHabit(habit.id) })
+                            ? setUnCheckPending({ label: displayLabel, icon: displayIcon, onConfirm: () => toggleHabit(habit.id) })
                             : toggleHabit(habit.id) }}
                           className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer btn-press text-left
                             ${done ? 'bg-[#0D7A3A22] border-[#1DB95433]' : 'bg-[#0D0D10] border-[#1E1E26] hover:border-[#2C2C38]'}`}>
-                          <span className="text-xl leading-none">{habit.icon}</span>
+                          <span className="text-xl leading-none">{displayIcon}</span>
                           <div className="flex-1">
                             <div className={`text-xs font-black tracking-wider ${done ? 'text-[#1DB954]' : 'text-[#EDEDF0]'}`}>
-                              {habit.label}
+                              {displayLabel}
                             </div>
                           </div>
                           <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all
