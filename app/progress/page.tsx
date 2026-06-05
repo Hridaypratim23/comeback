@@ -298,6 +298,22 @@ export default function ProgressPage() {
   const weekCalsBurned = weekLogs.reduce((s, d) => s + dayBurned(d), 0)
   const weekFastingHours = weekLogs.reduce((s, d) => s + (d.fastingHours ?? 0), 0)
 
+  // ── Caloric deficit ───────────────────────────────────────────────────────
+  const DEFICIT_GOAL = 7700
+  const weekCaloriesIn = weekLogs.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0)
+  const weekTotalExpend = weekLogs.reduce((s, d) => s + bmr + dayBurned(d), 0)
+  const weekDeficit = weekTotalExpend - weekCaloriesIn  // positive = deficit
+
+  const prevWeekDayKeys = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStartDate)
+    d.setDate(weekStartDate.getDate() - 7 + i)
+    return d.toLocaleDateString('en-CA')
+  })
+  const prevWeekLogs = prevWeekDayKeys.map(dk => dayLogs[dk]).filter(Boolean)
+  const prevWeekCaloriesIn = prevWeekLogs.reduce((s, d) => s + d.meals.reduce((ms, m) => ms + m.calories, 0), 0)
+  const prevWeekTotalExpend = prevWeekLogs.reduce((s, d) => s + bmr + dayBurned(d), 0)
+  const prevWeekDeficit = prevWeekLogs.length > 0 ? prevWeekTotalExpend - prevWeekCaloriesIn : null
+
   const weeklyWorkoutPct = Math.min(weekWorkouts / 5, 1) * 20
   const weeklyStepsPct = Math.min(weekStepDays / 5, 1) * 20
   const weeklySleepPct = Math.min(weekSleepDays / 7, 1) * 20
@@ -613,6 +629,56 @@ export default function ProgressPage() {
             value={weekFastingHours > 0 ? `${weekFastingHours}h` : '—'}
             sub={weekFastingHours > 0 ? 'total this week' : 'log via habits'} />
         </div>
+
+        {/* Caloric deficit progress */}
+        {(() => {
+          const pct = Math.min(Math.max(weekDeficit / DEFICIT_GOAL, 0), 1)
+          const remaining = DEFICIT_GOAL - weekDeficit
+          const goalMet = weekDeficit >= DEFICIT_GOAL
+          const isSurplus = weekDeficit < 0
+          const deficitColor = goalMet ? '#1DB954' : isSurplus ? '#FF2800' : '#D4A017'
+          return (
+            <div className="mt-3 pt-3 border-t border-[#1E1E26] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black tracking-widest text-[#686870]">CALORIC DEFICIT</span>
+                <span className="text-[9px] font-black tracking-widest text-[#2C2C38]">GOAL: 7,700 KCAL</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="text-2xl font-black leading-none" style={{ color: deficitColor }}>
+                    {isSurplus ? '−' : ''}{Math.abs(weekDeficit).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-[#686870] font-bold ml-1">kcal {isSurplus ? 'surplus' : 'deficit'}</span>
+                </div>
+                <div className="text-right">
+                  {goalMet ? (
+                    <span className="text-[10px] font-black text-[#1DB954] tracking-widest">GOAL MET ✓</span>
+                  ) : isSurplus ? (
+                    <span className="text-[10px] font-black text-[#FF2800]">{(DEFICIT_GOAL + Math.abs(weekDeficit)).toLocaleString()} kcal to go</span>
+                  ) : (
+                    <span className="text-[10px] font-black text-[#686870]">{remaining.toLocaleString()} kcal to go</span>
+                  )}
+                  {prevWeekDeficit !== null && (
+                    <div className="text-[9px] text-[#2C2C38] mt-0.5">
+                      last week: <span style={{ color: prevWeekDeficit >= 0 ? '#1DB954' : '#FF2800' }}>
+                        {prevWeekDeficit < 0 ? '−' : ''}{Math.abs(Math.round(prevWeekDeficit)).toLocaleString()} kcal
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="h-2 bg-[#1E1E26] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct * 100}%`, background: goalMet ? '#1DB954' : 'linear-gradient(90deg, #D4A017, #FF5500)' }} />
+              </div>
+              <div className="flex justify-between text-[8px] font-black text-[#2C2C38]">
+                <span>0</span>
+                <span>~½kg fat</span>
+                <span>7,700 kcal ≈ 1kg fat</span>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── MONTH IN NUMBERS ────────────────────────────────────────────────── */}
