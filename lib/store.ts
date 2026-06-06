@@ -48,6 +48,7 @@ export interface DayLog {
   xpEarned: number
   habits: Record<string, boolean>
   fastingHours?: number
+  finisherRounds?: number
 }
 
 export const DAILY_HABITS = [
@@ -132,6 +133,7 @@ interface AppState {
   selectWorkout: (workoutId: string) => void
   toggleExerciseCheck: (exerciseId: string) => void
   setWorkoutNotes: (notes: string) => void
+  setFinisherRounds: (rounds: number) => void
   logCardio: (cardio: CardioLog | null) => void
   logIntimacy: (minutes: number | null) => void
   addMeal: (meal: Omit<MealEntry, 'id' | 'time'>) => void
@@ -489,6 +491,14 @@ export const useStore = create<AppState>()(
         })
       },
 
+      setFinisherRounds: (rounds) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, finisherRounds: Math.max(0, rounds) } } }
+        })
+        get().syncToSupabase()
+      },
       logCardio: (cardio) => {
         const d = todayStr()
         set(s => {

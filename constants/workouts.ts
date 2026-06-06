@@ -4,6 +4,9 @@ export interface Exercise {
   sets: number
   repsRange: string
   notes?: string
+  bodyweight?: boolean   // use stats.weight; hide weight input
+  unilateral?: boolean   // user enters per-arm weight; label shows "each side"
+  inputUnit?: 'sec'      // second input shows "sec" instead of "reps"
 }
 
 export interface Workout {
@@ -55,10 +58,10 @@ export const WORKOUT_PLANS: Workout[] = [
   {
     id: 'func-upper', label: 'Functional Upper', muscles: 'Push · Pull · Core · Carries', color: '#FF5500',
     exercises: [
-      { id: 'sa-press', name: 'Single Arm DB Press', sets: 3, repsRange: '10 each side', notes: 'Brace hard — no lateral lean' },
-      { id: 'bw-pullup', name: 'Pull-ups (bodyweight)', sets: 3, repsRange: 'AMRAP', notes: 'Full hang to chin over bar' },
-      { id: 'renegade', name: 'Renegade Rows', sets: 3, repsRange: '8 each side', notes: 'Hips square, no rotation' },
-      { id: 'oh-carry', name: 'Overhead Carry (DB)', sets: 3, repsRange: '30 sec each side', notes: 'Pack the shoulder, ribs down' },
+      { id: 'sa-press', name: 'Single Arm DB Press', sets: 3, repsRange: '10', notes: 'Brace hard — no lateral lean', unilateral: true },
+      { id: 'bw-pullup', name: 'Pull-ups (bodyweight)', sets: 3, repsRange: 'AMRAP', notes: 'Full hang to chin over bar', bodyweight: true },
+      { id: 'renegade', name: 'Renegade Rows', sets: 3, repsRange: '8', notes: 'Hips square, no rotation', unilateral: true },
+      { id: 'oh-carry', name: 'Overhead Carry (DB)', sets: 3, repsRange: '30', notes: 'Pack the shoulder, ribs down', unilateral: true, inputUnit: 'sec' },
       { id: 'pallof', name: 'Pallof Press', sets: 3, repsRange: '12 each side', notes: 'Anti-rotation — resist the cable' },
       { id: 'woodchop', name: 'Cable Wood Chop', sets: 3, repsRange: '12 each side', notes: 'Drive from hips, not arms' },
     ],

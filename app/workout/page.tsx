@@ -8,7 +8,7 @@ import { Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import QuoteTicker from '@/components/QuoteTicker'
 
 export default function WorkoutPage() {
-  const { dayLogs, stats, markWorkoutDone, setWorkoutDuration, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet } = useStore()
+  const { dayLogs, stats, markWorkoutDone, setWorkoutDuration, toggleExerciseCheck, setWorkoutNotes, getOrCreateToday, selectWorkout, logCardio, logSet, setFinisherRounds } = useStore()
   const [mounted, setMounted] = useState(false)
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
@@ -72,10 +72,11 @@ export default function WorkoutPage() {
   }
 
   const saveSets = (exId: string) => {
+    const exDef = workout?.exercises.find(e => e.id === exId)
     ;(setInputs[exId] ?? []).forEach((inp, i) => {
-      const w = parseFloat(inp.weight)
+      const w = exDef?.bodyweight ? stats.weight : parseFloat(inp.weight)
       const r = parseInt(inp.reps)
-      if (w > 0 && r > 0) logSet(exId, i + 1, r, w)
+      if (r > 0 && w > 0) logSet(exId, i + 1, r, w)
     })
     setExpanded(null)
   }
@@ -88,7 +89,9 @@ export default function WorkoutPage() {
     ? sessionHours > 0 ? Math.round(6 * stats.weight * sessionHours + tvl * 0.05) : tvl > 0 ? Math.round(tvl * 0.05 + 350) : 0
     : 0
   const cardioKcalBurned = dayLog?.cardio?.caloriesBurned ?? 0
-  const totalWorkoutBurned = liftingKcal + cardioKcalBurned
+  const finisherRounds = dayLog?.finisherRounds ?? 0
+  const finisherKcal = Math.round(finisherRounds * 15)
+  const totalWorkoutBurned = liftingKcal + cardioKcalBurned + finisherKcal
 
   const mins = Math.floor(timer / 60).toString().padStart(2, '0')
   const secs = (timer % 60).toString().padStart(2, '0')
@@ -264,7 +267,13 @@ export default function WorkoutPage() {
                             </div>
                             {exLog && exLog.sets.length > 0 && (
                               <div className="text-[10px] font-bold mt-0.5" style={{ color: workout.color }}>
-                                {exLog.sets.map(s => `${s.weight}kg×${s.reps}`).join(' · ')}
+                                {exLog.sets.map(s =>
+                                  ex.bodyweight
+                                    ? `BW×${s.reps}${ex.inputUnit === 'sec' ? 's' : ''}`
+                                    : ex.unilateral
+                                      ? `${s.weight}kg×${s.reps}${ex.inputUnit === 'sec' ? 's' : ''} each side`
+                                      : `${s.weight}kg×${s.reps}${ex.inputUnit === 'sec' ? 's' : ''}`
+                                ).join(' · ')}
                               </div>
                             )}
                           </div>
@@ -279,25 +288,37 @@ export default function WorkoutPage() {
                         {/* Set inputs */}
                         {isOpen && (
                           <div className="border-t border-[#1E1E26] px-4 pt-3 pb-4 space-y-2">
+                            {ex.unilateral && (
+                              <div className="text-[9px] font-black text-[#686870] tracking-wider">
+                                Enter weight and {ex.inputUnit === 'sec' ? 'seconds' : 'reps'} per side — total volume counted for both arms
+                              </div>
+                            )}
                             {Array.from({ length: ex.sets }, (_, i) => {
                               const inp = setInputs[ex.id]?.[i] ?? { weight: '', reps: '' }
+                              const repUnit = ex.inputUnit === 'sec' ? 'sec' : ex.unilateral ? 'reps/side' : 'reps'
                               return (
                                 <div key={i} className="flex items-center gap-2">
                                   <span className="text-[9px] font-black text-[#686870] w-10 flex-shrink-0">SET {i + 1}</span>
-                                  <div className="flex-1 relative">
-                                    <input
-                                      type="number" inputMode="decimal"
-                                      value={inp.weight}
-                                      onChange={e => setSetInputs(prev => {
-                                        const arr = [...(prev[ex.id] ?? [])]
-                                        arr[i] = { ...arr[i], weight: e.target.value }
-                                        return { ...prev, [ex.id]: arr }
-                                      })}
-                                      placeholder="0"
-                                      className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-7 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                    />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">kg</span>
-                                  </div>
+                                  {ex.bodyweight ? (
+                                    <div className="flex-1 flex items-center justify-center h-9 bg-[#0D0D10] border border-[#1E1E26] rounded-lg">
+                                      <span className="text-[11px] font-black text-[#686870]">BW ({stats.weight}kg)</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex-1 relative">
+                                      <input
+                                        type="number" inputMode="decimal"
+                                        value={inp.weight}
+                                        onChange={e => setSetInputs(prev => {
+                                          const arr = [...(prev[ex.id] ?? [])]
+                                          arr[i] = { ...arr[i], weight: e.target.value }
+                                          return { ...prev, [ex.id]: arr }
+                                        })}
+                                        placeholder="0"
+                                        className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-7 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                      />
+                                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">kg</span>
+                                    </div>
+                                  )}
                                   <div className="flex-1 relative">
                                     <input
                                       type="number" inputMode="numeric"
@@ -308,9 +329,9 @@ export default function WorkoutPage() {
                                         return { ...prev, [ex.id]: arr }
                                       })}
                                       placeholder="0"
-                                      className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-9 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                      className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg pl-2 pr-14 py-2 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                     />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#686870] pointer-events-none">reps</span>
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-[#686870] pointer-events-none">{repUnit}</span>
                                   </div>
                                 </div>
                               )
@@ -477,15 +498,37 @@ export default function WorkoutPage() {
 
                 {/* Finisher */}
                 {workout.finisher && (
-                  <button onClick={() => setShowFinisher(s => !s)}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-dashed cursor-pointer transition-all"
-                    style={{ borderColor: `${workout.color}55` }}>
-                    <div className="text-left">
-                      <div className="text-[10px] font-black tracking-widest mb-0.5" style={{ color: workout.color }}>FINISHER</div>
-                      <div className="text-sm font-bold text-[#EDEDF0]">{workout.finisher}</div>
-                    </div>
-                    {showFinisher ? <ChevronUp size={16} className="text-[#686870]" /> : <ChevronDown size={16} className="text-[#686870]" />}
-                  </button>
+                  <div className="rounded-xl border border-dashed" style={{ borderColor: `${workout.color}55` }}>
+                    <button onClick={() => setShowFinisher(s => !s)}
+                      className="w-full flex items-center justify-between p-4 cursor-pointer transition-all">
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black tracking-widest" style={{ color: workout.color }}>FINISHER</span>
+                          <span className="text-[9px] font-bold text-[#2C2C38] tracking-wider">OPTIONAL</span>
+                        </div>
+                        <div className="text-sm font-bold text-[#EDEDF0] mt-0.5">{workout.finisher}</div>
+                      </div>
+                      {showFinisher ? <ChevronUp size={16} className="text-[#686870]" /> : <ChevronDown size={16} className="text-[#686870]" />}
+                    </button>
+                    {showFinisher && (
+                      <div className="border-t px-4 pb-4 pt-3 space-y-3" style={{ borderColor: `${workout.color}33` }}>
+                        <div className="text-[9px] font-black tracking-widest text-[#686870]">ROUNDS COMPLETED</div>
+                        <div className="flex items-center gap-4">
+                          <button onClick={() => setFinisherRounds(Math.max(0, finisherRounds - 1))}
+                            className="w-10 h-10 rounded-xl bg-[#1E1E26] text-[#EDEDF0] text-xl font-black cursor-pointer active:scale-90 transition-all flex items-center justify-center">−</button>
+                          <div className="flex-1 text-center">
+                            <span className="text-3xl font-black leading-none" style={{ color: finisherRounds > 0 ? workout.color : '#2C2C38' }}>{finisherRounds}</span>
+                            <div className="text-[9px] text-[#686870] mt-0.5">
+                              {finisherRounds > 0 ? `~${finisherRounds * 15} kcal` : 'tap + to log rounds'}
+                            </div>
+                          </div>
+                          <button onClick={() => setFinisherRounds(finisherRounds + 1)}
+                            className="w-10 h-10 rounded-xl text-white text-xl font-black cursor-pointer active:scale-90 transition-all flex items-center justify-center"
+                            style={{ background: workout.color }}>+</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Session Notes */}
@@ -521,6 +564,12 @@ export default function WorkoutPage() {
                         <div className="flex justify-between text-[11px]">
                           <span className="text-[#686870]">Cardio</span>
                           <span className="font-black text-[#EDEDF0]">{cardioKcalBurned} kcal</span>
+                        </div>
+                      )}
+                      {finisherKcal > 0 && (
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[#686870]">Finisher · {finisherRounds} rounds</span>
+                          <span className="font-black text-[#EDEDF0]">{finisherKcal} kcal</span>
                         </div>
                       )}
                     </div>
