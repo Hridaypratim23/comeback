@@ -515,6 +515,7 @@ export default function HomePage() {
     isRestDay:     todayLog?.selectedWorkoutId === 'rest',
     cardioLogged:  cardioLog != null,
     cardioMinutes: insightCardioMinutes,
+    cardioCal:     cardioLog?.caloriesBurned ?? 0,
     cardioType:    insightCardioType,
     fastingHours:  todayLog?.fastingHours ?? 0,
     sleepDone,

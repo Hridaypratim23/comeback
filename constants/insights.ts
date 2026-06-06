@@ -30,6 +30,7 @@ export interface InsightContext {
   isRestDay: boolean
   cardioLogged: boolean
   cardioMinutes: number
+  cardioCal: number
   cardioType: 'incline_walk' | 'cross_trainer' | null
   fastingHours: number
 
@@ -116,7 +117,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     weight, bodyFat, maintenance,
     calories, protein, carbs, fat, fibre,
     steps, totalBurned, liftingKcal, workoutDone, isRestDay,
-    cardioLogged, cardioMinutes, cardioType, fastingHours,
+    cardioLogged, cardioMinutes, cardioCal, cardioType, fastingHours,
     sleepDone, supplementsDone, veggiesDone,
     todayWorkoutId, todayWorkoutLabel, exercisesChecked, totalExercises,
     waterMl, hour, dayOfWeek, weekWorkouts, weekCalAvg, weekCardioDays,
@@ -415,7 +416,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
     insights.push({
       id: 'burn-breakdown', tag: 'PROGRESS', color: C.PROGRESS, icon: '🔥',
       title: `${totalBurned} KCAL ACTIVE BURN TODAY`,
-      body: `Breakdown:${liftingKcal > 0 ? ` lifting ${liftingKcal} kcal +` : ''} steps ${stepsKcal(steps, weight)} kcal${cardioLogged ? ` + cardio ${Math.round(weight * cardioMinutes * 0.085)} kcal` : ''}. BMR ~${bmr} kcal. Total expenditure ~${totalExpenditure} kcal vs ${calories} kcal intake = ${deficit > 0 ? deficit + ' kcal deficit' : 'surplus'}.`,
+      body: `Breakdown:${liftingKcal > 0 ? ` lifting ${liftingKcal} kcal +` : ''} steps ${stepsKcal(steps, weight)} kcal${cardioLogged ? ` + cardio ${cardioCal} kcal` : ''}. BMR ~${bmr} kcal. Total expenditure ~${totalExpenditure} kcal vs ${calories} kcal intake = ${deficit > 0 ? deficit + ' kcal deficit' : 'surplus'}.`,
     })
   }
 
@@ -479,8 +480,8 @@ export function generateInsights(ctx: InsightContext): Insight[] {
       id: 'cardio-done', tag: 'MOVE', color: C.MOVE, icon: '🏃',
       title: `${cardioMinutes}MIN ${cardioTypeLabel?.toUpperCase()} DONE`,
       body: cardioType === 'incline_walk'
-        ? `Incline walking at 60–70% max HR uses stored fat as primary fuel. This is precisely the right cardio for a cut — fat as fuel, cortisol stays low, muscle preserved. ${cardioMinutes} minutes at ~${Math.round(weight * cardioMinutes * 0.085)} kcal burned without the cortisol spike of high-intensity work.`
-        : `Cross trainer logged. Good cardiovascular work with low joint impact. ${cardioMinutes} minutes adds ~${Math.round(weight * cardioMinutes * 0.1)} kcal to your deficit. Combined with the step target, your NEAT burn today is above average.`,
+        ? `Incline walking at 60–70% max HR uses stored fat as primary fuel. This is precisely the right cardio for a cut — fat as fuel, cortisol stays low, muscle preserved. ${cardioMinutes} minutes at ${cardioCal} kcal burned without the cortisol spike of high-intensity work.`
+        : `Cross trainer logged. Good cardiovascular work with low joint impact. ${cardioMinutes} minutes adds ${cardioCal} kcal to your deficit. Combined with the step target, your NEAT burn today is above average.`,
     })
   }
 
