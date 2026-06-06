@@ -1580,12 +1580,17 @@ export default function HomePage() {
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">KCAL BURNED</div>
+                                  <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1">KCAL (MACHINE)</div>
                                   <input
-                                    type="number" inputMode="numeric" placeholder="400"
+                                    type="number" inputMode="numeric" placeholder="200"
                                     value={cardioKcalInput} onChange={e => setCardioKcalInput(e.target.value)}
                                     className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#1DB954] rounded-lg px-3 py-2 text-sm text-[#EDEDF0] outline-none"
                                   />
+                                  {cardioKcalInput && parseInt(cardioKcalInput) > 0 && (
+                                    <div className="text-[8px] text-[#686870] mt-1">
+                                      Recorded: <span className="text-[#1DB954] font-black">{Math.round(parseInt(cardioKcalInput) * 0.85)} kcal</span> (−15% machine adj.)
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex gap-2">
@@ -1597,7 +1602,7 @@ export default function HomePage() {
                                 <button
                                   disabled={!cardioMinsInput || !cardioKcalInput}
                                   onClick={() => {
-                                    logCardio({ type: cardioType, minutes: parseInt(cardioMinsInput), caloriesBurned: parseInt(cardioKcalInput) })
+                                    logCardio({ type: cardioType, minutes: parseInt(cardioMinsInput), caloriesBurned: Math.round(parseInt(cardioKcalInput) * 0.85) })
                                     setCardioExpanded(false); setCardioMinsInput(''); setCardioKcalInput('')
                                   }}
                                   className="flex-1 py-2 rounded-lg bg-[#1DB954] text-[#070709] text-[10px] font-black tracking-widest cursor-pointer btn-press disabled:opacity-40">

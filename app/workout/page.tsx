@@ -100,7 +100,7 @@ export default function WorkoutPage() {
     const m = parseInt(cardioMins)
     const k = parseInt(cardioKcal)
     if (!m || !k || m <= 0 || k <= 0) return
-    logCardio({ type: cardioType, minutes: m, caloriesBurned: k })
+    logCardio({ type: cardioType, minutes: m, caloriesBurned: Math.round(k * 0.85) })
   }
 
   const clearCardio = () => {
@@ -459,14 +459,19 @@ export default function WorkoutPage() {
                         />
                       </div>
                       <div className="flex-1">
-                        <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1.5">KCAL BURNED</div>
+                        <div className="text-[9px] font-black tracking-widest text-[#686870] mb-1.5">KCAL (MACHINE)</div>
                         <input
                           type="number" inputMode="numeric"
                           value={cardioKcal}
                           onChange={e => setCardioKcal(e.target.value)}
-                          placeholder={savedCardio ? String(savedCardio.caloriesBurned) : '200'}
+                          placeholder="200"
                           className="w-full bg-[#0D0D10] border border-[#1E1E26] focus:border-[#FF2800] rounded-lg px-3 py-2.5 text-sm text-[#EDEDF0] placeholder-[#2C2C38] outline-none transition-colors"
                         />
+                        {cardioKcal && parseInt(cardioKcal) > 0 && (
+                          <div className="text-[8px] text-[#686870] mt-1">
+                            Recorded: <span className="text-[#1DB954] font-black">{Math.round(parseInt(cardioKcal) * 0.85)} kcal</span> (−15% machine adj.)
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -488,7 +493,7 @@ export default function WorkoutPage() {
                             {savedCardio.type === 'incline_walk' ? 'INCLINE WALK' : 'CROSS TRAINER'} LOGGED ✓
                           </div>
                           <div className="text-[10px] text-[#686870] mt-0.5">
-                            {savedCardio.minutes} min · {savedCardio.caloriesBurned} kcal burned
+                            {savedCardio.minutes} min · {savedCardio.caloriesBurned} kcal recorded
                           </div>
                         </div>
                       </div>
