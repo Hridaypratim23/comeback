@@ -200,10 +200,13 @@ export default function HomePage() {
     }
     const tick = setInterval(() => setNow(new Date()), 60_000)
 
-    // Immediately seed from local stepsOverride (no network wait)
+    // Immediately seed from local state — prefer manual entry if higher than synced override
     const todayKey = new Date().toLocaleDateString('en-CA')
-    const localOverride = useStore.getState().stepsOverride?.[todayKey]
-    if (typeof localOverride === 'number' && localOverride > 0) setSyncedSteps(localOverride)
+    const localOverride = useStore.getState().stepsOverride?.[todayKey] ?? 0
+    const todayDay = useStore.getState().dayLogs[todayKey]
+    const manualOnLoad = todayDay?.stepsManualOverride ? (todayDay.steps ?? 0) : 0
+    const seedSteps = Math.max(localOverride, manualOnLoad)
+    if (seedSteps > 0) setSyncedSteps(seedSteps)
 
     // Sync steps from Health — cache-busted fetch, no action indirection
     const syncSteps = () =>
@@ -211,10 +214,14 @@ export default function HomePage() {
         .then(r => r.json())
         .then(({ steps, date }: { steps: number | null; date: string }) => {
           if (typeof steps !== 'number' || !date) return
-          setSyncedSteps(steps)
+          const currentDay = useStore.getState().dayLogs[date]
+          const manualSteps = currentDay?.stepsManualOverride ? (currentDay.steps ?? 0) : 0
+          // Always display the higher of manual vs synced
+          setSyncedSteps(Math.max(steps, manualSteps))
           useStore.setState(s => {
             const day = s.dayLogs[date] ?? { date, workoutDone: false, exerciseLogs: [], checkedExercises: [], workoutNotes: '', meals: [], waterMl: 0, steps: 0, xpEarned: 0, habits: {} }
-            if (day.stepsManualOverride) return s
+            // Manual entry wins if it's higher than the synced value
+            if (day.stepsManualOverride && day.steps >= steps) return s
             return {
               dayLogs: { ...s.dayLogs, [date]: { ...day, steps, stepsManualOverride: false } },
               stepsOverride: { ...s.stepsOverride, [date]: steps },

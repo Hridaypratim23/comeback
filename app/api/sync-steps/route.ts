@@ -30,15 +30,20 @@ export async function POST(req: NextRequest) {
     date, steps: 0, meals: [], habits: {}, waterMl: 0, workoutDone: false,
   }
 
-  // Respect manual override — if user entered steps manually, don't overwrite with Health sync
-  if ((existingDay as Record<string, unknown>).stepsManualOverride === true) {
-    return NextResponse.json({ ok: true, date, steps: existingDay.steps, skipped: 'manual_override' })
+  // If manual entry exists and is higher than synced value, keep the manual entry
+  const manualOverride = (existingDay as Record<string, unknown>).stepsManualOverride === true
+  const existingSteps = typeof (existingDay as Record<string, unknown>).steps === 'number'
+    ? (existingDay as Record<string, unknown>).steps as number : 0
+  if (manualOverride && existingSteps >= steps) {
+    return NextResponse.json({ ok: true, date, steps: existingSteps, skipped: 'manual_higher' })
   }
 
+  // Use whichever is higher
+  const effectiveSteps = Math.max(steps, existingSteps)
   const patched = {
     ...state,
-    stepsOverride: { ...existingOverrides, [date]: steps },
-    dayLogs: { ...existingDayLogs, [date]: { ...existingDay, steps } },
+    stepsOverride: { ...existingOverrides, [date]: effectiveSteps },
+    dayLogs: { ...existingDayLogs, [date]: { ...existingDay, steps: effectiveSteps, stepsManualOverride: manualOverride && existingSteps > steps } },
   }
 
   const { error: writeError } = await db
