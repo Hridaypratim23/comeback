@@ -565,10 +565,11 @@ export const useStore = create<AppState>()(
       },
 
       updateBodyStats: (weight: number, bodyFat: number) => {
+        // Stamp the time so the server knows this is a deliberate user update
         const d = todayStr()
         set(s => {
           // Update stats
-          const updatedStats = { ...s.stats, weight, bodyFat }
+          const updatedStats = { ...s.stats, weight, bodyFat, bodyStatsUpdatedAt: new Date().toISOString() }
 
           // Push to bodyHistory, replacing today's entry if exists, keep last 90
           const existing = s.bodyHistory.filter(e => e.date !== d)

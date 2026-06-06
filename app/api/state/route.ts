@@ -51,7 +51,16 @@ export async function POST(req: NextRequest) {
   const dayLogs = (body.dayLogs as Record<string, unknown> | undefined) ?? {}
   const patchedDayLogs = applyOverridesToDayLogs(dayLogs, finalOverrides)
 
-  const merged = { ...body, dayLogs: patchedDayLogs, stepsOverride: finalOverrides }
+  // Body stats: keep whichever was updated more recently (server wins on tie / missing timestamp)
+  const existingStats = (existing?.data as Record<string, unknown> | null)?.stats as Record<string, unknown> | undefined
+  const serverTs = existingStats?.bodyStatsUpdatedAt as string | undefined
+  const clientTs = (body.stats as Record<string, unknown> | undefined)?.bodyStatsUpdatedAt as string | undefined
+  const serverIsNewer = serverTs && (!clientTs || serverTs > clientTs)
+  const resolvedStats = serverIsNewer
+    ? { ...body.stats, weight: existingStats!.weight, bodyFat: existingStats!.bodyFat, bodyStatsUpdatedAt: serverTs }
+    : body.stats
+
+  const merged = { ...body, stats: resolvedStats, dayLogs: patchedDayLogs, stepsOverride: finalOverrides }
 
   await db.from('app_state').upsert(
     { id: 'main', data: merged, updated_at: new Date().toISOString() },
