@@ -670,9 +670,15 @@ export const useStore = create<AppState>()(
             mergedDayLogs[date] = { ...existing, steps }
           }
 
-          // Stats: take whichever has higher XP (more complete)
-          const stats = (remote.stats?.totalXP ?? 0) > s.stats.totalXP
+          // Stats: take whichever has higher XP for earned values,
+          // but always prefer remote weight/bodyFat (manually configured)
+          const baseStats = (remote.stats?.totalXP ?? 0) > s.stats.totalXP
             ? remote.stats! : s.stats
+          const stats = {
+            ...baseStats,
+            weight:  remote.stats?.weight  ?? baseStats.weight,
+            bodyFat: remote.stats?.bodyFat ?? baseStats.bodyFat,
+          }
 
           return {
             dayLogs: mergedDayLogs,
