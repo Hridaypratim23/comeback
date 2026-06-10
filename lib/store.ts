@@ -45,6 +45,7 @@ export interface DayLog {
   waterMl: number
   steps: number
   stepsManualOverride?: boolean
+  stepsManual?: number
   xpEarned: number
   habits: Record<string, boolean>
   fastingHours?: number
@@ -423,9 +424,10 @@ export const useStore = create<AppState>()(
         const d = todayStr()
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
+          const effective = Math.max(steps, day.steps ?? 0)
           return {
-            dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: true } },
-            stepsOverride: { ...s.stepsOverride, [d]: steps },
+            dayLogs: { ...s.dayLogs, [d]: { ...day, steps: effective, stepsManual: steps, stepsManualOverride: true } },
+            stepsOverride: { ...s.stepsOverride, [d]: effective },
           }
         })
         get().syncToSupabase()
@@ -435,10 +437,12 @@ export const useStore = create<AppState>()(
         const d = todayStr()
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
-          if (day.stepsManualOverride) return s
+          // Always use max(synced, manually entered) so manual entry survives syncs
+          const manual = day.stepsManual ?? 0
+          const effective = Math.max(steps, manual)
           return {
-            dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: false } },
-            stepsOverride: { ...s.stepsOverride, [d]: steps },
+            dayLogs: { ...s.dayLogs, [d]: { ...day, steps: effective, stepsManualOverride: manual > 0 } },
+            stepsOverride: { ...s.stepsOverride, [d]: effective },
           }
         })
       },
@@ -642,10 +646,9 @@ export const useStore = create<AppState>()(
               // Today: take max (step counter may still be accumulating mid-day)
               // Past dates: remote is authoritative — lets fix-steps corrections stick permanently
               // Manual override wins; otherwise remote is authoritative (Health sync keeps it fresh)
+              stepsManual: Math.max(local.stepsManual ?? 0, rem.stepsManual ?? 0) || undefined,
               stepsManualOverride: local.stepsManualOverride || rem.stepsManualOverride,
-              steps: local.stepsManualOverride
-                ? local.steps
-                : (rem.steps ?? local.steps ?? 0),
+              steps: Math.max(local.stepsManual ?? 0, rem.stepsManual ?? 0, rem.steps ?? 0, local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
               sleepHours:   Math.max(local.sleepHours   ?? 0, rem.sleepHours   ?? 0),
