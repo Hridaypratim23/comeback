@@ -158,7 +158,6 @@ export default function HomePage() {
   const [pastMealCarb, setPastMealCarb] = useState('')
   const [pastMealFat, setPastMealFat] = useState('')
   const [mounted, setMounted] = useState(false)
-  const [syncedSteps, setSyncedSteps] = useState<number | null>(null)
   const [ifExpanded, setIfExpanded] = useState(false)
   const [ifHours, setIfHours] = useState(16)
   const [sleepExpanded, setSleepExpanded] = useState(false)
@@ -203,40 +202,7 @@ export default function HomePage() {
     }
     const tick = setInterval(() => setNow(new Date()), 60_000)
 
-    // Immediately seed from local state — prefer manual entry if higher than synced override
-    const todayKey = new Date().toLocaleDateString('en-CA')
-    const localOverride = useStore.getState().stepsOverride?.[todayKey] ?? 0
-    const todayDay = useStore.getState().dayLogs[todayKey]
-    const manualOnLoad = todayDay?.stepsManualOverride ? (todayDay.steps ?? 0) : 0
-    const seedSteps = Math.max(localOverride, manualOnLoad)
-    if (seedSteps > 0) setSyncedSteps(seedSteps)
-
-    // Sync steps from Health — cache-busted fetch, no action indirection
-    const syncSteps = () =>
-      fetch(`/api/get-steps?t=${Date.now()}`)
-        .then(r => r.json())
-        .then(({ steps, date }: { steps: number | null; date: string }) => {
-          if (typeof steps !== 'number' || !date) return
-          const currentDay = useStore.getState().dayLogs[date]
-          const manualSteps = currentDay?.stepsManualOverride ? (currentDay.steps ?? 0) : 0
-          // Always display the higher of manual vs synced
-          setSyncedSteps(Math.max(steps, manualSteps))
-          useStore.setState(s => {
-            const day = s.dayLogs[date] ?? { date, workoutDone: false, exerciseLogs: [], checkedExercises: [], workoutNotes: '', meals: [], waterMl: 0, steps: 0, xpEarned: 0, habits: {} }
-            // Manual entry wins if it's higher than the synced value
-            if (day.stepsManualOverride && day.steps >= steps) return s
-            return {
-              dayLogs: { ...s.dayLogs, [date]: { ...day, steps, stepsManualOverride: false } },
-              stepsOverride: { ...s.stepsOverride, [date]: steps },
-            }
-          })
-        })
-        .catch(() => {})
-    syncSteps()
-    setTimeout(syncSteps, 5000)
-    const stepsPoll = setInterval(syncSteps, 30000)
-
-    return () => { clearInterval(tick); clearInterval(stepsPoll) }
+    return () => { clearInterval(tick) }
   }, [getOrCreateToday])
 
   const haptic = () => { if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10) }
@@ -378,7 +344,7 @@ export default function HomePage() {
   // ── Score calculations ─────────────────────────────────────────────────
   const maintenance = Math.round((370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))) * 1.55)
   const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
-  const todaySteps = syncedSteps ?? (todayLog?.steps ?? 0)
+  const todaySteps = todayLog?.steps ?? 0
 
   // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min) + sleep BMR
   // Lifting kcal: 0 if no session time and no volume tracked (avoids phantom 350 kcal on unlogged days)
@@ -1293,7 +1259,6 @@ export default function HomePage() {
                 const n = parseInt(stepsInput)
                 if (!n || n <= 0) return
                 setSteps(n)
-                setSyncedSteps(n)  // update display immediately, don't wait for next poll
                 setStepsInput('')
               }
               const stepsDisplay = steps >= 1000 ? `${(steps / 1000).toFixed(1)}K` : String(steps)
