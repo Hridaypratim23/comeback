@@ -1,4 +1,4 @@
-const VERSION = 'comeback-v9'
+const VERSION = 'comeback-v10'
 const CACHE = `comeback-${VERSION}`
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
