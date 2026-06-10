@@ -142,7 +142,7 @@ function MacroBar({ label, val, max, color }: { label: string; val: number; max:
 }
 
 export default function HomePage() {
-  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, customMeals, getOrCreateToday, setSteps, setStepsFromSync, addWater, toggleHabit, setFastingHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
+  const { stats, dayLogs, bodyHistory, prs, measurements, weeklyCheckins, customMeals, getOrCreateToday, setSteps, setStepsFromSync, addWater, toggleHabit, setFastingHours, setSleepHours, logCardio, logIntimacy, setStepsForDate, setWaterForDate, toggleHabitForDate, setFastingHoursForDate, addMealForDate, removeMealForDate } = useStore()
   const [monthRingsOpen, setMonthRingsOpen] = useState(false)
   const [stepsInput, setStepsInput] = useState('')
   const [pastEditModal, setPastEditModal] = useState<null | 'steps' | 'water' | 'calories' | 'habits' | 'fasting'>(null)
@@ -161,6 +161,8 @@ export default function HomePage() {
   const [syncedSteps, setSyncedSteps] = useState<number | null>(null)
   const [ifExpanded, setIfExpanded] = useState(false)
   const [ifHours, setIfHours] = useState(16)
+  const [sleepExpanded, setSleepExpanded] = useState(false)
+  const [sleepInput, setSleepInput] = useState('')
   const [cardioExpanded, setCardioExpanded] = useState(false)
   const [cardioType, setCardioType] = useState<'incline_walk' | 'cross_trainer'>('incline_walk')
   const [cardioMinsInput, setCardioMinsInput] = useState('')
@@ -400,7 +402,8 @@ export default function HomePage() {
   const cardioKcal    = cardio ? (cardio.caloriesBurned ?? 0) : 0
   const intimacyKcal  = Math.round((todayLog?.intimacyMinutes ?? 0) * 4)
   const bmr           = 370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))
-  const sleepKcal     = todayLog?.habits?.sleep ? Math.round(bmr * 7.5 / 24) : 0
+  const sleepHoursToday = todayLog?.sleepHours ?? (todayLog?.habits?.sleep ? 7.5 : 0)
+  const sleepKcal     = sleepHoursToday > 0 ? Math.round(bmr * sleepHoursToday / 24) : 0
   const totalBurned   = liftingKcal + cardioKcal + stepsKcal + intimacyKcal + sleepKcal
 
   const dailyWorkout = todayLog?.workoutDone ? 25 : 0
@@ -1381,7 +1384,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <div className="space-y-2">
-                    {DAILY_HABITS.map(habit => {
+                    {DAILY_HABITS.filter(h => h.id !== 'sleep').map(habit => {
                       const done = !!habits[habit.id]
                       const isRestDay = todayLog?.selectedWorkoutId === 'rest'
                       const isWorkoutHabit = habit.id === 'workout'
@@ -1407,6 +1410,62 @@ export default function HomePage() {
                         </button>
                       )
                     })}
+
+                    {/* Sleep hours — replaces boolean checkbox */}
+                    {(() => {
+                      const sh = todayLog?.sleepHours ?? 0
+                      const isActive = sh > 0
+                      const goalMet = sh >= 7
+                      return (
+                        <div className={`rounded-lg border transition-all ${goalMet ? 'bg-[#0D7A3A22] border-[#1DB95433]' : isActive ? 'bg-[#D4A01722] border-[#D4A01733]' : 'bg-[#0D0D10] border-[#1E1E26]'}`}>
+                          <button
+                            onClick={() => { haptic(); setSleepExpanded(e => !e) }}
+                            className="w-full flex items-center gap-3 p-3 cursor-pointer btn-press text-left">
+                            <span className="text-xl leading-none">😴</span>
+                            <div className="flex-1">
+                              <div className={`text-xs font-black tracking-wider ${goalMet ? 'text-[#1DB954]' : isActive ? 'text-[#D4A017]' : 'text-[#EDEDF0]'}`}>
+                                SLEEP{isActive ? ` · ${sh}H` : ''}
+                              </div>
+                              {isActive && <div className="text-[9px] text-[#686870] mt-0.5">{goalMet ? '7h goal met ✓' : 'under 7h target'}</div>}
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all
+                              ${goalMet ? 'bg-[#1DB954] border-[#1DB954] text-[#070709]' : isActive ? 'bg-[#D4A017] border-[#D4A017] text-[#070709]' : 'border-[#2C2C38]'}`}>
+                              {isActive && <span className="text-[10px] font-black">✓</span>}
+                            </div>
+                          </button>
+                          {sleepExpanded && (
+                            <div className="border-t px-3 pb-3 pt-2.5 space-y-2.5 border-[#1E1E2655]">
+                              <div className="flex flex-wrap gap-2">
+                                {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map(h => (
+                                  <button key={h} onClick={() => { haptic(); setSleepHours(h); setSleepExpanded(false) }}
+                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-black cursor-pointer transition-all border ${sh === h ? 'bg-[#1DB954] text-[#070709] border-[#1DB954]' : 'bg-[#0D0D10] text-[#686870] border-[#1E1E26]'}`}>
+                                    {h}h
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <input type="number" inputMode="decimal" placeholder="Custom hours"
+                                  value={sleepInput} onChange={e => setSleepInput(e.target.value)}
+                                  className="flex-1 bg-[#0D0D10] border border-[#2C2C38] rounded-lg px-3 py-2 text-sm font-black text-[#EDEDF0] outline-none focus:border-[#1DB954] text-center"
+                                />
+                                <button onClick={() => {
+                                  const n = parseFloat(sleepInput)
+                                  if (!isNaN(n) && n > 0) { setSleepHours(n); setSleepInput(''); setSleepExpanded(false) }
+                                }} className="px-3 py-2 rounded-lg bg-[#1DB95422] border border-[#1DB95433] text-[#1DB954] text-[10px] font-black cursor-pointer active:scale-95">
+                                  SET
+                                </button>
+                                {sh > 0 && (
+                                  <button onClick={() => { setSleepHours(0); setSleepExpanded(false) }}
+                                    className="px-3 py-2 rounded-lg bg-[#1E1E26] text-[#686870] text-[10px] font-black cursor-pointer active:scale-95">
+                                    CLEAR
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* Intermittent Fasting — no XP, tracked separately */}
                     {(() => {
@@ -1667,7 +1726,7 @@ export default function HomePage() {
                 { label: 'Lifting', icon: '🏋️', kcal: liftingKcal, color: '#FF2800', show: true },
                 { label: 'Steps', icon: '👟', kcal: stepsKcal, sub: `${flatSteps.toLocaleString()} steps`, color: '#2196F3', show: true },
                 { label: cardio?.type === 'incline_walk' ? 'Incline Walk' : 'Cross Trainer', icon: '⛰️', kcal: cardioKcal, sub: cardio ? `${cardio.minutes} min` : '', color: '#FF5500', show: cardioKcal > 0 },
-                { label: 'Sleep BMR', icon: '😴', kcal: sleepKcal, sub: '7.5h overnight', color: '#9B59B6', show: sleepKcal > 0 },
+                { label: 'Sleep BMR', icon: '😴', kcal: sleepKcal, sub: `${sleepHoursToday}h overnight`, color: '#9B59B6', show: sleepKcal > 0 },
                 { label: 'Intimacy', icon: '❤️', kcal: intimacyKcal, sub: `${todayLog?.intimacyMinutes ?? 0} min`, color: '#D4A017', show: intimacyKcal > 0 },
               ].filter(r => r.show).map(row => (
                 <div key={row.label} className="flex items-center gap-3 bg-[#0D0D10] rounded-xl px-4 py-3 border border-[#1E1E26]">

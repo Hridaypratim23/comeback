@@ -48,6 +48,7 @@ export interface DayLog {
   xpEarned: number
   habits: Record<string, boolean>
   fastingHours?: number
+  sleepHours?: number
   finisherRounds?: number
 }
 
@@ -156,6 +157,7 @@ interface AppState {
   clearNewPR: () => void
   addMeasurement: (m: Omit<Measurement, 'date'>) => void
   saveWeeklyCheckin: (c: Omit<WeeklyCheckin, 'date'>) => void
+  setSleepHours: (hours: number) => void
   setFastingHours: (hours: number) => void
   saveCustomMeal: (m: Omit<CustomMealTemplate, 'id'>) => void
   deleteCustomMeal: (id: string) => void
@@ -642,6 +644,7 @@ export const useStore = create<AppState>()(
                 : (rem.steps ?? local.steps ?? 0),
               waterMl:      Math.max(local.waterMl ?? 0,      rem.waterMl ?? 0),
               fastingHours: Math.max(local.fastingHours ?? 0, rem.fastingHours ?? 0),
+              sleepHours:   Math.max(local.sleepHours   ?? 0, rem.sleepHours   ?? 0),
               workoutDone: local.workoutDone || rem.workoutDone,
               workoutDurationSecs: Math.max(local.workoutDurationSecs ?? 0, rem.workoutDurationSecs ?? 0) || undefined,
               checkedExercises: local.checkedExercises.length >= rem.checkedExercises.length
@@ -706,6 +709,15 @@ export const useStore = create<AppState>()(
         get().syncToSupabase()
       },
 
+      setSleepHours: (hours) => {
+        const d = todayStr()
+        set(s => {
+          const day = s.dayLogs[d] ?? defaultDay(d)
+          const habits = { ...day.habits, sleep: hours >= 7 }
+          return { dayLogs: { ...s.dayLogs, [d]: { ...day, sleepHours: hours, habits } } }
+        })
+        get().syncToSupabase()
+      },
       setFastingHours: (hours) => {
         const d = todayStr()
         set(s => {
