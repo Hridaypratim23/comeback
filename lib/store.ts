@@ -423,8 +423,12 @@ export const useStore = create<AppState>()(
         const d = todayStr()
         set(s => {
           const day = s.dayLogs[d] ?? defaultDay(d)
-          return { dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: true } } }
+          return {
+            dayLogs: { ...s.dayLogs, [d]: { ...day, steps, stepsManualOverride: true } },
+            stepsOverride: { ...s.stepsOverride, [d]: steps },
+          }
         })
+        get().syncToSupabase()
       },
 
       setStepsFromSync: (steps) => {
@@ -671,6 +675,8 @@ export const useStore = create<AppState>()(
           const mergedOverrides = { ...s.stepsOverride, ...(remoteOverrides ?? {}) }
           for (const [date, steps] of Object.entries(mergedOverrides)) {
             const existing = mergedDayLogs[date] ?? defaultDay(date)
+            // Never overwrite a manual entry with a lower synced value
+            if (existing.stepsManualOverride && (existing.steps ?? 0) >= steps) continue
             mergedDayLogs[date] = { ...existing, steps }
           }
 
@@ -760,7 +766,11 @@ export const useStore = create<AppState>()(
         state.stepsOverride = { ...FIXED, ...state.stepsOverride }
         const today = localDateStr()
         for (const [date, steps] of Object.entries(state.stepsOverride)) {
-          if (state.dayLogs[date]) state.dayLogs[date] = { ...state.dayLogs[date], steps }
+          const log = state.dayLogs[date]
+          if (!log) continue
+          // Never overwrite a manual entry with a lower synced value
+          if (log.stepsManualOverride && (log.steps ?? 0) >= steps) continue
+          state.dayLogs[date] = { ...log, steps }
         }
         // Also cap any past date with suspiciously high steps
         for (const [date, log] of Object.entries(state.dayLogs)) {
@@ -777,7 +787,9 @@ export const useStore = create<AppState>()(
         const fixed: Record<string, DayLog> = {}
         for (const [date, log] of Object.entries(dayLogs)) {
           if (overrides[date] !== undefined) {
-            fixed[date] = { ...log, steps: overrides[date] }
+            // Don't overwrite a manual entry with a lower synced value
+            const keepManual = log.stepsManualOverride && (log.steps ?? 0) >= overrides[date]
+            fixed[date] = keepManual ? log : { ...log, steps: overrides[date] }
           } else if (date < today && (log.steps ?? 0) > 90000) {
             fixed[date] = { ...log, steps: 0 }
           } else {
