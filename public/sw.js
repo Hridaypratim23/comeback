@@ -1,11 +1,10 @@
-const VERSION = 'comeback-v10'
-const CACHE = `comeback-${VERSION}`
+const VERSION = 'comeback-v11'
 
-// ── Lifecycle ──────────────────────────────────────────────────────────────
+// ── Lifecycle: install and activate immediately, clear all old caches ──────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(['/icon.png']))
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
       .then(() => self.skipWaiting())
   )
 })
@@ -13,27 +12,14 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   )
 })
 
-// ── Fetch: cache-first for immutable static assets ────────────────────────
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url)
-  if (url.origin !== self.location.origin) return
-  if (!url.pathname.startsWith('/_next/static/')) return
-
-  e.respondWith(
-    caches.match(e.request).then(hit => {
-      if (hit) return hit
-      return fetch(e.request).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
-        return res
-      })
-    })
-  )
-})
+// ── Fetch: always network — no caching of any assets ─────────────────────
+// (Next.js handles its own caching via content-hashed filenames)
+self.addEventListener('fetch', () => { /* pass through to network */ })
 
 // ── Server-sent Web Push ───────────────────────────────────────────────────
 self.addEventListener('push', event => {
