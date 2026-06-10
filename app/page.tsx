@@ -172,6 +172,7 @@ export default function HomePage() {
   const [now, setNow] = useState(new Date())
   const [weekShift, setWeekShift] = useState(0) // 0 = current week, -1 = prev, etc.
   const [selectedDate, setSelectedDate] = useState('')
+  const [burnBreakdownOpen, setBurnBreakdownOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(false)
   const [unCheckPending, setUnCheckPending] = useState<{ label: string; icon: string; onConfirm: () => void } | null>(null)
   const [celebrating, setCelebrating] = useState(false)
@@ -1332,7 +1333,7 @@ export default function HomePage() {
                         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${stepsPct}%`, background: 'linear-gradient(90deg, #1A6BB5, #2196F3)' }} />
                       </div>
                     </div>
-                    <Link href="/workout" className="cursor-pointer">
+                    <button onClick={() => { haptic(); setBurnBreakdownOpen(true) }} className="cursor-pointer text-left w-full">
                       <div className="bg-[#111116] border border-[#1E1E26] rounded-xl p-3 h-full" style={{ boxShadow: 'inset 0 2px 0 rgba(29,185,84,0.4)' }}>
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-sm leading-none">🔥</span>
@@ -1344,7 +1345,7 @@ export default function HomePage() {
                           <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min((totalBurned / 1000) * 100, 100)}%`, background: 'linear-gradient(90deg, #0D7A3A, #1DB954)' }} />
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   </div>
                   {/* Compact steps entry */}
                   <div className="flex gap-2 items-center">
@@ -1644,6 +1645,59 @@ export default function HomePage() {
       <p className="text-center text-[8px] font-bold text-[#1E1E26] tracking-widest mt-4 pb-2 select-none">
         BUILD 20260520-v6
       </p>
+
+      {/* ── Burn breakdown modal ── */}
+      {burnBreakdownOpen && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setBurnBreakdownOpen(false)}>
+          <div style={{ width: '100%', maxWidth: 480, background: '#111116', borderTop: '1px solid #2C2C38', borderRadius: '20px 20px 0 0', padding: '24px 24px 40px' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-[10px] font-black tracking-[0.3em] text-[#686870]">ACTIVE BURN</div>
+                <div className="text-3xl font-black text-[#1DB954] leading-none mt-0.5">{totalBurned} <span className="text-sm text-[#686870] font-normal">kcal</span></div>
+              </div>
+              <button onClick={() => setBurnBreakdownOpen(false)}
+                className="w-8 h-8 rounded-full bg-[#1E1E26] flex items-center justify-center cursor-pointer active:scale-90">
+                <X size={14} className="text-[#686870]" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { label: 'Lifting', icon: '🏋️', kcal: liftingKcal, color: '#FF2800', show: true },
+                { label: 'Steps', icon: '👟', kcal: stepsKcal, sub: `${flatSteps.toLocaleString()} steps`, color: '#2196F3', show: true },
+                { label: cardio?.type === 'incline_walk' ? 'Incline Walk' : 'Cross Trainer', icon: '⛰️', kcal: cardioKcal, sub: cardio ? `${cardio.minutes} min` : '', color: '#FF5500', show: cardioKcal > 0 },
+                { label: 'Sleep BMR', icon: '😴', kcal: sleepKcal, sub: '7.5h overnight', color: '#9B59B6', show: sleepKcal > 0 },
+                { label: 'Intimacy', icon: '❤️', kcal: intimacyKcal, sub: `${todayLog?.intimacyMinutes ?? 0} min`, color: '#D4A017', show: intimacyKcal > 0 },
+              ].filter(r => r.show).map(row => (
+                <div key={row.label} className="flex items-center gap-3 bg-[#0D0D10] rounded-xl px-4 py-3 border border-[#1E1E26]">
+                  <span className="text-lg leading-none">{row.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-black text-[#EDEDF0]">{row.label}</div>
+                    {row.sub && <div className="text-[9px] text-[#686870] mt-0.5">{row.sub}</div>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-black" style={{ color: row.color }}>{row.kcal}</div>
+                    <div className="text-[9px] text-[#686870]">kcal</div>
+                  </div>
+                  <div className="w-16">
+                    <div className="h-1.5 bg-[#1E1E26] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${totalBurned > 0 ? Math.round((row.kcal / totalBurned) * 100) : 0}%`, background: row.color }} />
+                    </div>
+                    <div className="text-[8px] text-[#2C2C38] text-right mt-0.5">
+                      {totalBurned > 0 ? Math.round((row.kcal / totalBurned) * 100) : 0}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {totalBurned === 0 && (
+              <div className="text-center py-4 text-[10px] text-[#2C2C38] font-black tracking-widest">LOG A WORKOUT OR STEPS TO SEE BREAKDOWN</div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Celebration overlay (portalled to escape PageTransition transform) ── */}
       {celebrating && createPortal(
