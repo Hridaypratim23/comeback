@@ -1287,12 +1287,13 @@ export default function HomePage() {
 
             {/* Stats 2×2 Grid */}
             {(() => {
-              const steps = todayLog?.steps ?? 0
+              const steps = todaySteps  // use unified value (max of manual and synced)
               const stepsPct = Math.min((steps / TARGETS.steps) * 100, 100)
               const commitSteps = () => {
                 const n = parseInt(stepsInput)
                 if (!n || n <= 0) return
                 setSteps(n)
+                setSyncedSteps(n)  // update display immediately, don't wait for next poll
                 setStepsInput('')
               }
               const stepsDisplay = steps >= 1000 ? `${(steps / 1000).toFixed(1)}K` : String(steps)
