@@ -344,7 +344,7 @@ export default function HomePage() {
   // ── Score calculations ─────────────────────────────────────────────────
   const maintenance = Math.round((370 + 21.6 * (stats.weight * (1 - stats.bodyFat / 100))) * 1.55)
   const todayCal   = todayLog?.meals.reduce((s, m) => s + m.calories, 0) ?? 0
-  const todaySteps = todayLog?.steps ?? 0
+  const todaySteps = Math.max(todayLog?.steps ?? 0, todayLog?.stepsManual ?? 0)
 
   // Calories burned: lifting + cardio + steps + intimacy (4 kcal/min) + sleep BMR
   // Lifting kcal: 0 if no session time and no volume tracked (avoids phantom 350 kcal on unlogged days)
